@@ -27,6 +27,7 @@ dependencyResolutionManagement {
     }
 }
 
+// UI is native per platform: Compose in :androidApp, SwiftUI in iosApp.
+// :sharedLogic holds the domain layer shared by both.
 include(":androidApp")
 include(":sharedLogic")
-include(":sharedUI")

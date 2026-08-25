@@ -34,6 +34,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            // Provides BackHandler for the SystemBackHandler actual.
+            implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
             api(project(":sharedLogic"))

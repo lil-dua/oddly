@@ -10,13 +10,31 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
+
 dependencies {
-    implementation(project(":sharedUI"))
+    // Shared domain layer. The UI deliberately is not shared — iOS gets SwiftUI.
+    implementation(project(":sharedLogic"))
 
+    val composeBom = platform(libs.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui.toolingPreview)
     implementation(libs.androidx.activity.compose)
+    // No lifecycle-compose yet: state lives in a plain holder, not a ViewModel.
+    // Add lifecycle-viewmodel-compose when the repository layer lands.
 
-    implementation(libs.compose.uiToolingPreview)
-    debugImplementation(libs.compose.uiTooling)
+    debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
+
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.testExt.junit)
+    androidTestImplementation(libs.compose.ui.test.junit4)
 }
 
 android {
@@ -29,6 +47,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     packaging {
         resources {

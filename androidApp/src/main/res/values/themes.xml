@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Launch theme. The window background matches OddlyColors.Background so
+        cold start shows the app's deep space backdrop rather than a white
+        flash before Compose takes over.
+    -->
+    <style name="Theme.Oddly" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/oddly_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
