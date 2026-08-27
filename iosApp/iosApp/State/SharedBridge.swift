@@ -60,8 +60,6 @@ extension AppSettings {
 }
 
 extension UserProfile {
-    var xpForNextLevelValue: Int { Int(xpForNextLevel) }
-
     func with(level: Int32? = nil, xpInLevel: Int32? = nil) -> UserProfile {
         doCopy(
             id: id,
@@ -72,11 +70,6 @@ extension UserProfile {
             xpInLevel: xpInLevel ?? self.xpInLevel
         )
     }
-}
-
-extension StatsRange {
-    /// `days` is nullable on the Kotlin side (the "all time" bucket has no span).
-    var dayCount: Int? { days.map { Int(truncating: $0) } }
 }
 
 // MARK: - Identity for SwiftUI collections

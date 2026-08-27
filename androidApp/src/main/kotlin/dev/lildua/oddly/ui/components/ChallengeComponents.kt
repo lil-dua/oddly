@@ -396,28 +396,3 @@ fun SettingsRow(
         }
     }
 }
-
-/** Section heading with an optional trailing action, e.g. "Xem tất cả". */
-@Composable
-fun SectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
-    actionText: String? = null,
-    onAction: (() -> Unit)? = null,
-) {
-    val palette = OddlyTheme.palette
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = palette.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
-        if (actionText != null && onAction != null) {
-            TextAction(actionText, onAction, color = OddlyColors.Purple)
-        }
-    }
-}

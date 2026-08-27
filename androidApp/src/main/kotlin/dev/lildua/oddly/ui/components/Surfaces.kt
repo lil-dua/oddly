@@ -74,39 +74,6 @@ fun OddlyCard(
     )
 }
 
-/** Card variant filled with a brush — used for hero and category surfaces. */
-@Composable
-fun GradientCard(
-    brush: Brush,
-    modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(20.dp),
-    borderColor: Color = Color.Transparent,
-    contentPadding: Dp = 18.dp,
-    onClick: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(brush)
-            .border(BorderStroke(1.dp, borderColor), shape)
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClick,
-                    )
-                } else {
-                    Modifier
-                },
-            )
-            .padding(contentPadding),
-        content = content,
-    )
-}
-
 /** Text painted with a gradient — the "1%" wordmark and hero numbers. */
 @Composable
 fun GradientText(

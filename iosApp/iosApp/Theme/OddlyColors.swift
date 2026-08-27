@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension Color {
     /// 0xAARRGGBB, matching the `colorHex` values carried by the shared domain
@@ -48,6 +49,24 @@ enum OddlyColors {
     static let warning = Color(rgb: 0xFBBF24)
     static let danger = Color(rgb: 0xF87171)
 
+    /// [top] at [alpha] composited over [bottom], resolved up front.
+    ///
+    /// The share card exports to a PNG with nothing behind it, so any stop left
+    /// translucent would come out washed out wherever the image is shared.
+    static func composite(_ top: Color, over bottom: Color, alpha: Double) -> Color {
+        Color(
+            .sRGB,
+            red: mix(top.components.red, bottom.components.red, alpha),
+            green: mix(top.components.green, bottom.components.green, alpha),
+            blue: mix(top.components.blue, bottom.components.blue, alpha),
+            opacity: 1
+        )
+    }
+
+    private static func mix(_ top: Double, _ bottom: Double, _ alpha: Double) -> Double {
+        top * alpha + bottom * (1 - alpha)
+    }
+
     // Ink used on top of the neon fills — deep plum rather than pure black,
     // which reads softer against a saturated gradient.
     static let onNeon = Color(rgb: 0x1B0A25)
@@ -61,4 +80,14 @@ enum OddlyColors {
     static let lightTextPrimary = Color(rgb: 0x14141C)
     static let lightTextSecondary = Color(rgb: 0x5A5A6E)
     static let lightOutline = Color(rgb: 0xE0E0EA)
+}
+
+private extension Color {
+    /// sRGB components of a colour built from a literal hex value.
+    var components: (red: Double, green: Double, blue: Double) {
+        let ui = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        ui.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (Double(r), Double(g), Double(b))
+    }
 }

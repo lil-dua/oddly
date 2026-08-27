@@ -55,7 +55,6 @@ fun QuotesScreen(
     val todayIndex = remember { ((state.today.toEpochDays() % quotes.size) + quotes.size) % quotes.size }
     var index by remember { mutableIntStateOf(todayIndex) }
     val favorites = remember { mutableStateOf(setOf<String>()) }
-    var reminderOn by remember { mutableStateOf(state.settings.reminderEnabled) }
 
     val quote = quotes[index]
     val isFavorite = quote.id in favorites.value
@@ -193,9 +192,8 @@ fun QuotesScreen(
                         )
                     }
                     Switch(
-                        checked = reminderOn,
+                        checked = state.settings.reminderEnabled,
                         onCheckedChange = {
-                            reminderOn = it
                             state.settings = state.settings.copy(reminderEnabled = it)
                         },
                         colors = SwitchDefaults.colors(

@@ -139,12 +139,21 @@ struct ShareCardScreen: View {
     @MainActor
     private func renderCard() {
         let width: CGFloat = 360
-        let card = ShareCardPreview(state: state, challenge: challenge, ratio: layout.ratio)
-            .frame(width: width, height: width / layout.ratio)
-            .environment(\.palette, palette)
+        // The card's rounded corners are transparent and its fill is layered,
+        // so it is composited onto the app background before capture — without
+        // that the receiving app's backdrop shows through and washes it out.
+        let card = ZStack {
+            OddlyColors.background
+            ShareCardPreview(state: state, challenge: challenge, ratio: layout.ratio)
+        }
+        .frame(width: width, height: width / layout.ratio)
+        .environment(\.palette, palette)
 
         let renderer = ImageRenderer(content: card)
         renderer.scale = 3
+        // Without this the card exports with its translucency intact and the
+        // receiving app's background shows through, washing it out.
+        renderer.isOpaque = true
         if let uiImage = renderer.uiImage {
             rendered = Image(uiImage: uiImage)
         }
@@ -164,7 +173,7 @@ private struct ShareCardPreview: View {
             LinearGradient(
                 colors: [
                     OddlyColors.background,
-                    OddlyColors.purple.opacity(0.25),
+                    OddlyColors.composite(OddlyColors.purple, over: OddlyColors.background, alpha: 0.25),
                     OddlyColors.background,
                 ],
                 startPoint: .top,

@@ -90,16 +90,6 @@ extension ChallengeCategory {
     var color: Color { Color(argb: UInt64(bitPattern: Int64(colorHex))) }
 }
 
-extension Difficulty {
-    var color: Color {
-        switch self {
-        case Difficulty.easy: return OddlyColors.success
-        case Difficulty.medium: return OddlyColors.warning
-        default: return OddlyColors.flame
-        }
-    }
-}
-
 /// Rounded cards, 16–24pt radius (spec §8).
 enum OddlyRadius {
     static let small: CGFloat = 12

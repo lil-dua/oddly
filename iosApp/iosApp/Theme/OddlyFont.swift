@@ -26,11 +26,3 @@ enum OddlyFont {
     static let labelMedium = Font.system(size: 13, weight: .medium)
     static let labelSmall = Font.system(size: 11, weight: .medium)
 }
-
-extension View {
-    /// Applies the letter spacing the Android scale pairs with a given style.
-    /// Only the display sizes are tracked; body text uses the system default.
-    func displayTracking(_ amount: CGFloat) -> some View {
-        tracking(amount)
-    }
-}

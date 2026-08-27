@@ -160,11 +160,6 @@ final class OddlyAppState {
         return next
     }
 
-    /// Make [challenge] the active one, e.g. after picking from the library.
-    func chooseTodayChallenge(_ challenge: Challenge) {
-        todayChallenge = challenge
-    }
-
     func toggleInterest(_ category: ChallengeCategory) {
         if interests.contains(category) {
             interests.remove(category)

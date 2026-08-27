@@ -63,10 +63,4 @@ enum OddlyGradients {
             endRadius: radius
         )
     }
-
-    /// A single flat colour expressed as a gradient, so a view can switch
-    /// between a real gradient and a solid fill without changing its type.
-    static func solid(_ color: Color) -> LinearGradient {
-        LinearGradient(colors: [color, color], startPoint: .leading, endPoint: .trailing)
-    }
 }

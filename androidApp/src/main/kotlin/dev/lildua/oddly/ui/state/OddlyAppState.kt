@@ -146,11 +146,6 @@ class OddlyAppState(
         }
     }
 
-    /** Make [challenge] the active one, e.g. after picking from the library. */
-    fun chooseTodayChallenge(challenge: Challenge) {
-        todayChallenge = challenge
-    }
-
     fun toggleInterest(category: Category) {
         interests = if (category in interests) interests - category else interests + category
     }

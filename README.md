@@ -4,8 +4,8 @@ An offline-first mobile app that turns one small action a day into a habit.
 One challenge, a few minutes, a reward, a streak — no account, no backend, no network.
 
 > **Status:** Android and iOS apps both complete and running against sample
-> data. Persistence and notifications are still to come — see
-> [Not built yet](#not-built-yet).
+> data, including local share-image export. Persistence and notifications are
+> still to come — see [Not built yet](#not-built-yet).
 
 ## Architecture
 
@@ -134,12 +134,22 @@ Deliberate gaps, in the order the spec's roadmap tackles them:
    persisted, so reopening the app re-picks today's challenge.
 3. **Local notifications.** Reminder time is stored and editable; nothing is
    scheduled yet on either platform.
-4. **Share export on Android.** iOS renders the card with `ImageRenderer` and
-   hands it to the system share sheet via `ShareLink`; the Android side still
-   shows the composition only.
-5. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
-6. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
+4. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
+5. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
    pure functions and the obvious first candidates.
+
+## Share export
+
+Both platforms generate the card locally and hand it to the system share sheet
+(spec §S18) — Android via `GraphicsLayer` + `FileProvider`, iOS via
+`ImageRenderer` + `ShareLink`. The image is composited onto an opaque
+background before it leaves the app: the card's fill is layered and its corners
+are rounded, so an unflattened export picks up whatever the receiving app puts
+behind it and washes out.
+
+Android exposes exactly one path through the provider — the cache directory the
+card is written to (`res/xml/file_paths.xml`) — and the image carries only the
+aggregate achievements the card shows, never notes or dates.
 
 ## Navigation
 

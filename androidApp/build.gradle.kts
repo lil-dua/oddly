@@ -26,6 +26,9 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.ui.toolingPreview)
     implementation(libs.androidx.activity.compose)
+    // androidx.core (FileProvider, used by the share export) arrives transitively
+    // with Compose. It is not declared explicitly because the catalogue's
+    // core-ktx 1.19 needs AGP 9.1 / compileSdk 37 — see the toolchain note.
     // No lifecycle-compose yet: state lives in a plain holder, not a ViewModel.
     // Add lifecycle-viewmodel-compose when the repository layer lands.
 

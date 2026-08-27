@@ -30,16 +30,13 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
 enum class OddlyIcon {
     ChevronRight,
     ChevronLeft,
-    ChevronDown,
     Check,
     Close,
-    Home,
     Journey,
     Stats,
     Settings,
     Share,
     Bell,
-    Plus,
     Calendar,
     Flame,
     Sparkle,
@@ -90,23 +87,12 @@ private fun DrawScope.drawOddlyIcon(icon: OddlyIcon, s: Float, tint: Color, stro
     when (icon) {
         OddlyIcon.ChevronRight -> poly(0.38f to 0.24f, 0.66f to 0.5f, 0.38f to 0.76f)
         OddlyIcon.ChevronLeft -> poly(0.62f to 0.24f, 0.34f to 0.5f, 0.62f to 0.76f)
-        OddlyIcon.ChevronDown -> poly(0.24f to 0.4f, 0.5f to 0.66f, 0.76f to 0.4f)
 
         OddlyIcon.Check -> poly(0.22f to 0.52f, 0.42f to 0.72f, 0.78f to 0.3f)
 
         OddlyIcon.Close -> {
             line(0.27f, 0.27f, 0.73f, 0.73f)
             line(0.73f, 0.27f, 0.27f, 0.73f)
-        }
-
-        OddlyIcon.Home -> {
-            poly(0.15f to 0.48f, 0.5f to 0.18f, 0.85f to 0.48f)
-            poly(
-                0.25f to 0.44f,
-                0.25f to 0.82f,
-                0.75f to 0.82f,
-                0.75f to 0.44f,
-            )
         }
 
         // A winding path with a start dot and a destination pin.
@@ -170,11 +156,6 @@ private fun DrawScope.drawOddlyIcon(icon: OddlyIcon, s: Float, tint: Color, stro
             drawPath(dome, tint, style = stroke)
             line(0.18f, 0.66f, 0.82f, 0.66f)
             drawCircle(tint, radius = 0.06f * s, center = p(0.5f, 0.8f))
-        }
-
-        OddlyIcon.Plus -> {
-            line(0.5f, 0.24f, 0.5f, 0.76f)
-            line(0.24f, 0.5f, 0.76f, 0.5f)
         }
 
         OddlyIcon.Calendar -> {

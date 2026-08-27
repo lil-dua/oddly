@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.domain.model.Challenge
@@ -34,12 +41,12 @@ import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.Planet
-import dev.lildua.oddly.ui.components.SecondaryButton
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyTheme
+import kotlinx.coroutines.launch
 
 private enum class ShareLayout(val label: String, val ratio: Float) {
     STORY("Dọc 9:16", 9f / 16f),
@@ -58,10 +65,12 @@ fun ShareCardScreen(
 ) {
     val palette = OddlyTheme.palette
     var layout by remember { mutableStateOf(ShareLayout.STORY) }
-    // Rendering the card to a bitmap and handing it to the OS share sheet is
-    // platform work (spec Phase 4). The preview below is the final composition;
-    // only the export step is outstanding.
-    var showPendingNotice by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // The card is recorded into this layer as it draws, so exporting is a
+    // replay of what is already on screen rather than a second composition.
+    val cardLayer = rememberGraphicsLayer()
+    var exportFailed by remember { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -115,31 +124,47 @@ fun ShareCardScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            SharePreview(
-                state = state,
-                challenge = challenge,
-                ratio = layout.ratio,
-            )
+            Box(
+                Modifier.drawWithContent {
+                    cardLayer.record { this@drawWithContent.drawContent() }
+                    drawLayer(cardLayer)
+                },
+            ) {
+                SharePreview(
+                    state = state,
+                    challenge = challenge,
+                    ratio = layout.ratio,
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
 
+            // One action: the system chooser is also where "save to photos"
+            // lives on Android, so a separate save button would duplicate it.
             GradientButton(
                 text = "Chia sẻ ngay",
-                onClick = { showPendingNotice = true },
+                onClick = {
+                    scope.launch {
+                        val bitmap = cardLayer.toImageBitmap().asAndroidBitmap()
+                        val intent = ShareImageExport.chooserIntent(
+                            context = context,
+                            bitmap = bitmap,
+                            caption = "1% HUMAN · ${state.totalCompleted} thử thách",
+                        )
+                        if (intent == null) {
+                            exportFailed = true
+                        } else {
+                            exportFailed = false
+                            context.startActivity(intent)
+                        }
+                    }
+                },
                 leadingIcon = OddlyIcon.Share,
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            SecondaryButton(
-                text = "Lưu ảnh",
-                onClick = { showPendingNotice = true },
-                leadingIcon = OddlyIcon.Download,
             )
 
             Spacer(Modifier.height(16.dp))
 
-            if (showPendingNotice) {
+            if (exportFailed) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -151,7 +176,7 @@ fun ShareCardScreen(
                     OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = OddlyColors.Warning)
                     Spacer(Modifier.height(0.dp))
                     Text(
-                        text = "  Xuất ảnh và mở share sheet là phần việc riêng của từng nền tảng, sẽ được nối ở bước tiếp theo.",
+                        text = "  Không tạo được ảnh chia sẻ. Hãy kiểm tra dung lượng trống rồi thử lại.",
                         style = MaterialTheme.typography.bodySmall,
                         color = OddlyColors.Warning,
                     )
@@ -187,10 +212,13 @@ private fun SharePreview(
             .aspectRatio(ratio)
             .clip(RoundedCornerShape(24.dp))
             .background(
+                // Resolved to an opaque colour rather than left translucent:
+                // the exported PNG has nothing behind it, so a 25%-alpha stop
+                // would come out washed out wherever the card is shared.
                 Brush.verticalGradient(
                     listOf(
                         OddlyColors.Background,
-                        OddlyColors.Purple.copy(alpha = 0.25f),
+                        OddlyColors.Purple.copy(alpha = 0.25f).compositeOver(OddlyColors.Background),
                         OddlyColors.Background,
                     ),
                 ),

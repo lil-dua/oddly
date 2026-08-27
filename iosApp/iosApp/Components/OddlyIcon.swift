@@ -11,16 +11,13 @@ import SwiftUI
 enum OddlyIcon {
     case chevronRight
     case chevronLeft
-    case chevronDown
     case check
     case close
-    case home
     case journey
     case stats
     case settings
     case share
     case bell
-    case plus
     case calendar
     case flame
     case sparkle
@@ -125,8 +122,6 @@ struct OddlyIconView: View {
             poly([(0.38, 0.24), (0.66, 0.5), (0.38, 0.76)])
         case .chevronLeft:
             poly([(0.62, 0.24), (0.34, 0.5), (0.62, 0.76)])
-        case .chevronDown:
-            poly([(0.24, 0.4), (0.5, 0.66), (0.76, 0.4)])
 
         case .check:
             poly([(0.22, 0.52), (0.42, 0.72), (0.78, 0.3)])
@@ -134,10 +129,6 @@ struct OddlyIconView: View {
         case .close:
             line(0.27, 0.27, 0.73, 0.73)
             line(0.73, 0.27, 0.27, 0.73)
-
-        case .home:
-            poly([(0.15, 0.48), (0.5, 0.18), (0.85, 0.48)])
-            poly([(0.25, 0.44), (0.25, 0.82), (0.75, 0.82), (0.75, 0.44)])
 
         // A winding path with a start dot and a destination pin.
         case .journey:
@@ -187,10 +178,6 @@ struct OddlyIconView: View {
             }, filled: false)
             line(0.18, 0.66, 0.82, 0.66)
             circle(0.5, 0.8, radius: 0.06, filled: true)
-
-        case .plus:
-            line(0.5, 0.24, 0.5, 0.76)
-            line(0.24, 0.5, 0.76, 0.5)
 
         case .calendar:
             let body = Path(

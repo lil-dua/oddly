@@ -13,14 +13,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import dev.lildua.oddly.data.seed.ChallengeSeed
 import dev.lildua.oddly.data.seed.QuoteSeed
-import dev.lildua.oddly.domain.model.ThemeMode
 import dev.lildua.oddly.ui.navigation.BottomBarDivider
 import dev.lildua.oddly.ui.navigation.Destination
 import dev.lildua.oddly.ui.navigation.OddlyBottomBar
@@ -56,9 +51,7 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
 @Composable
 fun OddlyApp() {
     val state = rememberOddlyAppState()
-    var themeMode by remember { mutableStateOf(state.settings.themeMode) }
-
-    OddlyTheme(themeMode = themeMode) {
+    OddlyTheme(themeMode = state.settings.themeMode) {
         val navigator = rememberNavigator(Destination.Splash)
         val current = navigator.current
 
@@ -142,10 +135,7 @@ fun OddlyApp() {
                             onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
                         )
 
-                        TabDestination.SETTINGS -> SettingsScreen(
-                            state = state,
-                            onThemeChange = { themeMode = it },
-                        )
+                        TabDestination.SETTINGS -> SettingsScreen(state = state)
 
                         // --- Challenge flow ---
 

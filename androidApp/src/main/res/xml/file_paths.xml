@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The only path the app ever exposes: the cache directory the share card is
+  rendered into. Nothing else on disk is reachable through the provider.
+-->
+<paths>
+    <cache-path name="shared_images" path="images/" />
+</paths>

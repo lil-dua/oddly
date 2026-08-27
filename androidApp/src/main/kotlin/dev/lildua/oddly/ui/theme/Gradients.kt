@@ -41,11 +41,6 @@ object OddlyGradients {
         brandStops + OddlyColors.Pink,
     )
 
-    /** Subtle top-lit card fill so cards feel lifted off the background. */
-    fun cardSheen(base: Color = OddlyColors.Surface) = Brush.verticalGradient(
-        listOf(base.copy(alpha = 1f), base.copy(alpha = 0.82f)),
-    )
-
     /** A soft category-tinted wash for category cards and chips. */
     fun categoryWash(color: Color) = Brush.verticalGradient(
         listOf(color.copy(alpha = 0.22f), color.copy(alpha = 0.06f)),

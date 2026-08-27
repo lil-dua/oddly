@@ -28,32 +28,6 @@ struct OddlyCard<Content: View>: View {
     }
 }
 
-/// Card variant filled with a gradient — used for hero and category surfaces.
-struct GradientCard<Content: View>: View {
-    var gradient: LinearGradient
-    var cornerRadius: CGFloat = OddlyRadius.large
-    var borderColor: Color = .clear
-    var contentPadding: CGFloat = 18
-    var action: (() -> Void)?
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        let surface = VStack(alignment: .leading, spacing: 0) { content() }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(contentPadding)
-            .background(gradient, in: shape)
-            .overlay(shape.stroke(borderColor, lineWidth: 1))
-
-        if let action {
-            Button(action: action) { surface }
-                .buttonStyle(PressableStyle(pressedScale: 0.985))
-        } else {
-            surface
-        }
-    }
-}
-
 /// Text painted with a gradient — the "1%" wordmark and hero numbers.
 struct GradientText: View {
     let text: String
@@ -182,27 +156,6 @@ struct OddlyChip: View {
                 .buttonStyle(PressableStyle())
         } else {
             pill
-        }
-    }
-}
-
-/// Section heading with an optional trailing action, e.g. "Xem tất cả".
-struct SectionHeader: View {
-    @Environment(\.palette) private var palette
-
-    let title: String
-    var actionText: String?
-    var action: (() -> Void)?
-
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(OddlyFont.titleMedium)
-                .foregroundStyle(palette.textPrimary)
-            Spacer()
-            if let actionText, let action {
-                TextAction(actionText, color: OddlyColors.purple, action: action)
-            }
         }
     }
 }

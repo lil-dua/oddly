@@ -47,10 +47,7 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
  * spec §16.
  */
 @Composable
-fun SettingsScreen(
-    state: OddlyAppState,
-    onThemeChange: (ThemeMode) -> Unit,
-) {
+fun SettingsScreen(state: OddlyAppState) {
     val palette = OddlyTheme.palette
     var showResetDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -127,7 +124,6 @@ fun SettingsScreen(
                         ThemeMode.SYSTEM -> ThemeMode.DARK
                     }
                     state.settings = settings.copy(themeMode = next)
-                    onThemeChange(next)
                 },
             )
             SettingsRow(
