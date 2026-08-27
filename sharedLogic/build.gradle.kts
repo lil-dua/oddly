@@ -13,6 +13,10 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "SharedLogic"
             isStatic = true
+            // The domain models expose kotlinx-datetime types (LocalDate,
+            // LocalTime), so they have to be in the framework's public API for
+            // Swift to see them as real types rather than opaque handles.
+            export(libs.kotlinx.datetime)
         }
     }
     

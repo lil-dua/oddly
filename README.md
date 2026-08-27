@@ -3,9 +3,9 @@
 An offline-first mobile app that turns one small action a day into a habit.
 One challenge, a few minutes, a reward, a streak — no account, no backend, no network.
 
-> **Status:** Android app complete and running against sample data.
-> Persistence, notifications, share-image export and the iOS app are still to
-> come — see [Not built yet](#not-built-yet).
+> **Status:** Android and iOS apps both complete and running against sample
+> data. Persistence and notifications are still to come — see
+> [Not built yet](#not-built-yet).
 
 ## Architecture
 
@@ -36,11 +36,24 @@ androidApp/src/main/kotlin/dev/lildua/oddly/
   ui/state/           OddlyAppState — in-memory app state seeded from SampleData
   ui/screens/         onboarding · home · challenge · journey · statistics ·
                       quotes · settings · share
+
+iosApp/iosApp/
+  iOSApp.swift        App entry point
+  OddlyRootView.swift Theme + splash/onboarding/main phase dispatch
+  Theme/              Colours, gradients, fonts, palette, status-bar scrim
+  Components/         Buttons, surfaces, icons, illustrations, challenge widgets
+  Navigation/         Destination, MainShell, bottom bar, swipe-back shim
+  State/              OddlyAppState — the SwiftUI twin of the Android one,
+                      plus the bridging helpers for the Kotlin framework
+  Screens/            Onboarding · Home · Challenge · Journey · Statistics ·
+                      Quotes · Settings · Share
 ```
 
-Everything the iOS app will need — challenge selection, streak maths,
-statistics, date formatting, seed content — already lives in `sharedLogic`, so
-the SwiftUI layer only has to render and dispatch.
+Everything both apps need — challenge selection, streak maths, statistics, date
+formatting, seed content — lives in `sharedLogic`, so each UI layer only has to
+render and dispatch. The two `OddlyAppState` classes are deliberately parallel:
+same properties, same methods, same derived values, one in Compose snapshot
+state and one in Swift's `@Observable`.
 
 ## Screens
 
@@ -81,8 +94,9 @@ Dark-first, per the spec: near-black space backdrop with sparing neon accents.
 - Colours and gradients live in `ui/theme` — the pink→purple→blue sweep is
   defined once and reused by the wordmark, CTAs, progress bars and share card.
 - **No image or font assets.** Category icons are emoji; UI-chrome icons and the
-  astronaut, planet, starfield and brand ring are drawn with Compose `Canvas`.
-  This keeps the APK small and lets artwork pick up theme colours.
+  astronaut, planet, starfield and brand ring are drawn with Compose `Canvas` on
+  Android and SwiftUI `Canvas` on iOS, from the same normalised 0..1 path data.
+  This keeps both bundles small and lets artwork pick up theme colours.
 
 ## Running
 
@@ -94,7 +108,12 @@ export JAVA_HOME="F:/App/Android/jbr"     # adjust to your install
 ```
 
 - Android: `./gradlew :androidApp:assembleDebug`
-- iOS: open [`/iosApp`](./iosApp) in Xcode.
+- iOS: open [`iosApp/iosApp.xcodeproj`](./iosApp) in Xcode and run. The Xcode
+  build invokes `:sharedLogic:embedAndSignAppleFrameworkForXcode`, so the
+  framework is produced as part of the app build — no separate Gradle step.
+
+The Xcode project uses file-system-synchronised groups, so Swift files added
+under `iosApp/iosApp/` join the target automatically.
 
 ### Toolchain note
 
@@ -107,23 +126,35 @@ together when you upgrade.
 
 Deliberate gaps, in the order the spec's roadmap tackles them:
 
-1. **Persistence.** `OddlyAppState` is in-memory, so state resets on relaunch.
-   Replace with Room/SQLite repositories — the domain models already match the
-   entity shapes, and screens take plain values, so only the state holder changes.
+1. **Persistence.** `OddlyAppState` is in-memory on both platforms, so state
+   resets on relaunch. Replace with Room/SQLite repositories — the domain models
+   already match the entity shapes, and screens take plain values, so only the
+   state holders change.
 2. **Daily challenge locking.** `DailyChallenge` is modelled but not yet
    persisted, so reopening the app re-picks today's challenge.
 3. **Local notifications.** Reminder time is stored and editable; nothing is
-   scheduled yet.
-4. **Share export.** The share card composition is final; rendering it to a
-   bitmap and handing it to the OS share sheet is outstanding.
-5. **iOS app.** `iosApp` is still the project template. `sharedLogic` is ready
-   for it; the SwiftUI screens are the work.
-6. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
-7. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
+   scheduled yet on either platform.
+4. **Share export on Android.** iOS renders the card with `ImageRenderer` and
+   hands it to the system share sheet via `ShareLink`; the Android side still
+   shows the composition only.
+5. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
+6. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
    pure functions and the obvious first candidates.
 
 ## Navigation
 
-`Navigator` is a small hand-rolled back stack rather than `navigation-compose`.
-The route set is small and fixed, and screens take plain callbacks, so swapping
-in the library later touches only `OddlyApp.kt`.
+Each platform uses its own idiom over the same route set.
+
+On Android, `Navigator` is a small hand-rolled back stack rather than
+`navigation-compose`. The route set is small and fixed, and screens take plain
+callbacks, so swapping in the library later touches only `OddlyApp.kt`.
+
+On iOS, `MainShell` puts one `NavigationStack` behind the four tabs, so pushes
+get the native slide and the edge-swipe back. Switching tabs clears the child
+routes, matching the Android `selectTab`. The two screens that are modal by
+nature — the reward celebration and the share card — are a `fullScreenCover` and
+a `sheet` rather than pushes, which is what their own close affordances imply.
+
+`Navigation/SwipeBack.swift` is the one UIKit shim in the iOS app: hiding the
+navigation bar makes UIKit disable the interactive pop gesture, and every screen
+draws its own header, so the swipe has to be re-enabled explicitly.
