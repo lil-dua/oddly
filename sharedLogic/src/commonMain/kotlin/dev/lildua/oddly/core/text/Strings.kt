@@ -149,6 +149,12 @@ interface Strings {
     val shareExportFailed: String
     val sharePrivacyNote: String
     val shareICompleted: String
+    /** Invitation printed on the card above the link. */
+    val shareCtaLead: String
+
+    // --- Notifications (S16) ---
+    val notificationsDisabledNotice: String
+    val openSystemSettings: String
 
     // --- Empty & library (S19, S20) ---
     val emptyJourneyTitle: String
@@ -170,6 +176,9 @@ interface Strings {
     fun levelWithXp(level: Int, current: Int, total: Int): String
     fun deltaVsPrevious(delta: Int): String
     fun keptStreakFor(count: Int): String
+
+    /** The text that travels with the shared image, link included. */
+    fun shareCaption(count: Int): String
 
     companion object {
         fun of(language: AppLanguage): Strings = when (language) {
@@ -311,6 +320,11 @@ object VietnameseStrings : Strings {
     override val sharePrivacyNote =
         "Ảnh chỉ hiển thị thành tích của bạn, không kèm ghi chú hay dữ liệu cá nhân."
     override val shareICompleted = "Tôi đã hoàn thành"
+    override val shareCtaLead = "Bắt đầu 1% của bạn tại"
+
+    override val notificationsDisabledNotice =
+        "Thông báo đang bị tắt trong cài đặt hệ thống, nên lời nhắc sẽ không hiện."
+    override val openSystemSettings = "Mở cài đặt"
 
     override val emptyJourneyTitle = "Bạn chưa có thử thách nào"
     override val emptyJourneyBody = "Hãy bắt đầu hành trình\n1% tốt hơn mỗi ngày."
@@ -332,6 +346,8 @@ object VietnameseStrings : Strings {
     override fun deltaVsPrevious(delta: Int) =
         if (delta >= 0) "+$delta so với kỳ trước" else "$delta so với kỳ trước"
     override fun keptStreakFor(count: Int) = "và duy trì chuỗi ngày\n$count ngày liên tiếp!"
+    override fun shareCaption(count: Int) =
+        "Tôi đã hoàn thành $count thử thách cùng ${Brand.NAME}. Thử xem: ${Brand.SHORT_LINK}"
 }
 
 object EnglishStrings : Strings {
@@ -466,6 +482,11 @@ object EnglishStrings : Strings {
     override val sharePrivacyNote =
         "The image shows your achievements only — no notes, no personal data."
     override val shareICompleted = "I have completed"
+    override val shareCtaLead = "Start your 1% at"
+
+    override val notificationsDisabledNotice =
+        "Notifications are turned off in system settings, so reminders won't appear."
+    override val openSystemSettings = "Open settings"
 
     override val emptyJourneyTitle = "No challenges yet"
     override val emptyJourneyBody = "Start the journey to\n1% better every day."
@@ -490,4 +511,10 @@ object EnglishStrings : Strings {
         if (delta >= 0) "+$delta vs. previous period" else "$delta vs. previous period"
     override fun keptStreakFor(count: Int) =
         if (count == 1) "and kept a streak going\nfor 1 day!" else "and kept a streak going\nfor $count days!"
+    override fun shareCaption(count: Int) =
+        if (count == 1) {
+            "I've completed 1 challenge with ${Brand.NAME}. Try it: ${Brand.SHORT_LINK}"
+        } else {
+            "I've completed $count challenges with ${Brand.NAME}. Try it: ${Brand.SHORT_LINK}"
+        }
 }

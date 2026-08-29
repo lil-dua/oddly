@@ -43,6 +43,7 @@ import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.domain.model.AppLanguage
 import dev.lildua.oddly.domain.model.ThemeMode
+import dev.lildua.oddly.notifications.rememberNotificationPermission
 import dev.lildua.oddly.ui.components.Astronaut
 import dev.lildua.oddly.ui.components.GradientProgressBar
 import dev.lildua.oddly.ui.components.OddlyIcon
@@ -68,6 +69,7 @@ fun SettingsScreen(state: OddlyAppState) {
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
     val settings = state.settings
+    val notifications = rememberNotificationPermission()
 
     var showResetDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -164,8 +166,9 @@ fun SettingsScreen(state: OddlyAppState) {
                 trailing = {
                     Switch(
                         checked = settings.reminderEnabled,
-                        onCheckedChange = {
-                            state.settings = settings.copy(reminderEnabled = it)
+                        onCheckedChange = { enabled ->
+                            state.settings = settings.copy(reminderEnabled = enabled)
+                            if (enabled) notifications.request()
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
@@ -197,6 +200,34 @@ fun SettingsScreen(state: OddlyAppState) {
                     )
                 },
             )
+        }
+
+        if (settings.reminderEnabled && !notifications.granted) {
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(OddlyColors.Warning.copy(alpha = 0.12f))
+                    .clickableNoRipple { notifications.openSystemSettings() }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = OddlyColors.Warning)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = strings.notificationsDisabledNotice,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OddlyColors.Warning,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = strings.openSystemSettings,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = OddlyColors.Warning,
+                )
+            }
         }
 
         Spacer(Modifier.height(20.dp))

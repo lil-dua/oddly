@@ -76,7 +76,7 @@ struct ShareCardScreen: View {
                             ShareLink(
                                 item: rendered,
                                 preview: SharePreview(
-                                    "1% HUMAN · \(strings.challengeCount(count: Int32(state.totalCompleted)))",
+                                    strings.shareCaption(count: Int32(state.totalCompleted)),
                                     image: rendered
                                 )
                             ) {
@@ -214,10 +214,21 @@ private struct ShareCardPreview: View {
 
                 Planet(size: 96)
 
-                Text("#1PercentHuman")
+                // The card is the app's only growth surface: without this a
+                // recipient sees a nice image and has no idea what made it.
+                Text(Brand.shared.HASHTAG)
                     .font(OddlyFont.labelMedium)
                     .foregroundStyle(OddlyColors.purple)
                     .padding(.top, 16)
+
+                HStack(spacing: 6) {
+                    Text(strings.shareCtaLead)
+                        .foregroundStyle(palette.textTertiary)
+                    Text(Brand.shared.SHORT_LINK)
+                        .foregroundStyle(palette.textPrimary)
+                }
+                .font(OddlyFont.bodySmall)
+                .padding(.top, 6)
             }
             .padding(24)
         }

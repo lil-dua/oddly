@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import SharedLogic
 
 /// S15 — configuration and local-data controls. Reset is confirmation-gated per
@@ -13,6 +14,7 @@ struct SettingsScreen: View {
 
     let state: OddlyAppState
 
+    @State private var notificationsAllowed = true
     @State private var showResetDialog = false
     @State private var showAboutDialog = false
     @State private var sheet: SettingsSheet?
@@ -62,7 +64,13 @@ struct SettingsScreen: View {
                     SettingsRow(icon: .bell, title: strings.dailyReminder, showChevron: false) {
                         OddlyToggle(isOn: Binding(
                             get: { state.settings.reminderEnabled },
-                            set: { state.settings = state.settings.with(reminderEnabled: $0) }
+                            set: { enabled in
+                                state.settings = state.settings.with(reminderEnabled: enabled)
+                                guard enabled else { return }
+                                Task {
+                                    notificationsAllowed = await ReminderScheduler.requestAuthorization()
+                                }
+                            }
                         ))
                     }
                     SettingsRow(
@@ -79,6 +87,29 @@ struct SettingsScreen: View {
                             }
                         ))
                     }
+                }
+
+                if settings.reminderEnabled && !notificationsAllowed {
+                    Button {
+                        openSystemSettings()
+                    } label: {
+                        HStack(spacing: 10) {
+                            OddlyIconView(.info, size: 18, tint: OddlyColors.warning)
+                            Text(strings.notificationsDisabledNotice)
+                                .font(OddlyFont.bodySmall)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(strings.openSystemSettings)
+                                .font(OddlyFont.labelMedium)
+                        }
+                        .foregroundStyle(OddlyColors.warning)
+                        .padding(14)
+                        .background(
+                            OddlyColors.warning.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                    }
+                    .buttonStyle(PressableStyle(pressedScale: 0.99))
+                    .padding(.top, 10)
                 }
 
                 SectionLabel(strings.sectionData)
@@ -114,6 +145,7 @@ struct SettingsScreen: View {
         }
         .background(palette.background)
         .statusBarScrim(palette.background)
+        .task { notificationsAllowed = await ReminderScheduler.isAuthorized() }
         .sheet(item: $sheet) { which in
             sheetContent(for: which)
                 .oddlyPalette(palette)
@@ -169,6 +201,11 @@ struct SettingsScreen: View {
                 onCancel: { sheet = nil }
             )
         }
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private var profileCard: some View {

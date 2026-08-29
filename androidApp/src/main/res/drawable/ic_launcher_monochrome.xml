@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed-icon layer (Android 13+). The launcher recolours this to the user's
+  wallpaper palette, so it must be a flat silhouette.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M43.54,36.89 L43.54,71.11 L34.04,71.11 L34.04,47.82 L26.43,52.1 L26.43,43.54 L35.94,36.89 Z M64.46,44.49 C64.46,48.69 61.05,52.1 56.85,52.1 C52.65,52.1 49.25,48.69 49.25,44.49 C49.25,40.29 52.65,36.89 56.85,36.89 C61.05,36.89 64.46,40.29 64.46,44.49 Z M60.27,44.49 C60.27,46.38 58.74,47.92 56.85,47.92 C54.96,47.92 53.43,46.38 53.43,44.49 C53.43,42.6 54.96,41.07 56.85,41.07 C58.74,41.07 60.27,42.6 60.27,44.49 Z M81.57,63.51 C81.57,67.71 78.16,71.11 73.96,71.11 C69.76,71.11 66.36,67.71 66.36,63.51 C66.36,59.31 69.76,55.9 73.96,55.9 C78.16,55.9 81.57,59.31 81.57,63.51 Z M77.39,63.51 C77.39,65.4 75.85,66.93 73.96,66.93 C72.07,66.93 70.54,65.4 70.54,63.51 C70.54,61.62 72.07,60.08 73.96,60.08 C75.85,60.08 77.39,61.62 77.39,63.51 Z M51.2,68.19 L56.8,72.14 L79.61,39.81 L74.02,35.86 Z" />
+</vector>

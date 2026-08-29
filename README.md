@@ -4,8 +4,8 @@ An offline-first mobile app that turns one small action a day into a habit.
 One challenge, a few minutes, a reward, a streak — no account, no backend, no network.
 
 > **Status:** Android and iOS apps both complete and running against sample
-> data, fully bilingual (Vietnamese / English) with local share-image export.
-> Persistence and notifications are still to come — see
+> data, fully bilingual (Vietnamese / English), with daily local reminders and
+> share-image export. Persistence is the main gap — see
 > [Not built yet](#not-built-yet).
 
 ## Architecture
@@ -23,6 +23,8 @@ SwiftUI on iOS. There is no Compose Multiplatform in this project.
 ```
 sharedLogic/src/commonMain/kotlin/dev/lildua/oddly/
   core/text/          Strings — every UI string, in both languages
+                      ReminderSeed — rotating reminder copy
+                      Brand — the share card's call to action
   core/time/          DateFormat — date/weekday formatting per language
   data/seed/          ChallengeSeed (60 bilingual challenges), QuoteSeed, SampleData
   domain/model/       Category, Challenge, Difficulty, ChallengeCompletion,
@@ -135,11 +137,10 @@ Deliberate gaps, in the order the spec's roadmap tackles them:
    state holders change.
 2. **Daily challenge locking.** `DailyChallenge` is modelled but not yet
    persisted, so reopening the app re-picks today's challenge.
-3. **Local notifications.** Reminder time is stored and editable; nothing is
-   scheduled yet on either platform.
-4. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
-5. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
+3. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
+4. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
    pure functions and the obvious first candidates.
+5. **Real share link.** `Brand.SHORT_LINK` is a placeholder.
 
 ## Localization
 
@@ -180,6 +181,74 @@ behind it and washes out.
 Android exposes exactly one path through the provider — the cache directory the
 card is written to (`res/xml/file_paths.xml`) — and the image carries only the
 aggregate achievements the card shows, never notes or dates.
+
+The card and the share caption both carry a call to action, because the card is
+the app's only growth surface and an image with no attribution leaves the
+recipient with nothing to act on. The wording lives in `core/text/Brand.kt` —
+**its `SHORT_LINK` and `HANDLE` are placeholders and need replacing with the
+real landing page and account before release.**
+
+## App icon
+
+The mark is the app's own wordmark: a geometric **1%** filled with the
+pink→purple→blue brand sweep, sitting on the same near-black space tile with a
+purple bloom and a scattering of stars that the hero screens use.
+
+It is authored as path data rather than typeset, for the same reason every icon
+in the app is: the project ships no font or image assets it did not draw, and
+outlines lifted from a system font could not be redistributed inside an APK.
+
+[`tools/IconRenderer.swift`](tools/IconRenderer.swift) is the single source —
+one path definition produces every asset, so the platforms cannot drift:
+
+```bash
+swift tools/IconRenderer.swift .
+```
+
+| Output | Where |
+|---|---|
+| iOS icon, light / dark / tinted | `AppIcon.appiconset/icon-*.png` (1024²) |
+| Android adaptive layers | `mipmap-*/ic_launcher_{foreground,background}.png` |
+| Android legacy icons (API 24–25) | `mipmap-*/ic_launcher{,_round}.png` |
+| Android themed-icon layer | `drawable/ic_launcher_monochrome.xml` |
+| Notification small icon | `drawable/ic_notification.xml` |
+
+The two vectors carry the same mark as a flat silhouette; the script prints
+their `pathData` when it runs.
+
+**Why the adaptive layers are bitmaps.** The brand sweep needs a gradient, and a
+vector drawable expresses one through an inline `aapt:attr`. AGP 9's resource
+pipeline silently drops such a file — it compiles cleanly under standalone
+`aapt2` but never reaches the merged resources, and the build then fails with
+`resource drawable/ic_launcher_foreground not found`. Bitmaps sidestep that and
+have the side benefit of being pixel-identical to the iOS tile.
+
+## Daily reminder
+
+Local notifications (spec §S16), scheduled from `reminderEnabled` and
+`reminderTime` and re-derived whenever either changes. Copy comes from
+`ReminderSeed` and rotates by day so the reminder does not read as the same
+sentence forever; it deliberately never names today's challenge, because the
+daily pick is not persisted yet and naming one would be a guess.
+
+| | Android | iOS |
+|---|---|---|
+| Scheduling | `AlarmManager.setWindow`, re-armed by the receiver each day | 14 one-shot `UNCalendarNotificationTrigger`s, topped up on launch |
+| Why not the obvious API | `setInexactRepeating` lets the system slide a daily alarm by most of a day; exact alarms would need `SCHEDULE_EXACT_ALARM` | a single repeating trigger cannot vary its content |
+| Permission | `POST_NOTIFICATIONS`, requested at the point the user opts in | `UNUserNotificationCenter`, same |
+| Surviving a reboot | `BootReceiver` re-arms from `ReminderStore` | nothing to do; iOS keeps pending requests |
+
+The status-bar icon is the same **1%** mark as a white silhouette, so a reminder
+is recognisably from this app at a glance.
+
+`ReminderStore` is a small `SharedPreferences` mirror of the reminder time.
+It exists only because an Android alarm does not survive a reboot; it is
+scheduler state, not the app's data layer, and folds into the Room repositories
+when those land.
+
+If the OS permission is refused while the in-app toggle is on, Settings shows a
+notice that links straight to the system settings page — otherwise the toggle
+would claim to be on while nothing ever appeared.
 
 ## Settings pickers
 

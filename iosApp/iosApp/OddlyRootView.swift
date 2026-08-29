@@ -40,8 +40,33 @@ struct OddlyRootView: View {
             }
         }
         .oddlyStrings(state.settings.language)
+        // The schedule is derived state: whenever the reminder settings change,
+        // the pending notifications are rebuilt rather than patched.
+        .task(id: ReminderSettingsKey(state.settings)) {
+            await ReminderScheduler.reschedule(settings: state.settings)
+        }
         .measuringTopSafeArea()
         .oddlyTheme(state.settings.themeMode, systemIsDark: systemColorScheme == .dark)
+    }
+}
+
+/// The parts of `AppSettings` the notification schedule depends on.
+///
+/// `AppSettings` is a Kotlin class without Swift `Hashable`, and `task(id:)`
+/// needs a value it can compare — this narrows it to exactly what matters.
+private struct ReminderSettingsKey: Equatable {
+    let enabled: Bool
+    let hour: Int32
+    let minute: Int32
+    let language: String
+    let sound: Bool
+
+    init(_ settings: AppSettings) {
+        enabled = settings.reminderEnabled
+        hour = settings.reminderTime.hour
+        minute = settings.reminderTime.minute
+        language = settings.language.tag
+        sound = settings.soundEnabled
     }
 }
 
@@ -78,6 +103,10 @@ private struct OnboardingFlow: View {
                                     reminderEnabled: true,
                                     reminderTime: LocalTime(hour: parts[0], minute: parts[1], second: 0, nanosecond: 0)
                                 )
+                            }
+                            Task {
+                                await ReminderScheduler.requestAuthorization()
+                                await ReminderScheduler.reschedule(settings: state.settings)
                             }
                             onFinish()
                         },

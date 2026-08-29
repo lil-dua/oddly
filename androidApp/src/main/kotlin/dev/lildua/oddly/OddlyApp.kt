@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import dev.lildua.oddly.core.text.Strings
+import dev.lildua.oddly.notifications.ReminderScheduler
+import dev.lildua.oddly.notifications.rememberNotificationPermission
 import dev.lildua.oddly.data.seed.ChallengeSeed
 import dev.lildua.oddly.data.seed.QuoteSeed
 import dev.lildua.oddly.ui.navigation.BottomBarDivider
@@ -55,6 +59,23 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
 @Composable
 fun OddlyApp() {
     val state = rememberOddlyAppState()
+    val context = LocalContext.current
+    val notifications = rememberNotificationPermission()
+
+    // The alarm is derived state: whenever the reminder settings change, the
+    // schedule is rewritten rather than patched.
+    LaunchedEffect(
+        state.settings.reminderEnabled,
+        state.settings.reminderTime,
+        state.settings.language,
+    ) {
+        if (state.settings.reminderEnabled) {
+            ReminderScheduler.schedule(context, state.settings.reminderTime, state.settings.language)
+        } else {
+            ReminderScheduler.cancel(context)
+        }
+    }
+
     CompositionLocalProvider(LocalStrings provides Strings.of(state.settings.language)) {
         OddlyTheme(themeMode = state.settings.themeMode) {
             val navigator = rememberNavigator(Destination.Splash)
@@ -104,6 +125,7 @@ fun OddlyApp() {
                                         reminderEnabled = true,
                                         reminderTime = kotlinx.datetime.LocalTime(hour, minute),
                                     )
+                                    notifications.request()
                                     navigator.resetTo(TabDestination.HOME)
                                 },
                                 onSkip = {

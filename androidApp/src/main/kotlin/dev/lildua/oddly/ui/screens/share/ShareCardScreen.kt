@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.core.text.Brand
 import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.ui.components.GradientButton
@@ -157,7 +158,7 @@ fun ShareCardScreen(
                         val intent = ShareImageExport.chooserIntent(
                             context = context,
                             bitmap = bitmap,
-                            caption = "1% HUMAN · ${strings.challengeCount(state.totalCompleted)}",
+                            caption = strings.shareCaption(state.totalCompleted),
                         )
                         if (intent == null) {
                             exportFailed = true
@@ -285,11 +286,31 @@ private fun SharePreview(
 
             Spacer(Modifier.height(16.dp))
 
+            // The card is the app's only growth surface: without this a
+            // recipient sees a nice image and has no idea what made it.
             Text(
-                text = "#1PercentHuman",
+                text = Brand.HASHTAG,
                 style = MaterialTheme.typography.labelMedium,
                 color = OddlyColors.Purple,
             )
+
+            Spacer(Modifier.height(6.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = strings.shareCtaLead,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textTertiary,
+                )
+                Text(
+                    text = Brand.SHORT_LINK,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textPrimary,
+                )
+            }
         }
     }
 }

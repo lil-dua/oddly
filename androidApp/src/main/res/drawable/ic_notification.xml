@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Status-bar icon for the daily reminder: the app's "1%" mark. Android renders
+  the small icon as a silhouette, so this is a single white path with no colour
+  of its own. Regenerate with: swift tools/IconRenderer.swift .
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M8.5,6.28 L8.5,17.72 L5.32,17.72 L5.32,9.93 L2.78,11.36 L2.78,8.5 L5.96,6.28 Z M15.5,8.82 C15.5,10.22 14.36,11.36 12.95,11.36 C11.55,11.36 10.41,10.22 10.41,8.82 C10.41,7.41 11.55,6.28 12.95,6.28 C14.36,6.28 15.5,7.41 15.5,8.82 Z M14.1,8.82 C14.1,9.45 13.59,9.96 12.95,9.96 C12.32,9.96 11.81,9.45 11.81,8.82 C11.81,8.19 12.32,7.67 12.95,7.67 C13.59,7.67 14.1,8.19 14.1,8.82 Z M21.22,15.18 C21.22,16.59 20.08,17.72 18.68,17.72 C17.27,17.72 16.13,16.59 16.13,15.18 C16.13,13.78 17.27,12.64 18.68,12.64 C20.08,12.64 21.22,13.78 21.22,15.18 Z M19.82,15.18 C19.82,15.81 19.31,16.33 18.68,16.33 C18.05,16.33 17.53,15.81 17.53,15.18 C17.53,14.55 18.05,14.04 18.68,14.04 C19.31,14.04 19.82,14.55 19.82,15.18 Z M11.06,16.75 L12.94,18.07 L20.57,7.25 L18.7,5.93 Z" />
+</vector>
