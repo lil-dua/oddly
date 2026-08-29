@@ -5,6 +5,7 @@ import SharedLogic
 /// archive and favouriting are P1 niceties already wired up here.
 struct QuotesScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onBack: () -> Void
@@ -25,7 +26,7 @@ struct QuotesScreen: View {
     }
 
     var body: some View {
-        let quote = quotes[index]
+        let quote = quotes[index].localized(strings)
         let isFavorite = favorites.contains(quote.id)
 
         ZStack {
@@ -36,7 +37,7 @@ struct QuotesScreen: View {
                 OddlyTopBar(title: "", onBack: onBack)
 
                 VStack(spacing: 0) {
-                    Text("Cảm hứng mỗi ngày")
+                    Text(strings.quotesTitle)
                         .font(OddlyFont.headlineSmall)
                         .foregroundStyle(palette.textPrimary)
 
@@ -77,7 +78,7 @@ struct QuotesScreen: View {
 
                     Spacer(minLength: 0)
 
-                    GradientButton("Chia sẻ", leadingIcon: .share, action: onShare)
+                    GradientButton(strings.share, leadingIcon: .share, action: onShare)
 
                     reminderRow
                         .padding(.top, 20)
@@ -89,7 +90,7 @@ struct QuotesScreen: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private func quoteCard(_ quote: Quote) -> some View {
+    private func quoteCard(_ quote: LocalizedQuote) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("“\(quote.text)”")
                 .font(OddlyFont.headlineSmall)
@@ -115,10 +116,10 @@ struct QuotesScreen: View {
     private var reminderRow: some View {
         HStack {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Lời nhắc")
+                Text(strings.reminderLabel)
                     .font(OddlyFont.titleSmall)
                     .foregroundStyle(palette.textPrimary)
-                Text("Bật thông báo hằng ngày")
+                Text(strings.reminderToggleBody)
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
             }

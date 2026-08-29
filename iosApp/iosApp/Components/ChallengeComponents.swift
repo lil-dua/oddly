@@ -5,8 +5,9 @@ import SharedLogic
 /// challenge and the single dominant CTA.
 struct TodayChallengeCard: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
-    let challenge: Challenge
+    let challenge: LocalizedChallenge
     let completed: Bool
     let onOpen: () -> Void
     let onStart: () -> Void
@@ -17,7 +18,7 @@ struct TodayChallengeCard: View {
 
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                SectionLabel("Thử thách hôm nay", color: palette.textSecondary)
+                SectionLabel(strings.todaysChallenge, color: palette.textSecondary)
                 Spacer()
                 Button(action: onOpen) {
                     OddlyIconView(.chevronRight, size: 18, tint: palette.textTertiary)
@@ -42,16 +43,16 @@ struct TodayChallengeCard: View {
                 .padding(.top, 10)
 
             HStack(spacing: 8) {
-                OddlyChip(text: challenge.category.title, accent: accent, leadingEmoji: challenge.category.emoji)
-                OddlyChip(text: "\(challenge.estimatedMinutes) phút")
+                OddlyChip(text: challenge.categoryTitle, accent: accent, leadingEmoji: challenge.category.emoji)
+                OddlyChip(text: strings.minutes(count: challenge.estimatedMinutes))
             }
             .padding(.top, 16)
 
             Group {
                 if completed {
-                    SecondaryButton("Đã hoàn thành hôm nay", leadingIcon: .check, action: onOpen)
+                    SecondaryButton(strings.homeAlreadyDoneToday, leadingIcon: .check, action: onOpen)
                 } else {
-                    GradientButton("Tôi sẽ làm!", action: onStart)
+                    GradientButton(strings.homeStartChallenge, action: onStart)
                 }
             }
             .padding(.top, 20)
@@ -97,8 +98,9 @@ private struct CompletionBadge: View {
 /// history. `trailingText` carries the reward badge or a timestamp.
 struct ChallengeRow: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
-    let challenge: Challenge
+    let challenge: LocalizedChallenge
     var trailingText: String?
     var action: (() -> Void)?
 
@@ -113,7 +115,7 @@ struct ChallengeRow: View {
                     .foregroundStyle(palette.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                Text("\(challenge.category.title) · \(challenge.estimatedMinutes) phút")
+                Text("\(challenge.categoryTitle) · \(strings.minutes(count: challenge.estimatedMinutes))")
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .lineLimit(1)
@@ -159,6 +161,7 @@ struct CategoryBadge: View {
 /// labelled from its own date instead of a hardcoded Mon–Sun sequence.
 struct WeekStrip: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let days: [DayActivity]
 
@@ -166,7 +169,7 @@ struct WeekStrip: View {
         HStack {
             ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                 VStack(spacing: 6) {
-                    Text(DateFormat.shared.shortWeekday(date: day.date))
+                    Text(DateFormat.shared.shortWeekday(date: day.date, language: strings.language))
                         .font(OddlyFont.labelSmall)
                         .foregroundStyle(day.isToday ? palette.textPrimary : palette.textTertiary)
 

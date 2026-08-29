@@ -34,6 +34,7 @@ import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
 /**
@@ -46,6 +47,7 @@ fun NotificationPermissionScreen(
     onSkip: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val times = listOf("08:00", "09:00", "12:00", "18:00")
     var selectedTime by remember { mutableStateOf("09:00") }
 
@@ -82,7 +84,7 @@ fun NotificationPermissionScreen(
             Spacer(Modifier.height(36.dp))
 
             Text(
-                text = "Nhắc bạn mỗi ngày nhé?",
+                text = strings.reminderPermissionTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,
@@ -91,7 +93,7 @@ fun NotificationPermissionScreen(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "Một lời nhắc nhẹ nhàng vào giờ bạn chọn, để thử thách hôm nay không bị bỏ lỡ. Bạn có thể tắt bất cứ lúc nào.",
+                text = strings.reminderPermissionBody,
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,
@@ -100,7 +102,7 @@ fun NotificationPermissionScreen(
             Spacer(Modifier.height(32.dp))
 
             Text(
-                text = "Chọn giờ nhắc",
+                text = strings.reminderPermissionPickTime,
                 style = MaterialTheme.typography.labelMedium,
                 color = palette.textTertiary,
             )
@@ -141,11 +143,11 @@ fun NotificationPermissionScreen(
 
             Spacer(Modifier.weight(1f))
 
-            GradientButton(text = "Bật nhắc nhở", onClick = { onAllow(selectedTime) })
+            GradientButton(text = strings.reminderPermissionEnable, onClick = { onAllow(selectedTime) })
 
             Spacer(Modifier.height(8.dp))
 
-            TextAction("Để sau", onSkip)
+            TextAction(strings.later, onSkip)
         }
     }
 }

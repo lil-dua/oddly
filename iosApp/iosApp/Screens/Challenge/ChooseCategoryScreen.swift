@@ -5,13 +5,14 @@ import SharedLogic
 /// far the user has got in that category so the grid doubles as progress.
 struct ChooseCategoryScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onBack: () -> Void
     let onPick: (ChallengeCategory) -> Void
 
     /// Counts distinct challenges cleared, not completions: the same challenge
-    /// can be done on several days, and "12 / 10 đã làm" would be nonsense.
+    /// can be done on several days, and "12 / 10 done" would be nonsense.
     private var completedPerCategory: [ChallengeCategory: Int] {
         var counts: [ChallengeCategory: Int] = [:]
         for id in Set(state.completions.map(\.challengeId)) {
@@ -38,7 +39,7 @@ struct ChooseCategoryScreen: View {
                     OddlyTopBar(title: "", onBack: onBack)
 
                     VStack(spacing: 0) {
-                        Text("Chọn chủ đề bạn muốn\nthử thách")
+                        Text(strings.chooseCategoryTitle)
                             .font(OddlyFont.headlineMedium)
                             .foregroundStyle(palette.textPrimary)
                             .multilineTextAlignment(.center)
@@ -57,7 +58,7 @@ struct ChooseCategoryScreen: View {
                         }
                         .padding(.top, 28)
 
-                        SecondaryButton("Quay lại", action: onBack)
+                        SecondaryButton(strings.back, action: onBack)
                             .padding(.top, 30)
                             .padding(.bottom, 32)
                     }
@@ -72,6 +73,7 @@ struct ChooseCategoryScreen: View {
 
 private struct CategoryTile: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let category: ChallengeCategory
     let completedCount: Int
@@ -87,11 +89,11 @@ private struct CategoryTile: View {
                 Text(category.emoji).font(OddlyFont.displaySmall)
                 Spacer(minLength: 8)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(category.title)
+                    Text(category.title.of(strings))
                         .font(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
                         .multilineTextAlignment(.leading)
-                    Text("\(completedCount) / \(totalCount) đã làm")
+                    Text(strings.doneOutOf(done: Int32(completedCount), total: Int32(totalCount)))
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(accent)
                 }

@@ -9,50 +9,43 @@ package dev.lildua.oddly.domain.model
  */
 enum class Category(
     val id: String,
-    val title: String,
-    val englishTitle: String,
+    val title: LocalizedText,
     val emoji: String,
     val colorHex: Long,
 ) {
     HEALTH(
         id = "health",
-        title = "Sức khỏe",
-        englishTitle = "Health",
+        title = LocalizedText(vi = "Sức khỏe", en = "Health"),
         emoji = "💪",
         colorHex = 0xFF34D399,
     ),
     RELATIONSHIPS(
         id = "relationships",
-        title = "Mối quan hệ",
-        englishTitle = "Relationships",
+        title = LocalizedText(vi = "Mối quan hệ", en = "Relationships"),
         emoji = "💗",
         colorHex = 0xFFFB7BAA,
     ),
     SELF_GROWTH(
         id = "self_growth",
-        title = "Phát triển bản thân",
-        englishTitle = "Self Growth",
+        title = LocalizedText(vi = "Phát triển bản thân", en = "Self Growth"),
         emoji = "🌱",
         colorHex = 0xFFFBBF24,
     ),
     CREATIVITY(
         id = "creativity",
-        title = "Sáng tạo",
-        englishTitle = "Creativity",
+        title = LocalizedText(vi = "Sáng tạo", en = "Creativity"),
         emoji = "🎨",
         colorHex = 0xFFFB923C,
     ),
     FINANCE(
         id = "finance",
-        title = "Tài chính",
-        englishTitle = "Finance",
+        title = LocalizedText(vi = "Tài chính", en = "Finance"),
         emoji = "💰",
         colorHex = 0xFF22D3EE,
     ),
     LIFE_EXPERIENCE(
         id = "life_experience",
-        title = "Trải nghiệm cuộc sống",
-        englishTitle = "Life Experience",
+        title = LocalizedText(vi = "Trải nghiệm cuộc sống", en = "Life Experience"),
         emoji = "🌍",
         colorHex = 0xFFA78BFA,
     );

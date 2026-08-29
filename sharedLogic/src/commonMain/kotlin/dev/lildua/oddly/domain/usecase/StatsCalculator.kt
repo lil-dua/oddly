@@ -2,16 +2,18 @@ package dev.lildua.oddly.domain.usecase
 
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.data.seed.ChallengeSeed
+import dev.lildua.oddly.domain.model.AppLanguage
 import dev.lildua.oddly.domain.model.Category
 import dev.lildua.oddly.domain.model.ChallengeCompletion
+import dev.lildua.oddly.domain.model.LocalizedText
 import kotlinx.datetime.LocalDate
 
 /** Time buckets offered by the Statistics screen (spec §S12). */
-enum class StatsRange(val title: String, val days: Int?) {
-    WEEK("Tuần", 7),
-    MONTH("Tháng", 30),
-    YEAR("Năm", 365),
-    ALL("Tất cả", null),
+enum class StatsRange(val title: LocalizedText, val days: Int?) {
+    WEEK(LocalizedText(vi = "Tuần", en = "Week"), 7),
+    MONTH(LocalizedText(vi = "Tháng", en = "Month"), 30),
+    YEAR(LocalizedText(vi = "Năm", en = "Year"), 365),
+    ALL(LocalizedText(vi = "Tất cả", en = "All"), null),
 }
 
 data class CategorySlice(
@@ -41,6 +43,7 @@ object StatsCalculator {
         completions: List<ChallengeCompletion>,
         today: LocalDate,
         range: StatsRange,
+        language: AppLanguage,
     ): StatsSummary {
         val windowed = filterTo(completions, today, range)
         val previous = previousPeriod(completions, today, range)
@@ -48,7 +51,7 @@ object StatsCalculator {
         return StatsSummary(
             totalCompleted = windowed.size,
             deltaVsPreviousPeriod = windowed.size - previous.size,
-            bars = buildBars(completions, today, range),
+            bars = buildBars(completions, today, range, language),
             distribution = distribution(windowed),
             mostActiveCategory = distribution(windowed).maxByOrNull { it.count }?.category,
         )
@@ -100,6 +103,7 @@ object StatsCalculator {
         completions: List<ChallengeCompletion>,
         today: LocalDate,
         range: StatsRange,
+        language: AppLanguage,
     ): List<DayBar> {
         val done = completions.groupingBy { it.date.toEpochDays() }.eachCount()
 
@@ -107,7 +111,7 @@ object StatsCalculator {
             return (6 downTo 0).map { offset ->
                 val epochDay = today.toEpochDays() - offset
                 DayBar(
-                    label = DateFormat.shortWeekday(LocalDate.fromEpochDays(epochDay)),
+                    label = DateFormat.shortWeekday(LocalDate.fromEpochDays(epochDay), language),
                     count = done[epochDay] ?: 0,
                     isToday = offset == 0,
                 )
@@ -128,7 +132,14 @@ object StatsCalculator {
             val start = (end - bucketSize + 1).coerceAtLeast(windowStart)
             val count = if (start > end) 0 else (start..end).sumOf { done[it] ?: 0 }
             DayBar(
-                label = if (bucketIndex == 0) "Nay" else "-${bucketIndex * bucketSize}",
+                label = if (bucketIndex == 0) {
+                    when (language) {
+                        AppLanguage.VIETNAMESE -> "Nay"
+                        AppLanguage.ENGLISH -> "Now"
+                    }
+                } else {
+                    "-${bucketIndex * bucketSize}"
+                },
                 count = count,
                 isToday = bucketIndex == 0,
             )

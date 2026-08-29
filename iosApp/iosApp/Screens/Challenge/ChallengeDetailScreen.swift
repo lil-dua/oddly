@@ -5,8 +5,9 @@ import SharedLogic
 /// it pays. One dominant CTA, with reroll as a secondary text action.
 struct ChallengeDetailScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
-    let challenge: Challenge
+    let challenge: LocalizedChallenge
     let alreadyCompleted: Bool
     let onBack: () -> Void
     let onComplete: () -> Void
@@ -47,14 +48,14 @@ struct ChallengeDetailScreen: View {
                         .padding(.horizontal, 24)
 
                     HStack(spacing: 8) {
-                        OddlyChip(text: challenge.category.title, accent: accent, leadingEmoji: challenge.category.emoji)
-                        OddlyChip(text: challenge.difficulty.title)
-                        OddlyChip(text: "\(challenge.estimatedMinutes) phút")
+                        OddlyChip(text: challenge.categoryTitle, accent: accent, leadingEmoji: challenge.category.emoji)
+                        OddlyChip(text: challenge.difficultyTitle)
+                        OddlyChip(text: strings.minutes(count: challenge.estimatedMinutes))
                     }
                     .padding(.top, 14)
 
                     VStack(spacing: 16) {
-                        InfoBlock(label: "Vì sao điều này quan trọng") {
+                        InfoBlock(label: strings.whyItMatters) {
                             Text(challenge.whyItMatters)
                                 .font(OddlyFont.bodyMedium)
                                 .foregroundStyle(palette.textSecondary)
@@ -62,7 +63,7 @@ struct ChallengeDetailScreen: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        InfoBlock(label: "Gợi ý") {
+                        InfoBlock(label: strings.howToDoIt) {
                             VStack(alignment: .leading, spacing: 10) {
                                 ForEach(Array(challenge.howToDoIt.enumerated()), id: \.offset) { _, step in
                                     HStack(alignment: .top, spacing: 10) {
@@ -79,7 +80,7 @@ struct ChallengeDetailScreen: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        InfoBlock(label: "Phần thưởng") {
+                        InfoBlock(label: strings.reward) {
                             HStack {
                                 Text("+\(challenge.humanityPercent)% Humanity")
                                     .font(OddlyFont.titleMedium)
@@ -98,7 +99,7 @@ struct ChallengeDetailScreen: View {
                         if alreadyCompleted {
                             HStack(spacing: 8) {
                                 OddlyIconView(.check, size: 18, tint: OddlyColors.success, lineWidth: 2)
-                                Text("Bạn đã hoàn thành thử thách này")
+                                Text(strings.alreadyCompletedThis)
                                     .font(OddlyFont.labelLarge)
                                     .foregroundStyle(OddlyColors.success)
                             }
@@ -106,10 +107,10 @@ struct ChallengeDetailScreen: View {
                             .padding(.vertical, 16)
                             .background(OddlyColors.success.opacity(0.14), in: Capsule())
                         } else {
-                            GradientButton("Bắt đầu", action: onComplete)
+                            GradientButton(strings.begin, action: onComplete)
                         }
 
-                        TextAction("Xem thử thách khác", action: onAnother)
+                        TextAction(strings.seeAnotherChallenge, action: onAnother)
                     }
                     .padding(.top, 28)
                     .padding(.horizontal, 24)

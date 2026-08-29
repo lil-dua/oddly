@@ -5,6 +5,7 @@ import SharedLogic
 /// mechanic, only the current run, the record, and a nudge to keep going.
 struct StreakScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onBack: () -> Void
@@ -13,7 +14,7 @@ struct StreakScreen: View {
         let streak = state.streak
 
         VStack(spacing: 0) {
-            OddlyTopBar(title: "Chuỗi ngày liên tiếp", onBack: onBack)
+            OddlyTopBar(title: strings.streakTitle, onBack: onBack)
 
             ScrollView {
                 VStack(spacing: 16) {
@@ -26,7 +27,7 @@ struct StreakScreen: View {
                             Text("\(streak.current)")
                                 .font(OddlyFont.displayLarge)
                                 .foregroundStyle(palette.textPrimary)
-                            Text("ngày")
+                            Text(strings.days)
                                 .font(OddlyFont.bodyLarge)
                                 .foregroundStyle(palette.textSecondary)
                         }
@@ -38,18 +39,18 @@ struct StreakScreen: View {
                     HStack(spacing: 12) {
                         StatTile(
                             value: "\(streak.best)",
-                            label: "Kỷ lục của bạn",
+                            label: strings.personalBest,
                             accent: OddlyColors.warning
                         )
                         StatTile(
                             value: "\(state.totalCompleted)",
-                            label: "Tổng đã hoàn thành",
+                            label: strings.totalDone,
                             accent: OddlyColors.purple
                         )
                     }
 
                     OddlyCard {
-                        SectionLabel("7 ngày gần nhất")
+                        SectionLabel(strings.lastSevenDays)
                         WeekStrip(days: state.weekActivity)
                             .padding(.top, 16)
                     }
@@ -58,7 +59,7 @@ struct StreakScreen: View {
 
                     reminderCard
 
-                    Text("Mất chuỗi ngày không làm bạn mất XP hay cấp độ.")
+                    Text(strings.streakNoPenalty)
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                         .multilineTextAlignment(.center)
@@ -77,12 +78,10 @@ struct StreakScreen: View {
         HStack(alignment: .top, spacing: 14) {
             Text("🔥").font(OddlyFont.headlineSmall)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Đừng để chuỗi ngày bị gián đoạn!")
+                Text(strings.keepStreakTitle)
                     .font(OddlyFont.titleSmall)
                     .foregroundStyle(palette.textPrimary)
-                Text(state.completedToday
-                     ? "Hôm nay xong rồi. Hẹn gặp lại bạn ngày mai."
-                     : "Hoàn thành thử thách hôm nay để duy trì chuỗi ngày.")
+                Text(state.completedToday ? strings.keepStreakDoneToday : strings.keepStreakPending)
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -100,10 +99,10 @@ struct StreakScreen: View {
         OddlyCard {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Lời nhắc")
+                    Text(strings.reminderLabel)
                         .font(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
-                    Text("Bật thông báo hằng ngày")
+                    Text(strings.reminderToggleBody)
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                 }

@@ -27,6 +27,7 @@ import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
 private data class Benefit(val icon: OddlyIcon, val label: String, val tint: androidx.compose.ui.graphics.Color)
@@ -41,11 +42,12 @@ fun OnboardingScreen(
     onSkip: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
 
     val benefits = listOf(
-        Benefit(OddlyIcon.Sparkle, "Thử thách\nmỗi ngày", OddlyColors.Warning),
-        Benefit(OddlyIcon.Heart, "Dễ thực hiện\nnhưng ý nghĩa", OddlyColors.Pink),
-        Benefit(OddlyIcon.Refresh, "Thay đổi\ncuộc sống", OddlyColors.Blue),
+        Benefit(OddlyIcon.Sparkle, strings.onboardingBenefitDaily, OddlyColors.Warning),
+        Benefit(OddlyIcon.Heart, strings.onboardingBenefitMeaningful, OddlyColors.Pink),
+        Benefit(OddlyIcon.Refresh, strings.onboardingBenefitChange, OddlyColors.Blue),
     )
 
     Box(
@@ -63,13 +65,13 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextAction("Bỏ qua", onSkip)
+                TextAction(strings.skip, onSkip)
             }
 
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Chào mừng bạn đến với",
+                text = strings.onboardingWelcome,
                 style = MaterialTheme.typography.headlineSmall,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,
@@ -82,7 +84,7 @@ fun OnboardingScreen(
             Spacer(Modifier.height(14.dp))
 
             Text(
-                text = "Mỗi ngày chúng tôi sẽ giao cho\nbạn một thử thách nhỏ.",
+                text = strings.onboardingSubtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,
@@ -117,7 +119,7 @@ fun OnboardingScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            GradientButton(text = "Bắt đầu", onClick = onStart)
+            GradientButton(text = strings.onboardingStart, onClick = onStart)
 
             Spacer(Modifier.height(20.dp))
 

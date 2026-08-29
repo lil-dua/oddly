@@ -34,7 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.lildua.oddly.domain.model.Challenge
+import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.OddlyIcon
@@ -43,6 +43,7 @@ import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import kotlin.math.cos
 import kotlin.math.sin
@@ -54,7 +55,7 @@ import kotlin.random.Random
  */
 @Composable
 fun ChallengeCompleteScreen(
-    challenge: Challenge,
+    challenge: LocalizedChallenge,
     reward: OddlyAppState.Reward?,
     streakDays: Int,
     quote: String,
@@ -63,6 +64,7 @@ fun ChallengeCompleteScreen(
     onDone: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     var played by remember { mutableStateOf(false) }
     val burst by animateFloatAsState(
         targetValue = if (played) 1f else 0f,
@@ -93,7 +95,7 @@ fun ChallengeCompleteScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextAction("Xong", onDone)
+                TextAction(strings.done, onDone)
             }
 
             Spacer(Modifier.weight(1f))
@@ -107,7 +109,7 @@ fun ChallengeCompleteScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Tuyệt vời!",
+                text = strings.celebrationTitle,
                 style = MaterialTheme.typography.headlineLarge,
                 color = palette.textPrimary,
             )
@@ -115,7 +117,7 @@ fun ChallengeCompleteScreen(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "Bạn đã hoàn thành\nthử thách hôm nay.",
+                text = strings.celebrationBody,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,
@@ -132,7 +134,7 @@ fun ChallengeCompleteScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 RewardPill("+${reward?.xp ?: challenge.rewardXp} XP", OddlyColors.Purple)
-                RewardPill("🔥 $streakDays ngày", OddlyColors.Flame)
+                RewardPill("🔥 ${strings.streakDays(streakDays)}", OddlyColors.Flame)
             }
 
             if (reward?.leveledUp == true) {
@@ -147,7 +149,7 @@ fun ChallengeCompleteScreen(
                     OddlyIcon(OddlyIcon.Sparkle, size = 16.dp, tint = OddlyColors.Warning)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Lên cấp ${reward.newLevel}!",
+                        text = "${strings.levelUp} ${reward.newLevel}!",
                         style = MaterialTheme.typography.labelMedium,
                         color = OddlyColors.Warning,
                     )
@@ -174,11 +176,11 @@ fun ChallengeCompleteScreen(
 
             Spacer(Modifier.weight(1f))
 
-            GradientButton(text = "Chia sẻ", onClick = onShare, leadingIcon = OddlyIcon.Share)
+            GradientButton(text = strings.share, onClick = onShare, leadingIcon = OddlyIcon.Share)
 
             Spacer(Modifier.height(12.dp))
 
-            SecondaryButton(text = "Xem thử thách khác", onClick = onAnother)
+            SecondaryButton(text = strings.seeAnotherChallenge, onClick = onAnother)
 
             Spacer(Modifier.height(16.dp))
         }

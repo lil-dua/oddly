@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.clickableNoRipple
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
@@ -46,6 +47,7 @@ fun OddlyBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
 
     Row(
         modifier = modifier
@@ -83,7 +85,7 @@ fun OddlyBottomBar(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = tab.label,
+                    text = tab.label(strings),
                     style = MaterialTheme.typography.labelSmall,
                     color = tint,
                 )

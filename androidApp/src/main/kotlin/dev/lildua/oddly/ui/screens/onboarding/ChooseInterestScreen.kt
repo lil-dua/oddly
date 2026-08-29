@@ -31,6 +31,7 @@ import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
 import dev.lildua.oddly.ui.components.clickableNoRipple
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
 
@@ -45,6 +46,7 @@ fun ChooseInterestScreen(
     onContinue: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
 
     Box(
         Modifier
@@ -63,7 +65,7 @@ fun ChooseInterestScreen(
             Spacer(Modifier.height(28.dp))
 
             Text(
-                text = "Bạn muốn tập trung vào\nkhía cạnh nào?",
+                text = strings.interestsTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,
@@ -72,7 +74,7 @@ fun ChooseInterestScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "(Bạn có thể thay đổi sau)",
+                text = strings.interestsSubtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textTertiary,
             )
@@ -92,14 +94,18 @@ fun ChooseInterestScreen(
             Spacer(Modifier.weight(1f))
 
             GradientButton(
-                text = "Tiếp tục",
+                text = strings.interestsContinue,
                 onClick = onContinue,
             )
 
             Spacer(Modifier.height(8.dp))
 
             TextAction(
-                text = if (selected.isEmpty()) "Dùng tất cả chủ đề" else "${selected.size} chủ đề đã chọn",
+                text = if (selected.isEmpty()) {
+                    strings.interestsUseAll
+                } else {
+                    strings.topicsSelected(selected.size)
+                },
                 onClick = onContinue,
             )
         }
@@ -113,6 +119,7 @@ private fun InterestRow(
     onClick: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val accent = category.color
     val border by animateColorAsState(
         if (selected) accent.copy(alpha = 0.8f) else Color.Transparent,
@@ -136,7 +143,7 @@ private fun InterestRow(
         Text(category.emoji, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(12.dp))
         Text(
-            text = category.title,
+            text = category.title.of(strings.language),
             style = MaterialTheme.typography.bodyLarge,
             color = palette.textPrimary,
             modifier = Modifier.weight(1f),

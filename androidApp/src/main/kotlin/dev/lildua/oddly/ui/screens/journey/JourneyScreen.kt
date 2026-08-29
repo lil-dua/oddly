@@ -34,6 +34,7 @@ import dev.lildua.oddly.ui.components.StatTile
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
 
@@ -50,6 +51,7 @@ fun JourneyScreen(
     onStartFirstChallenge: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val profile = state.profile
     val distribution = StatsCalculator.distribution(state.completions)
 
@@ -64,7 +66,7 @@ fun JourneyScreen(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "Hành trình của bạn",
+            text = strings.journeyTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.textPrimary,
         )
@@ -73,9 +75,9 @@ fun JourneyScreen(
 
         if (state.completions.isEmpty()) {
             EmptyState(
-                title = "Bạn chưa có thử thách nào",
-                subtitle = "Hãy bắt đầu hành trình\n1% tốt hơn mỗi ngày.",
-                actionText = "Khám phá thử thách",
+                title = strings.emptyJourneyTitle,
+                subtitle = strings.emptyJourneyBody,
+                actionText = strings.exploreChallenges,
                 onAction = onStartFirstChallenge,
             )
             return@Column
@@ -94,7 +96,7 @@ fun JourneyScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    SectionLabel("Cấp độ hiện tại")
+                    SectionLabel(strings.currentLevel)
                     Spacer(Modifier.height(10.dp))
                     Text(
                         text = "Level ${profile.level}",
@@ -103,7 +105,7 @@ fun JourneyScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "${profile.xpInLevel} / ${profile.xpForNextLevel} XP",
+                        text = strings.xpProgress(profile.xpInLevel, profile.xpForNextLevel),
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.textTertiary,
                     )
@@ -117,20 +119,20 @@ fun JourneyScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        SectionLabel("Thống kê nhanh")
+        SectionLabel(strings.quickStats)
 
         Spacer(Modifier.height(12.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
                 value = "${state.totalCompleted}",
-                label = "Thử thách\nđã hoàn thành",
+                label = strings.challengesCompletedLabel,
                 accent = OddlyColors.Purple,
                 modifier = Modifier.weight(1f),
             )
             StatTile(
                 value = "${state.streak.current}",
-                label = "Ngày liên tiếp",
+                label = strings.consecutiveDays,
                 accent = OddlyColors.Flame,
                 modifier = Modifier.weight(1f),
             )
@@ -141,13 +143,13 @@ fun JourneyScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
                 value = "${state.exploredCategoryCount}",
-                label = "Chủ đề\nđã khám phá",
+                label = strings.categoriesExplored,
                 accent = OddlyColors.Blue,
                 modifier = Modifier.weight(1f),
             )
             StatTile(
                 value = "${state.completionRatePercent}%",
-                label = "Tỷ lệ hoàn thành",
+                label = strings.completionRate,
                 accent = OddlyColors.Success,
                 modifier = Modifier.weight(1f),
             )
@@ -157,14 +159,14 @@ fun JourneyScreen(
 
         // Category distribution
         OddlyCard {
-            SectionLabel("Phân bổ chủ đề")
+            SectionLabel(strings.categoryBreakdown)
             Spacer(Modifier.height(14.dp))
             distribution.forEach { slice ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(slice.category.emoji, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = slice.category.title,
+                        text = slice.category.title.of(strings.language),
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.textSecondary,
                         modifier = Modifier.weight(1f),
@@ -189,11 +191,11 @@ fun JourneyScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        NavigationRow("Lịch hoàn thành", OddlyIcon.Calendar, onOpenCalendar)
+        NavigationRow(strings.completionCalendar, OddlyIcon.Calendar, onOpenCalendar)
         Spacer(Modifier.height(10.dp))
-        NavigationRow("Chuỗi ngày liên tiếp", OddlyIcon.Flame, onOpenStreak)
+        NavigationRow(strings.streakRow, OddlyIcon.Flame, onOpenStreak)
         Spacer(Modifier.height(10.dp))
-        NavigationRow("Tất cả thử thách", OddlyIcon.Target, onOpenAllChallenges)
+        NavigationRow(strings.allChallenges, OddlyIcon.Target, onOpenAllChallenges)
 
         Spacer(Modifier.height(28.dp))
     }

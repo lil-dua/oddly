@@ -4,6 +4,7 @@ import SharedLogic
 /// S12 — completion counts, trend and category mix across four time ranges.
 struct StatisticsScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onStartFirstChallenge: () -> Void
@@ -14,12 +15,13 @@ struct StatisticsScreen: View {
         let summary = StatsCalculator.shared.summarize(
             completions: state.completions,
             today: state.today,
-            range: range
+            range: range,
+            language: strings.language
         )
 
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Thống kê")
+                Text(strings.statisticsTitle)
                     .font(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .padding(.top, 20)
@@ -27,9 +29,9 @@ struct StatisticsScreen: View {
 
                 if state.completions.isEmpty {
                     EmptyState(
-                        title: "Chưa có dữ liệu để thống kê",
-                        subtitle: "Hoàn thành thử thách đầu tiên\nđể bắt đầu theo dõi tiến trình.",
-                        actionText: "Khám phá thử thách",
+                        title: strings.noStatsYet,
+                        subtitle: strings.noStatsYetBody,
+                        actionText: strings.exploreChallenges,
                         action: onStartFirstChallenge
                     )
                 } else {
@@ -37,7 +39,7 @@ struct StatisticsScreen: View {
                         .padding(.bottom, 4)
 
                     OddlyCard {
-                        SectionLabel("Tổng thử thách đã hoàn thành")
+                        SectionLabel(strings.totalCompleted)
 
                         HStack(alignment: .bottom, spacing: 12) {
                             Text("\(summary.totalCompleted)")
@@ -45,9 +47,7 @@ struct StatisticsScreen: View {
                                 .foregroundStyle(palette.textPrimary)
                             if range != StatsRange.all {
                                 let delta = summary.deltaVsPreviousPeriod
-                                Text(delta >= 0
-                                     ? "+\(delta) so với kỳ trước"
-                                     : "\(delta) so với kỳ trước")
+                                Text(strings.deltaVsPrevious(delta: delta))
                                     .font(OddlyFont.bodySmall)
                                     .foregroundStyle(delta >= 0 ? OddlyColors.success : palette.textTertiary)
                                     .padding(.bottom, 6)
@@ -62,20 +62,20 @@ struct StatisticsScreen: View {
                     HStack(spacing: 12) {
                         StatTile(
                             value: summary.mostActiveCategory?.emoji ?? "–",
-                            label: summary.mostActiveCategory?.title ?? "Chưa có dữ liệu",
+                            label: summary.mostActiveCategory?.title.of(strings) ?? strings.noData,
                             accent: summary.mostActiveCategory?.color ?? palette.textTertiary
                         )
                         StatTile(
                             value: "\(state.completionRatePercent)%",
-                            label: "Tỷ lệ hoàn thành",
+                            label: strings.completionRate,
                             accent: OddlyColors.success
                         )
                     }
 
                     OddlyCard {
-                        SectionLabel("Phân bổ chủ đề")
+                        SectionLabel(strings.categoryBreakdown)
                         if summary.distribution.isEmpty {
-                            Text("Chưa có thử thách nào trong khoảng thời gian này.")
+                            Text(strings.noChallengesInRange)
                                 .font(OddlyFont.bodyMedium)
                                 .foregroundStyle(palette.textTertiary)
                                 .padding(.top, 14)
@@ -96,6 +96,7 @@ struct StatisticsScreen: View {
 
 private struct RangeTabs: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let selected: StatsRange
     let onSelect: (StatsRange) -> Void
@@ -107,7 +108,7 @@ private struct RangeTabs: View {
                 Button {
                     onSelect(entry)
                 } label: {
-                    Text(entry.title)
+                    Text(entry.title.of(strings))
                         .font(OddlyFont.labelMedium)
                         .foregroundStyle(active ? OddlyColors.purple : palette.textTertiary)
                         .frame(maxWidth: .infinity)

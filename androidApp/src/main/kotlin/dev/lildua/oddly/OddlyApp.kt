@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.data.seed.ChallengeSeed
 import dev.lildua.oddly.data.seed.QuoteSeed
 import dev.lildua.oddly.ui.navigation.BottomBarDivider
@@ -39,6 +41,8 @@ import dev.lildua.oddly.ui.screens.settings.SettingsScreen
 import dev.lildua.oddly.ui.screens.share.ShareCardScreen
 import dev.lildua.oddly.ui.screens.statistics.StatisticsScreen
 import dev.lildua.oddly.ui.state.rememberOddlyAppState
+import dev.lildua.oddly.ui.theme.LocalStrings
+import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
 /**
@@ -51,196 +55,199 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
 @Composable
 fun OddlyApp() {
     val state = rememberOddlyAppState()
-    OddlyTheme(themeMode = state.settings.themeMode) {
-        val navigator = rememberNavigator(Destination.Splash)
-        val current = navigator.current
+    CompositionLocalProvider(LocalStrings provides Strings.of(state.settings.language)) {
+        OddlyTheme(themeMode = state.settings.themeMode) {
+            val navigator = rememberNavigator(Destination.Splash)
+            val current = navigator.current
 
-        // Root tabs have nothing above them, so back falls through to the
-        // system and leaves the app — which is the expected Android behaviour.
-        BackHandler(enabled = navigator.canGoBack) { navigator.pop() }
+            // Root tabs have nothing above them, so back falls through to the
+            // system and leaves the app — which is the expected Android behaviour.
+            BackHandler(enabled = navigator.canGoBack) { navigator.pop() }
 
-        Column(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-        ) {
-            Box(Modifier.weight(1f)) {
-                AnimatedContent(
-                    targetState = current,
-                    transitionSpec = {
-                        (fadeIn(tween(240)) + slideInHorizontally { it / 14 })
-                            .togetherWith(fadeOut(tween(160)))
-                    },
-                    label = "route",
-                ) { destination ->
-                    when (destination) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+            ) {
+                Box(Modifier.weight(1f)) {
+                    AnimatedContent(
+                        targetState = current,
+                        transitionSpec = {
+                            (fadeIn(tween(240)) + slideInHorizontally { it / 14 })
+                                .togetherWith(fadeOut(tween(160)))
+                        },
+                        label = "route",
+                    ) { destination ->
+                        when (destination) {
 
-                        // --- Onboarding ---
+                            // --- Onboarding ---
 
-                        Destination.Splash -> SplashScreen(
-                            onFinished = { navigator.resetTo(Destination.Onboarding) },
-                        )
+                            Destination.Splash -> SplashScreen(
+                                onFinished = { navigator.resetTo(Destination.Onboarding) },
+                            )
 
-                        Destination.Onboarding -> OnboardingScreen(
-                            onStart = { navigator.push(Destination.ChooseInterest) },
-                            onSkip = { navigator.resetTo(TabDestination.HOME) },
-                        )
+                            Destination.Onboarding -> OnboardingScreen(
+                                onStart = { navigator.push(Destination.ChooseInterest) },
+                                onSkip = { navigator.resetTo(TabDestination.HOME) },
+                            )
 
-                        Destination.ChooseInterest -> ChooseInterestScreen(
-                            selected = state.interests,
-                            onToggle = state::toggleInterest,
-                            onContinue = { navigator.push(Destination.NotificationPermission) },
-                        )
+                            Destination.ChooseInterest -> ChooseInterestScreen(
+                                selected = state.interests,
+                                onToggle = state::toggleInterest,
+                                onContinue = { navigator.push(Destination.NotificationPermission) },
+                            )
 
-                        Destination.NotificationPermission -> NotificationPermissionScreen(
-                            onAllow = { time ->
-                                val (hour, minute) = time.split(":").map(String::toInt)
-                                state.settings = state.settings.copy(
-                                    reminderEnabled = true,
-                                    reminderTime = kotlinx.datetime.LocalTime(hour, minute),
+                            Destination.NotificationPermission -> NotificationPermissionScreen(
+                                onAllow = { time ->
+                                    val (hour, minute) = time.split(":").map(String::toInt)
+                                    state.settings = state.settings.copy(
+                                        reminderEnabled = true,
+                                        reminderTime = kotlinx.datetime.LocalTime(hour, minute),
+                                    )
+                                    navigator.resetTo(TabDestination.HOME)
+                                },
+                                onSkip = {
+                                    state.settings = state.settings.copy(reminderEnabled = false)
+                                    navigator.resetTo(TabDestination.HOME)
+                                },
+                            )
+
+                            // --- Tabs ---
+
+                            TabDestination.HOME -> HomeScreen(
+                                state = state,
+                                onOpenChallenge = {
+                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
+                                },
+                                onStartChallenge = {
+                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
+                                },
+                                onAnotherChallenge = { navigator.push(Destination.AnotherChallenge) },
+                                onOpenStreak = { navigator.push(Destination.Streak) },
+                                onOpenQuotes = { navigator.push(Destination.Quotes) },
+                            )
+
+                            TabDestination.JOURNEY -> JourneyScreen(
+                                state = state,
+                                onOpenCalendar = { navigator.push(Destination.Calendar) },
+                                onOpenStreak = { navigator.push(Destination.Streak) },
+                                onOpenAllChallenges = { navigator.push(Destination.AllChallenges) },
+                                onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
+                            )
+
+                            TabDestination.STATISTICS -> StatisticsScreen(
+                                state = state,
+                                onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
+                            )
+
+                            TabDestination.SETTINGS -> SettingsScreen(state = state)
+
+                            // --- Challenge flow ---
+
+                            is Destination.ChallengeDetail -> {
+                                val challenge = ChallengeSeed.byId(destination.challengeId)
+                                    ?: state.todayChallenge
+                                ChallengeDetailScreen(
+                                    challenge = challenge.localized(),
+                                    // Completion is once *per day* (spec §6.2), so a
+                                    // challenge done last month is startable again.
+                                    alreadyCompleted = state.isCompletedToday(challenge.id),
+                                    onBack = { navigator.pop() },
+                                    onComplete = {
+                                        state.complete(challenge)
+                                        navigator.push(Destination.ChallengeComplete(challenge.id))
+                                    },
+                                    onAnother = { navigator.push(Destination.AnotherChallenge) },
                                 )
-                                navigator.resetTo(TabDestination.HOME)
-                            },
-                            onSkip = {
-                                state.settings = state.settings.copy(reminderEnabled = false)
-                                navigator.resetTo(TabDestination.HOME)
-                            },
-                        )
+                            }
 
-                        // --- Tabs ---
+                            is Destination.ChallengeComplete -> {
+                                val challenge = ChallengeSeed.byId(destination.challengeId)
+                                    ?: state.todayChallenge
+                                ChallengeCompleteScreen(
+                                    challenge = challenge.localized(),
+                                    reward = state.lastReward,
+                                    streakDays = state.streak.current,
+                                    quote = QuoteSeed
+                                        .forDayIndex(state.today.toEpochDays())
+                                        .localized()
+                                        .text,
+                                    onShare = { navigator.push(Destination.ShareCard(challenge.id)) },
+                                    onAnother = {
+                                        state.clearReward()
+                                        navigator.selectTab(TabDestination.HOME)
+                                        navigator.push(Destination.AnotherChallenge)
+                                    },
+                                    onDone = {
+                                        state.clearReward()
+                                        navigator.selectTab(TabDestination.HOME)
+                                    },
+                                )
+                            }
 
-                        TabDestination.HOME -> HomeScreen(
-                            state = state,
-                            onOpenChallenge = {
-                                navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                            },
-                            onStartChallenge = {
-                                navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                            },
-                            onAnotherChallenge = { navigator.push(Destination.AnotherChallenge) },
-                            onOpenStreak = { navigator.push(Destination.Streak) },
-                            onOpenQuotes = { navigator.push(Destination.Quotes) },
-                        )
-
-                        TabDestination.JOURNEY -> JourneyScreen(
-                            state = state,
-                            onOpenCalendar = { navigator.push(Destination.Calendar) },
-                            onOpenStreak = { navigator.push(Destination.Streak) },
-                            onOpenAllChallenges = { navigator.push(Destination.AllChallenges) },
-                            onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
-                        )
-
-                        TabDestination.STATISTICS -> StatisticsScreen(
-                            state = state,
-                            onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
-                        )
-
-                        TabDestination.SETTINGS -> SettingsScreen(state = state)
-
-                        // --- Challenge flow ---
-
-                        is Destination.ChallengeDetail -> {
-                            val challenge = ChallengeSeed.byId(destination.challengeId)
-                                ?: state.todayChallenge
-                            ChallengeDetailScreen(
-                                challenge = challenge,
-                                // Completion is once *per day* (spec §6.2), so a
-                                // challenge done last month is startable again.
-                                alreadyCompleted = state.isCompletedToday(challenge.id),
+                            Destination.AnotherChallenge -> AnotherChallengeScreen(
                                 onBack = { navigator.pop() },
-                                onComplete = {
-                                    state.complete(challenge)
-                                    navigator.push(Destination.ChallengeComplete(challenge.id))
+                                onSurpriseMe = {
+                                    state.reroll()
+                                    navigator.pop()
+                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                 },
-                                onAnother = { navigator.push(Destination.AnotherChallenge) },
+                                onChooseCategory = { navigator.push(Destination.ChooseCategory) },
                             )
-                        }
 
-                        is Destination.ChallengeComplete -> {
-                            val challenge = ChallengeSeed.byId(destination.challengeId)
-                                ?: state.todayChallenge
-                            ChallengeCompleteScreen(
-                                challenge = challenge,
-                                reward = state.lastReward,
-                                streakDays = state.streak.current,
-                                quote = QuoteSeed
-                                    .forDayIndex(state.today.toEpochDays())
-                                    .text,
-                                onShare = { navigator.push(Destination.ShareCard(challenge.id)) },
-                                onAnother = {
-                                    state.clearReward()
-                                    navigator.selectTab(TabDestination.HOME)
-                                    navigator.push(Destination.AnotherChallenge)
-                                },
-                                onDone = {
-                                    state.clearReward()
-                                    navigator.selectTab(TabDestination.HOME)
+                            Destination.ChooseCategory -> ChooseCategoryScreen(
+                                state = state,
+                                onBack = { navigator.pop() },
+                                onPick = { category ->
+                                    state.reroll(category)
+                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                 },
                             )
+
+                            Destination.AllChallenges -> AllChallengesScreen(
+                                state = state,
+                                onBack = { navigator.pop() },
+                                onSelect = { challenge ->
+                                    navigator.push(Destination.ChallengeDetail(challenge.id))
+                                },
+                            )
+
+                            // --- Progress & content ---
+
+                            Destination.Calendar -> CalendarScreen(
+                                state = state,
+                                onBack = { navigator.pop() },
+                            )
+
+                            Destination.Streak -> StreakScreen(
+                                state = state,
+                                onBack = { navigator.pop() },
+                            )
+
+                            Destination.Quotes -> QuotesScreen(
+                                state = state,
+                                onBack = { navigator.pop() },
+                                onShare = {
+                                    navigator.push(Destination.ShareCard(state.todayChallenge.id))
+                                },
+                            )
+
+                            is Destination.ShareCard -> ShareCardScreen(
+                                state = state,
+                                challenge = ChallengeSeed.byId(destination.challengeId)?.localized(),
+                                onBack = { navigator.pop() },
+                            )
                         }
-
-                        Destination.AnotherChallenge -> AnotherChallengeScreen(
-                            onBack = { navigator.pop() },
-                            onSurpriseMe = {
-                                state.reroll()
-                                navigator.pop()
-                                navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                            },
-                            onChooseCategory = { navigator.push(Destination.ChooseCategory) },
-                        )
-
-                        Destination.ChooseCategory -> ChooseCategoryScreen(
-                            state = state,
-                            onBack = { navigator.pop() },
-                            onPick = { category ->
-                                state.reroll(category)
-                                navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                            },
-                        )
-
-                        Destination.AllChallenges -> AllChallengesScreen(
-                            state = state,
-                            onBack = { navigator.pop() },
-                            onSelect = { challenge ->
-                                navigator.push(Destination.ChallengeDetail(challenge.id))
-                            },
-                        )
-
-                        // --- Progress & content ---
-
-                        Destination.Calendar -> CalendarScreen(
-                            state = state,
-                            onBack = { navigator.pop() },
-                        )
-
-                        Destination.Streak -> StreakScreen(
-                            state = state,
-                            onBack = { navigator.pop() },
-                        )
-
-                        Destination.Quotes -> QuotesScreen(
-                            state = state,
-                            onBack = { navigator.pop() },
-                            onShare = {
-                                navigator.push(Destination.ShareCard(state.todayChallenge.id))
-                            },
-                        )
-
-                        is Destination.ShareCard -> ShareCardScreen(
-                            state = state,
-                            challenge = ChallengeSeed.byId(destination.challengeId),
-                            onBack = { navigator.pop() },
-                        )
                     }
                 }
-            }
 
-            if (current is TabDestination) {
-                BottomBarDivider()
-                OddlyBottomBar(
-                    selected = current,
-                    onSelect = navigator::selectTab,
-                )
+                if (current is TabDestination) {
+                    BottomBarDivider()
+                    OddlyBottomBar(
+                        selected = current,
+                        onSelect = navigator::selectTab,
+                    )
+                }
             }
         }
     }

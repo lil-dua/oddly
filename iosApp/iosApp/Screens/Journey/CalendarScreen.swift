@@ -5,6 +5,7 @@ import SharedLogic
 /// miss (spec §S10).
 struct CalendarScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onBack: () -> Void
@@ -25,14 +26,14 @@ struct CalendarScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            OddlyTopBar(title: "Lịch", onBack: onBack)
+            OddlyTopBar(title: strings.calendar, onBack: onBack)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     monthSwitcher
 
                     HStack(spacing: 0) {
-                        ForEach(DateFormat.shared.weekdayHeaders, id: \.self) { label in
+                        ForEach(DateFormat.shared.weekdayHeaders(language: strings.language), id: \.self) { label in
                             Text(label)
                                 .font(OddlyFont.labelSmall)
                                 .tracking(0.5)
@@ -69,7 +70,7 @@ struct CalendarScreen: View {
 
     private var monthSwitcher: some View {
         HStack(spacing: 8) {
-            Text(DateFormat.shared.monthAndYear(date: visibleMonth))
+            Text(DateFormat.shared.monthAndYear(date: visibleMonth, language: strings.language))
                 .font(OddlyFont.titleLarge)
                 .foregroundStyle(palette.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,7 +93,7 @@ struct CalendarScreen: View {
             if dayCompletions.isEmpty {
                 VStack(spacing: 10) {
                     Text("🌙").font(OddlyFont.headlineMedium)
-                    Text("Không có thử thách nào trong ngày này.")
+                    Text(strings.noChallengeThisDay)
                         .font(OddlyFont.bodyMedium)
                         .foregroundStyle(palette.textSecondary)
                         .multilineTextAlignment(.center)
@@ -107,7 +108,7 @@ struct CalendarScreen: View {
                 VStack(spacing: 10) {
                     ForEach(dayCompletions) { entry in
                         ChallengeRow(
-                            challenge: entry.challenge,
+                            challenge: entry.challenge.localized(strings),
                             trailingText: "+\(entry.completion.humanityPercent)%"
                         )
                     }
@@ -125,7 +126,7 @@ struct CalendarScreen: View {
         )
 
         return VStack(alignment: .leading, spacing: 12) {
-            SectionLabel("Gần đây")
+            SectionLabel(strings.recent)
             ForEach(recent) { entry in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(DateFormat.shared.numeric(date: entry.completion.date))
@@ -133,7 +134,7 @@ struct CalendarScreen: View {
                         .tracking(0.5)
                         .foregroundStyle(palette.textTertiary)
                     ChallengeRow(
-                        challenge: entry.challenge,
+                        challenge: entry.challenge.localized(strings),
                         trailingText: "+\(entry.completion.humanityPercent)%"
                     )
                 }

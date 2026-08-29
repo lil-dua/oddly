@@ -30,6 +30,8 @@ import dev.lildua.oddly.ui.components.TodayChallengeCard
 import dev.lildua.oddly.ui.components.WeekStrip
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
+import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
 /**
@@ -46,6 +48,7 @@ fun HomeScreen(
     onOpenQuotes: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val streak = state.streak
 
     Column(
@@ -61,13 +64,13 @@ fun HomeScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = DateFormat.dayAndMonth(state.today),
+                    text = DateFormat.dayAndMonth(state.today, strings.language),
                     style = MaterialTheme.typography.labelMedium,
                     color = palette.textTertiary,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Hôm nay của bạn\nsẽ khác biệt như thế nào?",
+                    text = strings.homeHeadline,
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.textPrimary,
                 )
@@ -77,7 +80,7 @@ fun HomeScreen(
         Spacer(Modifier.height(20.dp))
 
         TodayChallengeCard(
-            challenge = state.todayChallenge,
+            challenge = state.todayChallenge.localized(),
             completed = state.isCompletedToday(state.todayChallenge.id),
             onClick = onOpenChallenge,
             onStart = onStartChallenge,
@@ -88,10 +91,10 @@ fun HomeScreen(
         // Streak card
         OddlyCard(onClick = onOpenStreak) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionLabel("Streak")
+                SectionLabel(strings.streak)
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "${streak.current} ngày liên tiếp 🔥",
+                    text = "${strings.streakDays(streak.current)} 🔥",
                     style = MaterialTheme.typography.labelMedium,
                     color = palette.flame,
                 )
@@ -110,13 +113,13 @@ fun HomeScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
                 value = "${state.totalCompleted}",
-                label = "Thử thách\nđã hoàn thành",
+                label = strings.challengesCompletedLabel,
                 accent = OddlyColors.Purple,
                 modifier = Modifier.weight(1f),
             )
             StatTile(
                 value = "Lv.${state.profile.level}",
-                label = "${state.profile.xpInLevel} / ${state.profile.xpForNextLevel} XP",
+                label = strings.xpProgress(state.profile.xpInLevel, state.profile.xpForNextLevel),
                 accent = OddlyColors.Pink,
                 modifier = Modifier.weight(1f),
             )
@@ -125,10 +128,10 @@ fun HomeScreen(
         Spacer(Modifier.height(16.dp))
 
         // Quote of the day
-        val quote = QuoteSeed.forDayIndex(state.today.toEpochDays())
+        val quote = QuoteSeed.forDayIndex(state.today.toEpochDays()).localized()
         OddlyCard(onClick = onOpenQuotes) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionLabel("Cảm hứng mỗi ngày")
+                SectionLabel(strings.dailyInspiration)
                 Spacer(Modifier.weight(1f))
                 OddlyIcon(OddlyIcon.ChevronRight, size = 14.dp, tint = palette.textTertiary)
             }
@@ -154,13 +157,13 @@ fun HomeScreen(
                 Box(Modifier.weight(1f)) {
                     Column {
                         Text(
-                            text = "Muốn thử thách khác?",
+                            text = strings.wantAnotherChallenge,
                             style = MaterialTheme.typography.titleSmall,
                             color = palette.textPrimary,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Để chúng tôi chọn ngẫu nhiên cho bạn.",
+                            text = strings.wantAnotherChallengeBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.textTertiary,
                         )

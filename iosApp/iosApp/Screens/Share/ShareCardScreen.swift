@@ -7,10 +7,10 @@ private enum ShareLayout: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    func label(_ strings: any Strings) -> String {
         switch self {
-        case .story: return "Dọc 9:16"
-        case .square: return "Vuông 1:1"
+        case .story: return strings.shareLayoutStory
+        case .square: return strings.shareLayoutSquare
         }
     }
 
@@ -27,9 +27,10 @@ private enum ShareLayout: String, CaseIterable, Identifiable {
 /// only aggregate achievements, never notes or private data (spec §16).
 struct ShareCardScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
-    let challenge: Challenge?
+    let challenge: LocalizedChallenge?
     let onClose: () -> Void
 
     @State private var layout: ShareLayout = .story
@@ -49,7 +50,7 @@ struct ShareCardScreen: View {
                             Button {
                                 layout = entry
                             } label: {
-                                Text(entry.label)
+                                Text(entry.label(strings))
                                     .font(OddlyFont.labelMedium)
                                     .foregroundStyle(active ? OddlyColors.purple : palette.textTertiary)
                                     .frame(maxWidth: .infinity)
@@ -75,21 +76,21 @@ struct ShareCardScreen: View {
                             ShareLink(
                                 item: rendered,
                                 preview: SharePreview(
-                                    "1% HUMAN · \(state.totalCompleted) thử thách",
+                                    "1% HUMAN · \(strings.challengeCount(count: Int32(state.totalCompleted)))",
                                     image: rendered
                                 )
                             ) {
-                                shareButtonLabel("Chia sẻ ngay", icon: .share)
+                                shareButtonLabel(strings.shareNow, icon: .share)
                             }
                             .buttonStyle(PressableStyle())
                         } else {
-                            shareButtonLabel("Chia sẻ ngay", icon: .share)
+                            shareButtonLabel(strings.shareNow, icon: .share)
                                 .opacity(0.4)
                         }
                     }
                     .padding(.top, 24)
 
-                    Text("Ảnh chỉ hiển thị thành tích của bạn, không kèm ghi chú hay dữ liệu cá nhân.")
+                    Text(strings.sharePrivacyNote)
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                         .multilineTextAlignment(.center)
@@ -113,7 +114,7 @@ struct ShareCardScreen: View {
             }
             .buttonStyle(PressableStyle())
             Spacer()
-            Text("Chia sẻ thành quả")
+            Text(strings.shareCardTitle)
                 .font(OddlyFont.titleMedium)
                 .foregroundStyle(palette.textPrimary)
             Spacer()
@@ -163,9 +164,10 @@ struct ShareCardScreen: View {
 /// The card itself — this composition is what the image renderer captures.
 private struct ShareCardPreview: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
-    let challenge: Challenge?
+    let challenge: LocalizedChallenge?
     let ratio: CGFloat
 
     var body: some View {
@@ -186,15 +188,15 @@ private struct ShareCardPreview: View {
 
                 Spacer(minLength: 0)
 
-                Text("Tôi đã hoàn thành")
+                Text(strings.shareICompleted)
                     .font(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
 
-                GradientText("\(state.totalCompleted) thử thách", font: OddlyFont.displaySmall)
+                GradientText(strings.challengeCount(count: Int32(state.totalCompleted)), font: OddlyFont.displaySmall)
                     .padding(.top, 8)
 
-                Text("và duy trì chuỗi ngày\n\(state.streak.current) ngày liên tiếp!")
+                Text(strings.keptStreakFor(count: state.streak.current))
                     .font(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textPrimary)
                     .multilineTextAlignment(.center)

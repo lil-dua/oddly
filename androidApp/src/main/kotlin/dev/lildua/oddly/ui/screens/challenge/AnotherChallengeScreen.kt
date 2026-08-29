@@ -34,6 +34,7 @@ import dev.lildua.oddly.ui.components.OddlyTopBar
 import dev.lildua.oddly.ui.components.SecondaryButton
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,6 +50,7 @@ fun AnotherChallengeScreen(
     onChooseCategory: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
     var rolls by remember { mutableIntStateOf(0) }
     val spin by animateFloatAsState(
@@ -80,7 +82,7 @@ fun AnotherChallengeScreen(
                 Spacer(Modifier.height(16.dp))
 
                 Text(
-                    text = "Bạn muốn thử thách\nthêm ngay bây giờ?",
+                    text = strings.anotherChallengeTitle,
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
@@ -115,7 +117,7 @@ fun AnotherChallengeScreen(
                 Spacer(Modifier.height(28.dp))
 
                 Text(
-                    text = "Để chúng tôi chọn\nngẫu nhiên cho bạn.",
+                    text = strings.anotherChallengeBody,
                     style = MaterialTheme.typography.bodyLarge,
                     color = palette.textSecondary,
                     textAlign = TextAlign.Center,
@@ -124,7 +126,7 @@ fun AnotherChallengeScreen(
                 Spacer(Modifier.weight(1f))
 
                 GradientButton(
-                    text = "Cho tôi bất ngờ",
+                    text = strings.surpriseMe,
                     onClick = {
                         rolls += 2
                         scope.launch {
@@ -137,14 +139,14 @@ fun AnotherChallengeScreen(
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    text = "HOẶC",
+                    text = strings.or,
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.textTertiary,
                 )
 
                 Spacer(Modifier.height(20.dp))
 
-                SecondaryButton(text = "Chọn chủ đề khác", onClick = onChooseCategory)
+                SecondaryButton(text = strings.chooseAnotherCategory, onClick = onChooseCategory)
 
                 Spacer(Modifier.height(32.dp))
             }

@@ -4,6 +4,7 @@ import SwiftUI
 /// the reroll actually happens.
 struct AnotherChallengeScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let onBack: () -> Void
     let onSurpriseMe: () -> Void
@@ -26,7 +27,7 @@ struct AnotherChallengeScreen: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            Text("Bạn muốn thử thách\nthêm ngay bây giờ?")
+            Text(strings.anotherChallengeTitle)
                 .font(OddlyFont.headlineMedium)
                 .foregroundStyle(palette.textPrimary)
                 .multilineTextAlignment(.center)
@@ -50,7 +51,7 @@ struct AnotherChallengeScreen: View {
                     )
             }
 
-            Text("Để chúng tôi chọn\nngẫu nhiên cho bạn.")
+            Text(strings.anotherChallengeBody)
                 .font(OddlyFont.bodyLarge)
                 .foregroundStyle(palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -58,7 +59,7 @@ struct AnotherChallengeScreen: View {
 
             Spacer(minLength: 0)
 
-            GradientButton("Cho tôi bất ngờ") {
+            GradientButton(strings.surpriseMe) {
                 withAnimation(.easeInOut(duration: 0.7)) { spin += 720 }
                 Task {
                     try? await Task.sleep(for: .milliseconds(700))
@@ -66,13 +67,13 @@ struct AnotherChallengeScreen: View {
                 }
             }
 
-            Text("HOẶC")
+            Text(strings.or_)
                 .font(OddlyFont.labelSmall)
                 .tracking(0.5)
                 .foregroundStyle(palette.textTertiary)
                 .padding(.vertical, 20)
 
-            SecondaryButton("Chọn chủ đề khác", action: onChooseCategory)
+            SecondaryButton(strings.chooseAnotherCategory, action: onChooseCategory)
                 .padding(.bottom, 32)
         }
         .padding(.horizontal, 28)

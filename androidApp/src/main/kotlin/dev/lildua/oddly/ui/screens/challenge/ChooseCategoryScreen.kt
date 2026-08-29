@@ -31,6 +31,7 @@ import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyGradients
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
 
@@ -45,9 +46,10 @@ fun ChooseCategoryScreen(
     onPick: (Category) -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
 
     // Count distinct challenges cleared, not completions: the same challenge can
-    // be done on several days, and "12 / 10 đã làm" would be nonsense.
+    // be done on several days, and "12 / 10 done" would be nonsense.
     val completedPerCategory = state.completions
         .map { it.challengeId }
         .distinct()
@@ -72,7 +74,7 @@ fun ChooseCategoryScreen(
 
             Column(Modifier.padding(horizontal = 24.dp)) {
                 Text(
-                    text = "Chọn chủ đề bạn muốn\nthử thách",
+                    text = strings.chooseCategoryTitle,
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
@@ -105,7 +107,7 @@ fun ChooseCategoryScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                SecondaryButton(text = "Quay lại", onClick = onBack)
+                SecondaryButton(text = strings.back, onClick = onBack)
 
                 Spacer(Modifier.height(32.dp))
             }
@@ -122,6 +124,7 @@ private fun CategoryTile(
     modifier: Modifier = Modifier,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val accent = category.color
 
     Column(
@@ -138,13 +141,13 @@ private fun CategoryTile(
 
         Column {
             Text(
-                text = category.title,
+                text = category.title.of(strings.language),
                 style = MaterialTheme.typography.titleSmall,
                 color = palette.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "$completedCount / $totalCount đã làm",
+                text = strings.doneOutOf(completedCount, totalCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = accent,
             )

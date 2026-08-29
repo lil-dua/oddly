@@ -35,6 +35,7 @@ import dev.lildua.oddly.ui.components.StatTile
 import dev.lildua.oddly.ui.components.WeekStrip
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
 /**
@@ -47,6 +48,7 @@ fun StreakScreen(
     onBack: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val streak = state.streak
 
     Column(
@@ -56,7 +58,7 @@ fun StreakScreen(
             .statusBarsPadding()
             .verticalScroll(rememberScrollState()),
     ) {
-        OddlyTopBar(title = "Chuỗi ngày liên tiếp", onBack = onBack)
+        OddlyTopBar(title = strings.streakTitle, onBack = onBack)
 
         Column(
             modifier = Modifier.padding(horizontal = 20.dp),
@@ -82,7 +84,7 @@ fun StreakScreen(
                             color = palette.textPrimary,
                         )
                         Text(
-                            text = "ngày",
+                            text = strings.days,
                             style = MaterialTheme.typography.bodyLarge,
                             color = palette.textSecondary,
                         )
@@ -95,13 +97,13 @@ fun StreakScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 StatTile(
                     value = "${streak.best}",
-                    label = "Kỷ lục của bạn",
+                    label = strings.personalBest,
                     accent = OddlyColors.Warning,
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
                     value = "${state.totalCompleted}",
-                    label = "Tổng đã hoàn thành",
+                    label = strings.totalDone,
                     accent = OddlyColors.Purple,
                     modifier = Modifier.weight(1f),
                 )
@@ -110,7 +112,7 @@ fun StreakScreen(
             Spacer(Modifier.height(16.dp))
 
             OddlyCard {
-                SectionLabel("7 ngày gần nhất")
+                SectionLabel(strings.lastSevenDays)
                 Spacer(Modifier.height(16.dp))
                 WeekStrip(days = state.weekActivity)
             }
@@ -130,16 +132,16 @@ fun StreakScreen(
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = "Đừng để chuỗi ngày bị gián đoạn!",
+                        text = strings.keepStreakTitle,
                         style = MaterialTheme.typography.titleSmall,
                         color = palette.textPrimary,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = if (state.completedToday) {
-                            "Hôm nay xong rồi. Hẹn gặp lại bạn ngày mai."
+                            strings.keepStreakDoneToday
                         } else {
-                            "Hoàn thành thử thách hôm nay để duy trì chuỗi ngày."
+                            strings.keepStreakPending
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.textSecondary,
@@ -153,13 +155,13 @@ fun StreakScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = "Lời nhắc",
+                            text = strings.reminderLabel,
                             style = MaterialTheme.typography.titleSmall,
                             color = palette.textPrimary,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Bật thông báo hằng ngày",
+                            text = strings.reminderToggleBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.textTertiary,
                         )
@@ -180,7 +182,7 @@ fun StreakScreen(
             Spacer(Modifier.height(20.dp))
 
             Text(
-                text = "Mất chuỗi ngày không làm bạn mất XP hay cấp độ.",
+                text = strings.streakNoPenalty,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textTertiary,
                 textAlign = TextAlign.Center,

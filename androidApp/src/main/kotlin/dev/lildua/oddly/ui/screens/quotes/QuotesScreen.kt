@@ -38,6 +38,8 @@ import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
+import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
 
 /**
@@ -51,12 +53,13 @@ fun QuotesScreen(
     onShare: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val quotes = QuoteSeed.all
     val todayIndex = remember { ((state.today.toEpochDays() % quotes.size) + quotes.size) % quotes.size }
     var index by remember { mutableIntStateOf(todayIndex) }
     val favorites = remember { mutableStateOf(setOf<String>()) }
 
-    val quote = quotes[index]
+    val quote = quotes[index].localized()
     val isFavorite = quote.id in favorites.value
 
     Box(
@@ -80,7 +83,7 @@ fun QuotesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Cảm hứng mỗi ngày",
+                    text = strings.quotesTitle,
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.textPrimary,
                 )
@@ -167,7 +170,7 @@ fun QuotesScreen(
 
                 Spacer(Modifier.weight(1f))
 
-                GradientButton(text = "Chia sẻ", onClick = onShare, leadingIcon = OddlyIcon.Share)
+                GradientButton(text = strings.share, onClick = onShare, leadingIcon = OddlyIcon.Share)
 
                 Spacer(Modifier.height(20.dp))
 
@@ -181,12 +184,12 @@ fun QuotesScreen(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = "Lời nhắc",
+                            text = strings.reminderLabel,
                             style = MaterialTheme.typography.titleSmall,
                             color = palette.textPrimary,
                         )
                         Text(
-                            text = "Bật thông báo hằng ngày",
+                            text = strings.reminderToggleBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.textTertiary,
                         )

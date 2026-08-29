@@ -3,20 +3,31 @@ import SharedLogic
 
 /// S15 — configuration and local-data controls. Reset is confirmation-gated per
 /// spec §16.
+///
+/// Theme, language and reminder time each open a bottom sheet rather than
+/// cycling on tap: with three theme modes and a free-form time, a row that
+/// changes value on every tap makes the user hunt for the option they wanted.
 struct SettingsScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
 
     @State private var showResetDialog = false
     @State private var showAboutDialog = false
+    @State private var sheet: SettingsSheet?
+
+    private enum SettingsSheet: String, Identifiable {
+        case theme, language, reminderTime
+        var id: String { rawValue }
+    }
 
     var body: some View {
         let settings = state.settings
 
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Cài đặt")
+                Text(strings.settingsTitle)
                     .font(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .padding(.top, 20)
@@ -24,45 +35,31 @@ struct SettingsScreen: View {
                 profileCard
                     .padding(.top, 20)
 
-                SectionLabel("Giao diện")
+                SectionLabel(strings.sectionAppearance)
                     .padding(.top, 24)
                     .padding(.bottom, 8)
 
                 SettingsGroup {
                     SettingsRow(
                         icon: .palette,
-                        title: "Chủ đề",
-                        value: settings.themeMode.title,
-                        action: {
-                            // Cycle through the three modes.
-                            let next: ThemeMode
-                            switch settings.themeMode {
-                            case ThemeMode.dark: next = .light
-                            case ThemeMode.light: next = .system
-                            default: next = .dark
-                            }
-                            state.settings = settings.with(themeMode: next)
-                        }
+                        title: strings.theme,
+                        value: settings.themeMode.title.of(strings),
+                        action: { sheet = .theme }
                     )
                     SettingsRow(
                         icon: .globe,
-                        title: "Ngôn ngữ",
+                        title: strings.languageRow,
                         value: settings.language.title,
-                        action: {
-                            let next: AppLanguage = settings.language == AppLanguage.vietnamese
-                                ? .english
-                                : .vietnamese
-                            state.settings = settings.with(language: next)
-                        }
+                        action: { sheet = .language }
                     )
                 }
 
-                SectionLabel("Nhắc nhở")
+                SectionLabel(strings.sectionReminders)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
 
                 SettingsGroup {
-                    SettingsRow(icon: .bell, title: "Lời nhắc hằng ngày", showChevron: false) {
+                    SettingsRow(icon: .bell, title: strings.dailyReminder, showChevron: false) {
                         OddlyToggle(isOn: Binding(
                             get: { state.settings.reminderEnabled },
                             set: { state.settings = state.settings.with(reminderEnabled: $0) }
@@ -70,11 +67,11 @@ struct SettingsScreen: View {
                     }
                     SettingsRow(
                         icon: .clock,
-                        title: "Giờ nhắc",
+                        title: strings.reminderTime,
                         value: DateFormat.shared.time(time: settings.reminderTime),
-                        action: {}
+                        action: { sheet = .reminderTime }
                     )
-                    SettingsRow(icon: .volume, title: "Âm thanh & rung", showChevron: false) {
+                    SettingsRow(icon: .volume, title: strings.soundAndHaptics, showChevron: false) {
                         OddlyToggle(isOn: Binding(
                             get: { state.settings.soundEnabled },
                             set: {
@@ -84,20 +81,20 @@ struct SettingsScreen: View {
                     }
                 }
 
-                SectionLabel("Dữ liệu")
+                SectionLabel(strings.sectionData)
                     .padding(.top, 20)
                     .padding(.bottom, 8)
 
                 SettingsGroup {
-                    SettingsRow(icon: .download, title: "Sao lưu dữ liệu", action: {})
-                    SettingsRow(icon: .share, title: "Xuất dữ liệu (JSON)", action: {})
-                    SettingsRow(icon: .info, title: "Giới thiệu", action: { showAboutDialog = true })
+                    SettingsRow(icon: .download, title: strings.backupData, action: {})
+                    SettingsRow(icon: .share, title: strings.exportData, action: {})
+                    SettingsRow(icon: .info, title: strings.about, action: { showAboutDialog = true })
                 }
 
                 SettingsGroup {
                     SettingsRow(
                         icon: .trash,
-                        title: "Xóa tất cả dữ liệu",
+                        title: strings.eraseAllData,
                         tint: OddlyColors.danger,
                         showChevron: false,
                         action: { showResetDialog = true }
@@ -105,7 +102,7 @@ struct SettingsScreen: View {
                 }
                 .padding(.top, 20)
 
-                Text("1% HUMAN · phiên bản 1.0\nDữ liệu của bạn được lưu an toàn trên thiết bị.")
+                Text(strings.settingsFooter)
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .multilineTextAlignment(.center)
@@ -117,22 +114,60 @@ struct SettingsScreen: View {
         }
         .background(palette.background)
         .statusBarScrim(palette.background)
-        .alert("Xóa tất cả dữ liệu?", isPresented: $showResetDialog) {
-            Button("Hủy", role: .cancel) {}
-            Button("Xóa", role: .destructive) { state.resetAllData() }
+        .sheet(item: $sheet) { which in
+            sheetContent(for: which)
+                .oddlyPalette(palette)
+                .environment(\.strings, strings)
+        }
+        .alert(strings.eraseAllDataConfirm, isPresented: $showResetDialog) {
+            Button(strings.cancel, role: .cancel) {}
+            Button(strings.erase, role: .destructive) { state.resetAllData() }
         } message: {
-            Text("Toàn bộ lịch sử, streak và cấp độ sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.")
+            Text(strings.eraseAllDataBody)
         }
         .alert("1% HUMAN", isPresented: $showAboutDialog) {
-            Button("Đóng", role: .cancel) {}
+            Button(strings.close, role: .cancel) {}
         } message: {
-            Text("""
-            Phiên bản 1.0
+            Text(strings.aboutBody)
+        }
+    }
 
-            Mỗi ngày một điều nhỏ. Một phiên bản tốt hơn.
+    @ViewBuilder
+    private func sheetContent(for which: SettingsSheet) -> some View {
+        switch which {
+        case .theme:
+            OptionPickerSheet(
+                title: strings.theme,
+                options: ThemeMode.entries,
+                selected: state.settings.themeMode,
+                label: { $0.title.of(strings) },
+                onSelect: {
+                    state.settings = state.settings.with(themeMode: $0)
+                    sheet = nil
+                }
+            )
 
-            Ứng dụng hoạt động hoàn toàn offline. Không tài khoản, không thu thập vị trí, không gửi dữ liệu lên máy chủ.
-            """)
+        case .language:
+            OptionPickerSheet(
+                title: strings.languageRow,
+                options: AppLanguage.entries,
+                selected: state.settings.language,
+                label: { $0.title },
+                onSelect: {
+                    state.settings = state.settings.with(language: $0)
+                    sheet = nil
+                }
+            )
+
+        case .reminderTime:
+            ReminderTimeSheet(
+                initial: state.settings.reminderTime,
+                onSave: {
+                    state.settings = state.settings.with(reminderEnabled: true, reminderTime: $0)
+                    sheet = nil
+                },
+                onCancel: { sheet = nil }
+            )
         }
     }
 
@@ -149,9 +184,13 @@ struct SettingsScreen: View {
                 Text(state.profile.displayName)
                     .font(OddlyFont.titleMedium)
                     .foregroundStyle(palette.textPrimary)
-                Text("Level \(state.profile.level) · \(state.profile.xpInLevel)/\(state.profile.xpForNextLevel) XP")
-                    .font(OddlyFont.bodySmall)
-                    .foregroundStyle(palette.textTertiary)
+                Text(strings.levelWithXp(
+                    level: state.profile.level,
+                    current: state.profile.xpInLevel,
+                    total: state.profile.xpForNextLevel
+                ))
+                .font(OddlyFont.bodySmall)
+                .foregroundStyle(palette.textTertiary)
                 GradientProgressBar(progress: Double(state.profile.levelProgress), height: 5)
                     .padding(.top, 4)
             }
@@ -162,5 +201,132 @@ struct SettingsScreen: View {
             palette.surfaceElevated,
             in: RoundedRectangle(cornerRadius: OddlyRadius.large, style: .continuous)
         )
+    }
+}
+
+/// A single-choice bottom sheet over a small, fixed option set.
+///
+/// Generic over the option type so theme and language share one implementation —
+/// they differ only in how an option is labelled.
+private struct OptionPickerSheet<Option: AnyObject & Equatable>: View {
+    @Environment(\.palette) private var palette
+
+    let title: String
+    let options: [Option]
+    let selected: Option
+    let label: (Option) -> String
+    let onSelect: (Option) -> Void
+
+    var body: some View {
+        SheetShell(title: title) {
+            VStack(spacing: 4) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    let isSelected = option == selected
+                    Button {
+                        onSelect(option)
+                    } label: {
+                        HStack {
+                            Text(label(option))
+                                .font(OddlyFont.bodyLarge)
+                                .foregroundStyle(isSelected ? OddlyColors.purple : palette.textPrimary)
+                            Spacer()
+                            if isSelected {
+                                OddlyIconView(.check, size: 14, tint: Color(rgb: 0x0B0B12), lineWidth: 2)
+                                    .frame(width: 22, height: 22)
+                                    .background(OddlyColors.purple, in: Circle())
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 16)
+                        .background(
+                            isSelected ? OddlyColors.purple.opacity(0.16) : .clear,
+                            in: RoundedRectangle(cornerRadius: OddlyRadius.small, style: .continuous)
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PressableStyle(pressedScale: 0.99))
+                }
+            }
+        }
+    }
+}
+
+/// Free-form reminder time, rather than a handful of preset hours.
+private struct ReminderTimeSheet: View {
+    @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
+
+    let initial: LocalTime
+    let onSave: (LocalTime) -> Void
+    let onCancel: () -> Void
+
+    @State private var picked: Date
+
+    init(initial: LocalTime, onSave: @escaping (LocalTime) -> Void, onCancel: @escaping () -> Void) {
+        self.initial = initial
+        self.onSave = onSave
+        self.onCancel = onCancel
+        var components = DateComponents()
+        components.hour = Int(initial.hour)
+        components.minute = Int(initial.minute)
+        _picked = State(initialValue: Calendar.current.date(from: components) ?? Date())
+    }
+
+    var body: some View {
+        SheetShell(title: strings.reminderTime) {
+            VStack(spacing: 20) {
+                DatePicker(
+                    strings.reminderTime,
+                    selection: $picked,
+                    displayedComponents: .hourAndMinute
+                )
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .colorMultiply(palette.isDark ? Color(rgb: 0xC9C9D6) : .white)
+
+                HStack(spacing: 12) {
+                    SecondaryButton(strings.cancel, action: onCancel)
+                    GradientButton(strings.save) {
+                        let parts = Calendar.current.dateComponents([.hour, .minute], from: picked)
+                        onSave(
+                            LocalTime(
+                                hour: Int32(parts.hour ?? 9),
+                                minute: Int32(parts.minute ?? 0),
+                                second: 0,
+                                nanosecond: 0
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Shared chrome for the settings sheets: a title, the app's own surface, and a
+/// height that fits the content rather than a full-screen takeover.
+private struct SheetShell<Content: View>: View {
+    @Environment(\.palette) private var palette
+
+    let title: String
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title)
+                .font(OddlyFont.headlineSmall.weight(.bold))
+                .foregroundStyle(palette.textPrimary)
+                .padding(.bottom, 16)
+
+            content()
+
+            Spacer(minLength: 0)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(palette.surface)
+        .presentationDetents([.height(360)])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(palette.surface)
     }
 }

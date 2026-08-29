@@ -43,6 +43,7 @@ import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyGradients
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
 
@@ -55,8 +56,9 @@ fun StatisticsScreen(
     onStartFirstChallenge: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     var range by remember { mutableStateOf(StatsRange.WEEK) }
-    val summary = StatsCalculator.summarize(state.completions, state.today, range)
+    val summary = StatsCalculator.summarize(state.completions, state.today, range, strings.language)
 
     Column(
         Modifier
@@ -69,7 +71,7 @@ fun StatisticsScreen(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "Thống kê",
+            text = strings.statisticsTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.textPrimary,
         )
@@ -78,9 +80,9 @@ fun StatisticsScreen(
 
         if (state.completions.isEmpty()) {
             EmptyState(
-                title = "Chưa có dữ liệu để thống kê",
-                subtitle = "Hoàn thành thử thách đầu tiên\nđể bắt đầu theo dõi tiến trình.",
-                actionText = "Khám phá thử thách",
+                title = strings.noStatsYet,
+                subtitle = strings.noStatsYetBody,
+                actionText = strings.exploreChallenges,
                 onAction = onStartFirstChallenge,
             )
             return@Column
@@ -91,7 +93,7 @@ fun StatisticsScreen(
         Spacer(Modifier.height(20.dp))
 
         OddlyCard {
-            SectionLabel("Tổng thử thách đã hoàn thành")
+            SectionLabel(strings.totalCompleted)
             Spacer(Modifier.height(10.dp))
 
             Row(verticalAlignment = Alignment.Bottom) {
@@ -104,7 +106,7 @@ fun StatisticsScreen(
                 if (range != StatsRange.ALL) {
                     val delta = summary.deltaVsPreviousPeriod
                     Text(
-                        text = if (delta >= 0) "+$delta so với kỳ trước" else "$delta so với kỳ trước",
+                        text = strings.deltaVsPrevious(delta),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (delta >= 0) OddlyColors.Success else palette.textTertiary,
                         modifier = Modifier.padding(bottom = 6.dp),
@@ -122,13 +124,13 @@ fun StatisticsScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
                 value = summary.mostActiveCategory?.emoji ?: "–",
-                label = summary.mostActiveCategory?.title ?: "Chưa có dữ liệu",
+                label = summary.mostActiveCategory?.title?.of(strings.language) ?: strings.noData,
                 accent = summary.mostActiveCategory?.color ?: palette.textTertiary,
                 modifier = Modifier.weight(1f),
             )
             StatTile(
                 value = "${state.completionRatePercent}%",
-                label = "Tỷ lệ hoàn thành",
+                label = strings.completionRate,
                 accent = OddlyColors.Success,
                 modifier = Modifier.weight(1f),
             )
@@ -137,12 +139,12 @@ fun StatisticsScreen(
         Spacer(Modifier.height(16.dp))
 
         OddlyCard {
-            SectionLabel("Phân bổ chủ đề")
+            SectionLabel(strings.categoryBreakdown)
             Spacer(Modifier.height(14.dp))
 
             if (summary.distribution.isEmpty()) {
                 Text(
-                    text = "Chưa có thử thách nào trong khoảng thời gian này.",
+                    text = strings.noChallengesInRange,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textTertiary,
                 )
@@ -152,7 +154,7 @@ fun StatisticsScreen(
                         Text(slice.category.emoji, style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            text = slice.category.title,
+                            text = slice.category.title.of(strings.language),
                             style = MaterialTheme.typography.bodyMedium,
                             color = palette.textSecondary,
                             modifier = Modifier.weight(1f),
@@ -183,6 +185,7 @@ fun StatisticsScreen(
 @Composable
 private fun RangeTabs(selected: StatsRange, onSelect: (StatsRange) -> Unit) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -203,7 +206,7 @@ private fun RangeTabs(selected: StatsRange, onSelect: (StatsRange) -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = entry.title,
+                    text = entry.title.of(strings.language),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (active) OddlyColors.Purple else palette.textTertiary,
                 )

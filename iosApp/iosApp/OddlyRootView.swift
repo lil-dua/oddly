@@ -39,6 +39,7 @@ struct OddlyRootView: View {
                     .transition(.opacity)
             }
         }
+        .oddlyStrings(state.settings.language)
         .measuringTopSafeArea()
         .oddlyTheme(state.settings.themeMode, systemIsDark: systemColorScheme == .dark)
     }

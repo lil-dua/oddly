@@ -40,6 +40,8 @@ import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyGradients
+import dev.lildua.oddly.ui.theme.LocalStrings
+import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import kotlinx.datetime.LocalDate
 
@@ -53,6 +55,7 @@ fun CalendarScreen(
     onBack: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     var visibleMonth by remember { mutableStateOf(LocalDate(state.today.year, state.today.monthNumber, 1)) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(state.today) }
 
@@ -67,7 +70,7 @@ fun CalendarScreen(
             .statusBarsPadding()
             .verticalScroll(rememberScrollState()),
     ) {
-        OddlyTopBar(title = "Lịch", onBack = onBack)
+        OddlyTopBar(title = strings.calendar, onBack = onBack)
 
         Column(Modifier.padding(horizontal = 20.dp)) {
 
@@ -77,7 +80,7 @@ fun CalendarScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = DateFormat.monthAndYear(visibleMonth),
+                    text = DateFormat.monthAndYear(visibleMonth, strings.language),
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary,
                     modifier = Modifier.weight(1f),
@@ -95,7 +98,7 @@ fun CalendarScreen(
 
             // Weekday headers
             Row(Modifier.fillMaxWidth()) {
-                DateFormat.weekdayHeaders.forEach { label ->
+                DateFormat.weekdayHeaders(strings.language).forEach { label ->
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelSmall,
@@ -137,7 +140,7 @@ fun CalendarScreen(
                         Text("🌙", style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "Không có thử thách nào trong ngày này.",
+                            text = strings.noChallengeThisDay,
                             style = MaterialTheme.typography.bodyMedium,
                             color = palette.textSecondary,
                             textAlign = TextAlign.Center,
@@ -147,7 +150,7 @@ fun CalendarScreen(
                     dayCompletions.forEach { completion ->
                         state.challengeOf(completion)?.let { challenge ->
                             ChallengeRow(
-                                challenge = challenge,
+                                challenge = challenge.localized(),
                                 trailingText = "+${completion.humanityPercent}%",
                             )
                             Spacer(Modifier.height(10.dp))
@@ -159,7 +162,7 @@ fun CalendarScreen(
             Spacer(Modifier.height(24.dp))
 
             // Recent history
-            SectionLabel("Gần đây")
+            SectionLabel(strings.recent)
             Spacer(Modifier.height(12.dp))
             state.completions
                 .sortedByDescending { it.date.toEpochDays() }
@@ -173,7 +176,7 @@ fun CalendarScreen(
                         )
                         Spacer(Modifier.height(6.dp))
                         ChallengeRow(
-                            challenge = challenge,
+                            challenge = challenge.localized(),
                             trailingText = "+${completion.humanityPercent}%",
                         )
                         Spacer(Modifier.height(12.dp))

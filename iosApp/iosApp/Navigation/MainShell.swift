@@ -9,6 +9,7 @@ import SharedLogic
 /// screen is on top, which is both the Android behaviour and the iOS norm.
 struct MainShell: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
 
@@ -46,10 +47,10 @@ struct MainShell: View {
         .background(palette.background)
         .fullScreenCover(item: $celebrating) { ref in
             ChallengeCompleteScreen(
-                challenge: ref.challenge,
+                challenge: ref.challenge.localized(strings),
                 reward: state.lastReward,
                 streakDays: Int(state.streak.current),
-                quote: state.quoteOfTheDay.text,
+                quote: state.quoteOfTheDay.localized(strings).text,
                 onShare: { sharingFromReward = ref },
                 onAnother: {
                     state.clearReward()
@@ -66,7 +67,7 @@ struct MainShell: View {
             .sheet(item: $sharingFromReward) { shared in
                 ShareCardScreen(
                     state: state,
-                    challenge: shared.challenge,
+                    challenge: shared.challenge.localized(strings),
                     onClose: { sharingFromReward = nil }
                 )
                 .oddlyPalette(palette)
@@ -75,7 +76,7 @@ struct MainShell: View {
         .sheet(item: $sharing) { ref in
             ShareCardScreen(
                 state: state,
-                challenge: ref.challenge,
+                challenge: ref.challenge.localized(strings),
                 onClose: { sharing = nil }
             )
             .oddlyPalette(palette)
@@ -122,7 +123,7 @@ struct MainShell: View {
         case let .challengeDetail(challengeId):
             let challenge = ChallengeSeed.shared.byId(id: challengeId) ?? state.todayChallenge
             ChallengeDetailScreen(
-                challenge: challenge,
+                challenge: challenge.localized(strings),
                 // Completion is once *per day* (spec §6.2), so a challenge done
                 // last month is startable again.
                 alreadyCompleted: state.isCompletedToday(challenge.id),

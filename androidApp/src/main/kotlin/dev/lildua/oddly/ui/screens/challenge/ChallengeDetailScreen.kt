@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.lildua.oddly.domain.model.Challenge
+import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.ui.components.GlowOrb
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyChip
@@ -35,6 +35,7 @@ import dev.lildua.oddly.ui.components.SectionLabel
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
 
@@ -44,13 +45,14 @@ import dev.lildua.oddly.ui.theme.color
  */
 @Composable
 fun ChallengeDetailScreen(
-    challenge: Challenge,
+    challenge: LocalizedChallenge,
     alreadyCompleted: Boolean,
     onBack: () -> Unit,
     onComplete: () -> Unit,
     onAnother: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val accent = challenge.category.color
 
     Box(
@@ -99,12 +101,12 @@ fun ChallengeDetailScreen(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OddlyChip(
-                        challenge.category.title,
+                        challenge.categoryTitle,
                         leadingEmoji = challenge.category.emoji,
                         accent = accent,
                     )
-                    OddlyChip(challenge.difficulty.title)
-                    OddlyChip("${challenge.estimatedMinutes} phút")
+                    OddlyChip(challenge.difficultyTitle)
+                    OddlyChip(strings.minutes(challenge.estimatedMinutes))
                 }
 
                 Spacer(Modifier.height(28.dp))
@@ -112,7 +114,7 @@ fun ChallengeDetailScreen(
 
             // Why it matters
             InfoBlock(
-                label = "Vì sao điều này quan trọng",
+                label = strings.whyItMatters,
                 modifier = Modifier.padding(horizontal = 24.dp),
             ) {
                 Text(
@@ -126,7 +128,7 @@ fun ChallengeDetailScreen(
 
             // How to do it
             InfoBlock(
-                label = "Gợi ý",
+                label = strings.howToDoIt,
                 modifier = Modifier.padding(horizontal = 24.dp),
             ) {
                 challenge.howToDoIt.forEachIndexed { index, step ->
@@ -151,7 +153,7 @@ fun ChallengeDetailScreen(
 
             // Reward
             InfoBlock(
-                label = "Phần thưởng",
+                label = strings.reward,
                 modifier = Modifier.padding(horizontal = 24.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -190,19 +192,19 @@ fun ChallengeDetailScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Bạn đã hoàn thành thử thách này",
+                            text = strings.alreadyCompletedThis,
                             style = MaterialTheme.typography.labelLarge,
                             color = OddlyColors.Success,
                         )
                     }
                 } else {
-                    GradientButton(text = "Bắt đầu", onClick = onComplete)
+                    GradientButton(text = strings.begin, onClick = onComplete)
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    TextAction("Xem thử thách khác", onAnother)
+                    TextAction(strings.seeAnotherChallenge, onAnother)
                 }
             }
 

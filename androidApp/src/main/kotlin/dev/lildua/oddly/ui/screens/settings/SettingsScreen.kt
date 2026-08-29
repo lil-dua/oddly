@@ -1,6 +1,8 @@
 package dev.lildua.oddly.ui.screens.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,14 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,7 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.domain.model.AppLanguage
 import dev.lildua.oddly.domain.model.ThemeMode
@@ -38,20 +48,32 @@ import dev.lildua.oddly.ui.components.GradientProgressBar
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.SectionLabel
 import dev.lildua.oddly.ui.components.SettingsRow
+import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyTheme
+import kotlinx.datetime.LocalTime
 
 /**
  * S15 — configuration and local-data controls. Reset is confirmation-gated per
  * spec §16.
+ *
+ * Theme, language and reminder time each open a picker rather than cycling on
+ * tap: with three theme modes and a free-form time, a row that changes value on
+ * every tap makes the user hunt for the option they wanted.
  */
 @Composable
 fun SettingsScreen(state: OddlyAppState) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
+    val settings = state.settings
+
     var showResetDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
-    val settings = state.settings
+    var showThemePicker by remember { mutableStateOf(false) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -64,7 +86,7 @@ fun SettingsScreen(state: OddlyAppState) {
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "Cài đặt",
+            text = strings.settingsTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.textPrimary,
         )
@@ -98,7 +120,11 @@ fun SettingsScreen(state: OddlyAppState) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Level ${state.profile.level} · ${state.profile.xpInLevel}/${state.profile.xpForNextLevel} XP",
+                    text = strings.levelWithXp(
+                        state.profile.level,
+                        state.profile.xpInLevel,
+                        state.profile.xpForNextLevel,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textTertiary,
                 )
@@ -109,46 +135,31 @@ fun SettingsScreen(state: OddlyAppState) {
 
         Spacer(Modifier.height(24.dp))
 
-        SectionLabel("Giao diện")
+        SectionLabel(strings.sectionAppearance)
         Spacer(Modifier.height(8.dp))
         SettingsGroup {
             SettingsRow(
                 icon = OddlyIcon.Palette,
-                title = "Chủ đề",
-                value = settings.themeMode.title,
-                onClick = {
-                    // Cycle through the three modes.
-                    val next = when (settings.themeMode) {
-                        ThemeMode.DARK -> ThemeMode.LIGHT
-                        ThemeMode.LIGHT -> ThemeMode.SYSTEM
-                        ThemeMode.SYSTEM -> ThemeMode.DARK
-                    }
-                    state.settings = settings.copy(themeMode = next)
-                },
+                title = strings.theme,
+                value = settings.themeMode.title.of(strings.language),
+                onClick = { showThemePicker = true },
             )
             SettingsRow(
                 icon = OddlyIcon.Globe,
-                title = "Ngôn ngữ",
+                title = strings.languageRow,
                 value = settings.language.title,
-                onClick = {
-                    val next = if (settings.language == AppLanguage.VIETNAMESE) {
-                        AppLanguage.ENGLISH
-                    } else {
-                        AppLanguage.VIETNAMESE
-                    }
-                    state.settings = settings.copy(language = next)
-                },
+                onClick = { showLanguagePicker = true },
             )
         }
 
         Spacer(Modifier.height(20.dp))
 
-        SectionLabel("Nhắc nhở")
+        SectionLabel(strings.sectionReminders)
         Spacer(Modifier.height(8.dp))
         SettingsGroup {
             SettingsRow(
                 icon = OddlyIcon.Bell,
-                title = "Lời nhắc hằng ngày",
+                title = strings.dailyReminder,
                 showChevron = false,
                 trailing = {
                     Switch(
@@ -165,13 +176,13 @@ fun SettingsScreen(state: OddlyAppState) {
             )
             SettingsRow(
                 icon = OddlyIcon.Clock,
-                title = "Giờ nhắc",
+                title = strings.reminderTime,
                 value = DateFormat.time(settings.reminderTime),
-                onClick = { },
+                onClick = { showTimePicker = true },
             )
             SettingsRow(
                 icon = OddlyIcon.Volume,
-                title = "Âm thanh & rung",
+                title = strings.soundAndHaptics,
                 showChevron = false,
                 trailing = {
                     Switch(
@@ -190,22 +201,22 @@ fun SettingsScreen(state: OddlyAppState) {
 
         Spacer(Modifier.height(20.dp))
 
-        SectionLabel("Dữ liệu")
+        SectionLabel(strings.sectionData)
         Spacer(Modifier.height(8.dp))
         SettingsGroup {
             SettingsRow(
                 icon = OddlyIcon.Download,
-                title = "Sao lưu dữ liệu",
+                title = strings.backupData,
                 onClick = { },
             )
             SettingsRow(
                 icon = OddlyIcon.Share,
-                title = "Xuất dữ liệu (JSON)",
+                title = strings.exportData,
                 onClick = { },
             )
             SettingsRow(
                 icon = OddlyIcon.Info,
-                title = "Giới thiệu",
+                title = strings.about,
                 onClick = { showAboutDialog = true },
             )
         }
@@ -215,7 +226,7 @@ fun SettingsScreen(state: OddlyAppState) {
         SettingsGroup {
             SettingsRow(
                 icon = OddlyIcon.Trash,
-                title = "Xóa tất cả dữ liệu",
+                title = strings.eraseAllData,
                 tint = OddlyColors.Danger,
                 showChevron = false,
                 onClick = { showResetDialog = true },
@@ -225,14 +236,54 @@ fun SettingsScreen(state: OddlyAppState) {
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "1% HUMAN · phiên bản 1.0\nDữ liệu của bạn được lưu an toàn trên thiết bị.",
+            text = strings.settingsFooter,
             style = MaterialTheme.typography.bodySmall,
             color = palette.textTertiary,
             modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
         )
 
         Spacer(Modifier.height(32.dp))
+    }
+
+    if (showThemePicker) {
+        OptionPickerDialog(
+            title = strings.theme,
+            options = ThemeMode.entries,
+            selected = settings.themeMode,
+            label = { it.title.of(strings.language) },
+            onSelect = {
+                state.settings = settings.copy(themeMode = it)
+                showThemePicker = false
+            },
+            onDismiss = { showThemePicker = false },
+        )
+    }
+
+    if (showLanguagePicker) {
+        OptionPickerDialog(
+            title = strings.languageRow,
+            options = AppLanguage.entries,
+            selected = settings.language,
+            label = { it.title },
+            onSelect = {
+                state.settings = settings.copy(language = it)
+                showLanguagePicker = false
+            },
+            onDismiss = { showLanguagePicker = false },
+        )
+    }
+
+    if (showTimePicker) {
+        ReminderTimeDialog(
+            initial = settings.reminderTime,
+            strings = strings,
+            onConfirm = {
+                state.settings = settings.copy(reminderTime = it, reminderEnabled = true)
+                showTimePicker = false
+            },
+            onDismiss = { showTimePicker = false },
+        )
     }
 
     if (showResetDialog) {
@@ -241,14 +292,14 @@ fun SettingsScreen(state: OddlyAppState) {
             containerColor = palette.surfaceElevated,
             title = {
                 Text(
-                    "Xóa tất cả dữ liệu?",
+                    strings.eraseAllDataConfirm,
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary,
                 )
             },
             text = {
                 Text(
-                    "Toàn bộ lịch sử, streak và cấp độ sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.",
+                    strings.eraseAllDataBody,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary,
                 )
@@ -258,12 +309,12 @@ fun SettingsScreen(state: OddlyAppState) {
                     state.resetAllData()
                     showResetDialog = false
                 }) {
-                    Text("Xóa", color = OddlyColors.Danger)
+                    Text(strings.erase, color = OddlyColors.Danger)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
-                    Text("Hủy", color = palette.textSecondary)
+                    Text(strings.cancel, color = palette.textSecondary)
                 }
             },
         )
@@ -282,21 +333,155 @@ fun SettingsScreen(state: OddlyAppState) {
             },
             text = {
                 Text(
-                    "Phiên bản 1.0\n\n" +
-                        "Mỗi ngày một điều nhỏ. Một phiên bản tốt hơn.\n\n" +
-                        "Ứng dụng hoạt động hoàn toàn offline. Không tài khoản, " +
-                        "không thu thập vị trí, không gửi dữ liệu lên máy chủ.",
+                    strings.aboutBody,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary,
                 )
             },
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
-                    Text("Đóng", color = OddlyColors.Purple)
+                    Text(strings.close, color = OddlyColors.Purple)
                 }
             },
         )
     }
+}
+
+/**
+ * A single-choice picker over a small, fixed option set.
+ *
+ * Generic over the option type so theme and language share one implementation —
+ * they differ only in how an option is labelled.
+ */
+@Composable
+private fun <T> OptionPickerDialog(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = palette.surfaceElevated,
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = palette.textPrimary,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                options.forEach { option ->
+                    val isSelected = option == selected
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (isSelected) {
+                                    OddlyColors.Purple.copy(alpha = 0.16f)
+                                } else {
+                                    Color.Transparent
+                                },
+                            )
+                            .clickableNoRipple { onSelect(option) }
+                            .padding(horizontal = 14.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = label(option),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isSelected) OddlyColors.Purple else palette.textPrimary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(OddlyColors.Purple),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                dev.lildua.oddly.ui.components.OddlyIcon(
+                                    OddlyIcon.Check,
+                                    size = 14.dp,
+                                    tint = Color(0xFF0B0B12),
+                                    strokeWidth = 2.dp,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(strings.close, color = palette.textSecondary)
+            }
+        },
+    )
+}
+
+/** Free-form reminder time, rather than a handful of preset hours. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderTimeDialog(
+    initial: LocalTime,
+    strings: Strings,
+    onConfirm: (LocalTime) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val palette = OddlyTheme.palette
+    val pickerState = rememberTimePickerState(
+        initialHour = initial.hour,
+        initialMinute = initial.minute,
+        is24Hour = true,
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = palette.surfaceElevated,
+        title = {
+            Text(
+                text = strings.reminderTime,
+                style = MaterialTheme.typography.titleLarge,
+                color = palette.textPrimary,
+            )
+        },
+        text = {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TimePicker(
+                    state = pickerState,
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = palette.surfaceHighest,
+                        selectorColor = OddlyColors.Purple,
+                        clockDialSelectedContentColor = Color(0xFF0B0B12),
+                        clockDialUnselectedContentColor = palette.textPrimary,
+                        timeSelectorSelectedContainerColor = OddlyColors.Purple.copy(alpha = 0.22f),
+                        timeSelectorSelectedContentColor = OddlyColors.Purple,
+                        timeSelectorUnselectedContainerColor = palette.surfaceHighest,
+                        timeSelectorUnselectedContentColor = palette.textPrimary,
+                    ),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(LocalTime(pickerState.hour, pickerState.minute)) }) {
+                Text(strings.save, color = OddlyColors.Purple)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(strings.cancel, color = palette.textSecondary)
+            }
+        },
+    )
 }
 
 /** Groups settings rows into one rounded surface with dividers between them. */

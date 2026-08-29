@@ -4,6 +4,7 @@ import SwiftUI
 /// screen explains the value rather than demanding the permission.
 struct NotificationPermissionScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let onAllow: (String) -> Void
     let onSkip: () -> Void
@@ -34,19 +35,19 @@ struct NotificationPermissionScreen: View {
                 }
                 .padding(.top, 48)
 
-                Text("Nhắc bạn mỗi ngày nhé?")
+                Text(strings.reminderPermissionTitle)
                     .font(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 36)
 
-                Text("Một lời nhắc nhẹ nhàng vào giờ bạn chọn, để thử thách hôm nay không bị bỏ lỡ. Bạn có thể tắt bất cứ lúc nào.")
+                Text(strings.reminderPermissionBody)
                     .font(OddlyFont.bodyMedium)
                     .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 12)
 
-                Text("Chọn giờ nhắc")
+                Text(strings.reminderPermissionPickTime)
                     .font(OddlyFont.labelMedium)
                     .foregroundStyle(palette.textTertiary)
                     .padding(.top, 32)
@@ -78,9 +79,9 @@ struct NotificationPermissionScreen: View {
 
                 Spacer(minLength: 24)
 
-                GradientButton("Bật nhắc nhở") { onAllow(selectedTime) }
+                GradientButton(strings.reminderPermissionEnable) { onAllow(selectedTime) }
 
-                TextAction("Để sau", action: onSkip)
+                TextAction(strings.later, action: onSkip)
                     .padding(.top, 8)
             }
             .padding(.horizontal, 28)

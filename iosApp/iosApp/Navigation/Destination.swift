@@ -1,4 +1,5 @@
 import Foundation
+import SharedLogic
 
 /// The four bottom-navigation destinations (spec §5: exactly four, everything
 /// deeper is a child route).
@@ -8,12 +9,12 @@ enum TabDestination: String, CaseIterable, Hashable {
     case statistics
     case settings
 
-    var label: String {
+    func label(_ strings: any Strings) -> String {
         switch self {
-        case .home: return "Hôm nay"
-        case .journey: return "Hành trình"
-        case .statistics: return "Thống kê"
-        case .settings: return "Cài đặt"
+        case .home: return strings.tabHome
+        case .journey: return strings.tabJourney
+        case .statistics: return strings.tabStatistics
+        case .settings: return strings.tabSettings
         }
     }
 

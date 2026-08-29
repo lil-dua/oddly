@@ -5,8 +5,9 @@ import SharedLogic
 /// down, so the animation is short and every action stays tappable throughout.
 struct ChallengeCompleteScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
-    let challenge: Challenge
+    let challenge: LocalizedChallenge
     let reward: OddlyAppState.Reward?
     let streakDays: Int
     let quote: String
@@ -26,7 +27,7 @@ struct ChallengeCompleteScreen: View {
             VStack(spacing: 0) {
                 HStack {
                     Spacer()
-                    TextAction("Xong", action: onDone)
+                    TextAction(strings.done, action: onDone)
                 }
 
                 Spacer(minLength: 0)
@@ -36,12 +37,12 @@ struct ChallengeCompleteScreen: View {
                     .scaleEffect(popped ? 1 : 0.4)
                     .animation(.spring(response: 0.5, dampingFraction: 0.6), value: popped)
 
-                Text("Tuyệt vời!")
+                Text(strings.celebrationTitle)
                     .font(OddlyFont.headlineLarge)
                     .foregroundStyle(palette.textPrimary)
                     .padding(.top, 24)
 
-                Text("Bạn đã hoàn thành\nthử thách hôm nay.")
+                Text(strings.celebrationBody)
                     .font(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -55,14 +56,14 @@ struct ChallengeCompleteScreen: View {
 
                 HStack(spacing: 12) {
                     RewardPill(text: "+\(reward?.xp ?? Int(challenge.rewardXp)) XP", color: OddlyColors.purple)
-                    RewardPill(text: "🔥 \(streakDays) ngày", color: OddlyColors.flame)
+                    RewardPill(text: "🔥 \(strings.streakDays(count: Int32(streakDays)))", color: OddlyColors.flame)
                 }
                 .padding(.top, 20)
 
                 if let reward, reward.leveledUp {
                     HStack(spacing: 8) {
                         OddlyIconView(.sparkle, size: 16, tint: OddlyColors.warning)
-                        Text("Lên cấp \(reward.newLevel)!")
+                        Text("\(strings.levelUp) \(reward.newLevel)!")
                             .font(OddlyFont.labelMedium)
                             .foregroundStyle(OddlyColors.warning)
                     }
@@ -86,9 +87,9 @@ struct ChallengeCompleteScreen: View {
 
                 Spacer(minLength: 0)
 
-                GradientButton("Chia sẻ", leadingIcon: .share, action: onShare)
+                GradientButton(strings.share, leadingIcon: .share, action: onShare)
 
-                SecondaryButton("Xem thử thách khác", action: onAnother)
+                SecondaryButton(strings.seeAnotherChallenge, action: onAnother)
                     .padding(.top, 12)
             }
             .padding(.horizontal, 28)

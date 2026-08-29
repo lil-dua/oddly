@@ -101,7 +101,7 @@ struct SecondaryButton: View {
     }
 }
 
-/// Low-emphasis inline action, e.g. "Để sau" or "Bỏ qua".
+/// Low-emphasis inline action, e.g. "Maybe later" or "Skip".
 struct TextAction: View {
     @Environment(\.palette) private var palette
 

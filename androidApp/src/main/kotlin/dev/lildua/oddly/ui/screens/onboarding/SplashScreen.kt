@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.ui.components.BrandRing
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.StarField
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import kotlinx.coroutines.delay
 
@@ -41,6 +42,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(700), label = "splash-alpha")
     val scale by animateFloatAsState(if (visible) 1f else 0.9f, tween(700), label = "splash-scale")
@@ -78,13 +80,13 @@ fun SplashScreen(onFinished: () -> Unit) {
             Spacer(Modifier.height(56.dp))
 
             Text(
-                text = "Every tiny step",
+                text = strings.splashTaglineLine1,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "makes a huge change.",
+                text = strings.splashTaglineLine2,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,

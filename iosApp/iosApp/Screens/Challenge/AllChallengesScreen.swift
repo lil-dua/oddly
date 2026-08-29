@@ -5,6 +5,7 @@ import SharedLogic
 /// spec notes filters matter more than search at this catalogue size.
 struct AllChallengesScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onBack: () -> Void
@@ -19,19 +20,19 @@ struct AllChallengesScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            OddlyTopBar(title: "Tất cả thử thách", onBack: onBack)
+            OddlyTopBar(title: strings.allChallengesTitle, onBack: onBack)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     OddlyChip(
-                        text: "Tất cả",
+                        text: strings.filterAll,
                         accent: OddlyColors.purple,
                         selected: filter == nil,
                         action: { filter = nil }
                     )
                     ForEach(ChallengeCategory.entries, id: \.self) { category in
                         OddlyChip(
-                            text: category.title,
+                            text: category.title.of(strings),
                             accent: category.color,
                             leadingEmoji: category.emoji,
                             selected: filter == category,
@@ -42,7 +43,7 @@ struct AllChallengesScreen: View {
                 .padding(.horizontal, 20)
             }
 
-            Text("\(challenges.count) thử thách")
+            Text(strings.challengeCount(count: Int32(challenges.count)))
                 .font(OddlyFont.labelSmall)
                 .tracking(0.5)
                 .foregroundStyle(palette.textTertiary)
@@ -53,9 +54,9 @@ struct AllChallengesScreen: View {
             if challenges.isEmpty {
                 ScrollView {
                     EmptyState(
-                        title: "Không tìm thấy thử thách nào",
-                        subtitle: "Thử chọn một chủ đề khác.",
-                        actionText: "Xem tất cả",
+                        title: strings.noChallengesFound,
+                        subtitle: strings.noChallengesFoundBody,
+                        actionText: strings.seeAll,
                         action: { filter = nil }
                     )
                 }
@@ -64,7 +65,7 @@ struct AllChallengesScreen: View {
                     LazyVStack(spacing: 10) {
                         ForEach(challenges.map(ChallengeRef.init)) { ref in
                             ChallengeRow(
-                                challenge: ref.challenge,
+                                challenge: ref.challenge.localized(strings),
                                 trailingText: state.isCompleted(ref.id)
                                     ? "✓"
                                     : "+\(ref.challenge.humanityPercent)%",

@@ -4,6 +4,7 @@ import SwiftUI
 /// spec calls for a branding moment, not a held splash.
 struct SplashScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let onFinished: () -> Void
 
@@ -29,8 +30,8 @@ struct SplashScreen: View {
                 }
 
                 VStack(spacing: 0) {
-                    Text("Every tiny step")
-                    Text("makes a huge change.")
+                    Text(strings.splashTaglineLine1)
+                    Text(strings.splashTaglineLine2)
                 }
                 .font(OddlyFont.bodyLarge)
                 .foregroundStyle(palette.textSecondary)

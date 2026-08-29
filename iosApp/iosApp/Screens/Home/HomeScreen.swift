@@ -5,6 +5,7 @@ import SharedLogic
 /// is the visual hero; everything else supports it.
 struct HomeScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onOpenChallenge: () -> Void
@@ -17,10 +18,10 @@ struct HomeScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(DateFormat.shared.dayAndMonth(date: state.today))
+                    Text(DateFormat.shared.dayAndMonth(date: state.today, language: strings.language))
                         .font(OddlyFont.labelMedium)
                         .foregroundStyle(palette.textTertiary)
-                    Text("Hôm nay của bạn\nsẽ khác biệt như thế nào?")
+                    Text(strings.homeHeadline)
                         .font(OddlyFont.headlineSmall)
                         .foregroundStyle(palette.textPrimary)
                 }
@@ -28,7 +29,7 @@ struct HomeScreen: View {
                 .padding(.bottom, 4)
 
                 TodayChallengeCard(
-                    challenge: state.todayChallenge,
+                    challenge: state.todayChallenge.localized(strings),
                     completed: state.isCompletedToday(state.todayChallenge.id),
                     onOpen: onOpenChallenge,
                     onStart: onStartChallenge
@@ -39,12 +40,12 @@ struct HomeScreen: View {
                 HStack(spacing: 12) {
                     StatTile(
                         value: "\(state.totalCompleted)",
-                        label: "Thử thách\nđã hoàn thành",
+                        label: strings.challengesCompletedLabel,
                         accent: OddlyColors.purple
                     )
                     StatTile(
                         value: "Lv.\(state.profile.level)",
-                        label: "\(state.profile.xpInLevel) / \(state.profile.xpForNextLevel) XP",
+                        label: strings.xpProgress(current: state.profile.xpInLevel, total: state.profile.xpForNextLevel),
                         accent: OddlyColors.pink
                     )
                 }
@@ -63,9 +64,9 @@ struct HomeScreen: View {
     private var streakCard: some View {
         OddlyCard(action: onOpenStreak) {
             HStack(spacing: 6) {
-                SectionLabel("Streak")
+                SectionLabel(strings.streak)
                 Spacer()
-                Text("\(state.streak.current) ngày liên tiếp 🔥")
+                Text("\(strings.streakDays(count: state.streak.current)) 🔥")
                     .font(OddlyFont.labelMedium)
                     .foregroundStyle(palette.flame)
                 OddlyIconView(.chevronRight, size: 14, tint: palette.textTertiary)
@@ -76,10 +77,10 @@ struct HomeScreen: View {
     }
 
     private var quoteCard: some View {
-        let quote = state.quoteOfTheDay
+        let quote = state.quoteOfTheDay.localized(strings)
         return OddlyCard(action: onOpenQuotes) {
             HStack {
-                SectionLabel("Cảm hứng mỗi ngày")
+                SectionLabel(strings.dailyInspiration)
                 Spacer()
                 OddlyIconView(.chevronRight, size: 14, tint: palette.textTertiary)
             }
@@ -99,10 +100,10 @@ struct HomeScreen: View {
         OddlyCard(action: onAnotherChallenge) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Muốn thử thách khác?")
+                    Text(strings.wantAnotherChallenge)
                         .font(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
-                    Text("Để chúng tôi chọn ngẫu nhiên cho bạn.")
+                    Text(strings.wantAnotherChallengeBody)
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                 }

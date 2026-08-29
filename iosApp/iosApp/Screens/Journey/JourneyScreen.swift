@@ -5,6 +5,7 @@ import SharedLogic
 /// their effort. Entry point to Calendar, Streak and the full library.
 struct JourneyScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let state: OddlyAppState
     let onOpenCalendar: () -> Void
@@ -15,7 +16,7 @@ struct JourneyScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Hành trình của bạn")
+                Text(strings.journeyTitle)
                     .font(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .padding(.top, 20)
@@ -23,26 +24,26 @@ struct JourneyScreen: View {
 
                 if state.completions.isEmpty {
                     EmptyState(
-                        title: "Bạn chưa có thử thách nào",
-                        subtitle: "Hãy bắt đầu hành trình\n1% tốt hơn mỗi ngày.",
-                        actionText: "Khám phá thử thách",
+                        title: strings.emptyJourneyTitle,
+                        subtitle: strings.emptyJourneyBody,
+                        actionText: strings.exploreChallenges,
                         action: onStartFirstChallenge
                     )
                 } else {
                     levelCard
 
-                    SectionLabel("Thống kê nhanh")
+                    SectionLabel(strings.quickStats)
                         .padding(.top, 4)
 
                     HStack(spacing: 12) {
                         StatTile(
                             value: "\(state.totalCompleted)",
-                            label: "Thử thách\nđã hoàn thành",
+                            label: strings.challengesCompletedLabel,
                             accent: OddlyColors.purple
                         )
                         StatTile(
                             value: "\(state.streak.current)",
-                            label: "Ngày liên tiếp",
+                            label: strings.consecutiveDays,
                             accent: OddlyColors.flame
                         )
                     }
@@ -50,18 +51,18 @@ struct JourneyScreen: View {
                     HStack(spacing: 12) {
                         StatTile(
                             value: "\(state.exploredCategoryCount)",
-                            label: "Chủ đề\nđã khám phá",
+                            label: strings.categoriesExplored,
                             accent: OddlyColors.blue
                         )
                         StatTile(
                             value: "\(state.completionRatePercent)%",
-                            label: "Tỷ lệ hoàn thành",
+                            label: strings.completionRate,
                             accent: OddlyColors.success
                         )
                     }
 
                     OddlyCard {
-                        SectionLabel("Phân bổ chủ đề")
+                        SectionLabel(strings.categoryBreakdown)
                         CategoryDistribution(
                             slices: StatsCalculator.shared.distribution(completions: state.completions)
                         )
@@ -69,9 +70,9 @@ struct JourneyScreen: View {
                     }
 
                     VStack(spacing: 10) {
-                        NavigationRow(title: "Lịch hoàn thành", icon: .calendar, action: onOpenCalendar)
-                        NavigationRow(title: "Chuỗi ngày liên tiếp", icon: .flame, action: onOpenStreak)
-                        NavigationRow(title: "Tất cả thử thách", icon: .target, action: onOpenAllChallenges)
+                        NavigationRow(title: strings.completionCalendar, icon: .calendar, action: onOpenCalendar)
+                        NavigationRow(title: strings.streakRow, icon: .flame, action: onOpenStreak)
+                        NavigationRow(title: strings.allChallenges, icon: .target, action: onOpenAllChallenges)
                     }
                 }
             }
@@ -86,12 +87,12 @@ struct JourneyScreen: View {
         let profile = state.profile
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 0) {
-                SectionLabel("Cấp độ hiện tại")
+                SectionLabel(strings.currentLevel)
                 Text("Level \(profile.level)")
                     .font(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .padding(.top, 10)
-                Text("\(profile.xpInLevel) / \(profile.xpForNextLevel) XP")
+                Text(strings.xpProgress(current: profile.xpInLevel, total: profile.xpForNextLevel))
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .padding(.top, 12)
@@ -116,6 +117,7 @@ struct JourneyScreen: View {
 /// Shared by Journey and Statistics: one tinted bar per category.
 struct CategoryDistribution: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let slices: [CategorySlice]
 
@@ -125,7 +127,7 @@ struct CategoryDistribution: View {
                 VStack(spacing: 8) {
                     HStack(spacing: 10) {
                         Text(slice.category.emoji).font(OddlyFont.bodyMedium)
-                        Text(slice.category.title)
+                        Text(slice.category.title.of(strings))
                             .font(OddlyFont.bodyMedium)
                             .foregroundStyle(palette.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)

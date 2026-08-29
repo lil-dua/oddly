@@ -36,7 +36,8 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.lildua.oddly.domain.model.Challenge
+import dev.lildua.oddly.core.text.Strings
+import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.OddlyIcon
@@ -45,12 +46,18 @@ import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import kotlinx.coroutines.launch
 
-private enum class ShareLayout(val label: String, val ratio: Float) {
-    STORY("Dọc 9:16", 9f / 16f),
-    SQUARE("Vuông 1:1", 1f),
+private enum class ShareLayout(val ratio: Float) {
+    STORY(9f / 16f),
+    SQUARE(1f);
+
+    fun label(strings: Strings): String = when (this) {
+        STORY -> strings.shareLayoutStory
+        SQUARE -> strings.shareLayoutSquare
+    }
 }
 
 /**
@@ -60,10 +67,11 @@ private enum class ShareLayout(val label: String, val ratio: Float) {
 @Composable
 fun ShareCardScreen(
     state: OddlyAppState,
-    challenge: Challenge?,
+    challenge: LocalizedChallenge?,
     onBack: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     var layout by remember { mutableStateOf(ShareLayout.STORY) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -88,7 +96,7 @@ fun ShareCardScreen(
             }
             Spacer(Modifier.weight(1f))
             Text(
-                text = "Chia sẻ thành quả",
+                text = strings.shareCardTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = palette.textPrimary,
             )
@@ -114,7 +122,7 @@ fun ShareCardScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = entry.label,
+                            text = entry.label(strings),
                             style = MaterialTheme.typography.labelMedium,
                             color = if (active) OddlyColors.Purple else palette.textTertiary,
                         )
@@ -142,14 +150,14 @@ fun ShareCardScreen(
             // One action: the system chooser is also where "save to photos"
             // lives on Android, so a separate save button would duplicate it.
             GradientButton(
-                text = "Chia sẻ ngay",
+                text = strings.shareNow,
                 onClick = {
                     scope.launch {
                         val bitmap = cardLayer.toImageBitmap().asAndroidBitmap()
                         val intent = ShareImageExport.chooserIntent(
                             context = context,
                             bitmap = bitmap,
-                            caption = "1% HUMAN · ${state.totalCompleted} thử thách",
+                            caption = "1% HUMAN · ${strings.challengeCount(state.totalCompleted)}",
                         )
                         if (intent == null) {
                             exportFailed = true
@@ -176,7 +184,7 @@ fun ShareCardScreen(
                     OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = OddlyColors.Warning)
                     Spacer(Modifier.height(0.dp))
                     Text(
-                        text = "  Không tạo được ảnh chia sẻ. Hãy kiểm tra dung lượng trống rồi thử lại.",
+                        text = "  ${strings.shareExportFailed}",
                         style = MaterialTheme.typography.bodySmall,
                         color = OddlyColors.Warning,
                     )
@@ -185,7 +193,7 @@ fun ShareCardScreen(
             }
 
             Text(
-                text = "Ảnh chỉ hiển thị thành tích của bạn, không kèm ghi chú hay dữ liệu cá nhân.",
+                text = strings.sharePrivacyNote,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textTertiary,
                 textAlign = TextAlign.Center,
@@ -201,10 +209,11 @@ fun ShareCardScreen(
 @Composable
 private fun SharePreview(
     state: OddlyAppState,
-    challenge: Challenge?,
+    challenge: LocalizedChallenge?,
     ratio: Float,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
 
     Box(
         modifier = Modifier
@@ -238,7 +247,7 @@ private fun SharePreview(
             Spacer(Modifier.weight(1f))
 
             Text(
-                text = "Tôi đã hoàn thành",
+                text = strings.shareICompleted,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center,
@@ -247,14 +256,14 @@ private fun SharePreview(
             Spacer(Modifier.height(8.dp))
 
             GradientText(
-                text = "${state.totalCompleted} thử thách",
+                text = strings.challengeCount(state.totalCompleted),
                 style = MaterialTheme.typography.displaySmall,
             )
 
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "và duy trì chuỗi ngày\n${state.streak.current} ngày liên tiếp!",
+                text = strings.keptStreakFor(state.streak.current),
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,

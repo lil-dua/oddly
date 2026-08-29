@@ -5,6 +5,7 @@ import SharedLogic
 /// every category", so this screen never blocks onboarding.
 struct ChooseInterestScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let selected: Set<ChallengeCategory>
     let onToggle: (ChallengeCategory) -> Void
@@ -16,13 +17,13 @@ struct ChooseInterestScreen: View {
             StarField(starCount: 50, seed: 13).ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("Bạn muốn tập trung vào\nkhía cạnh nào?")
+                Text(strings.interestsTitle)
                     .font(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 28)
 
-                Text("(Bạn có thể thay đổi sau)")
+                Text(strings.interestsSubtitle)
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .padding(.top, 10)
@@ -40,10 +41,12 @@ struct ChooseInterestScreen: View {
 
                 Spacer(minLength: 24)
 
-                GradientButton("Tiếp tục", action: onContinue)
+                GradientButton(strings.interestsContinue, action: onContinue)
 
                 TextAction(
-                    selected.isEmpty ? "Dùng tất cả chủ đề" : "\(selected.count) chủ đề đã chọn",
+                    selected.isEmpty
+                        ? strings.interestsUseAll
+                        : strings.topicsSelected(count: Int32(selected.count)),
                     action: onContinue
                 )
                 .padding(.top, 8)
@@ -56,6 +59,7 @@ struct ChooseInterestScreen: View {
 
 private struct InterestRow: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let category: ChallengeCategory
     let selected: Bool
@@ -68,7 +72,7 @@ private struct InterestRow: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 Text(category.emoji).font(OddlyFont.titleMedium)
-                Text(category.title)
+                Text(category.title.of(strings))
                     .font(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)

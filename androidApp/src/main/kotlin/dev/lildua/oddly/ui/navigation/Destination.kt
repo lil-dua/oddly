@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.navigation
 
+import dev.lildua.oddly.core.text.Strings
+
 /**
  * Every screen the app can show.
  *
@@ -27,9 +29,16 @@ sealed interface Destination {
 }
 
 /** The four bottom-navigation destinations. */
-enum class TabDestination(val label: String) : Destination {
-    HOME("Hôm nay"),
-    JOURNEY("Hành trình"),
-    STATISTICS("Thống kê"),
-    SETTINGS("Cài đặt"),
+enum class TabDestination : Destination {
+    HOME,
+    JOURNEY,
+    STATISTICS,
+    SETTINGS;
+
+    fun label(strings: Strings): String = when (this) {
+        HOME -> strings.tabHome
+        JOURNEY -> strings.tabJourney
+        STATISTICS -> strings.tabStatistics
+        SETTINGS -> strings.tabSettings
+    }
 }

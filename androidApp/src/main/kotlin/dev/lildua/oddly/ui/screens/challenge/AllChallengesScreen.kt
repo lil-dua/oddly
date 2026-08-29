@@ -33,6 +33,8 @@ import dev.lildua.oddly.ui.components.OddlyChip
 import dev.lildua.oddly.ui.components.OddlyTopBar
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import dev.lildua.oddly.ui.theme.LocalStrings
+import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
 
@@ -47,6 +49,7 @@ fun AllChallengesScreen(
     onSelect: (Challenge) -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     var filter by remember { mutableStateOf<Category?>(null) }
 
     val challenges = remember(filter) {
@@ -59,7 +62,7 @@ fun AllChallengesScreen(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
-        OddlyTopBar(title = "Tất cả thử thách", onBack = onBack)
+        OddlyTopBar(title = strings.allChallengesTitle, onBack = onBack)
 
         // Category filter strip
         Row(
@@ -70,14 +73,14 @@ fun AllChallengesScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OddlyChip(
-                text = "Tất cả",
+                text = strings.filterAll,
                 selected = filter == null,
                 accent = OddlyColors.Purple,
                 onClick = { filter = null },
             )
             Category.entries.forEach { category ->
                 OddlyChip(
-                    text = category.title,
+                    text = category.title.of(strings.language),
                     leadingEmoji = category.emoji,
                     selected = filter == category,
                     accent = category.color,
@@ -89,7 +92,7 @@ fun AllChallengesScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "${challenges.size} thử thách",
+            text = strings.challengeCount(challenges.size),
             style = MaterialTheme.typography.labelSmall,
             color = palette.textTertiary,
             modifier = Modifier.padding(horizontal = 20.dp),
@@ -100,9 +103,9 @@ fun AllChallengesScreen(
         if (challenges.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 EmptyState(
-                    title = "Không tìm thấy thử thách nào",
-                    subtitle = "Thử chọn một chủ đề khác.",
-                    actionText = "Xem tất cả",
+                    title = strings.noChallengesFound,
+                    subtitle = strings.noChallengesFoundBody,
+                    actionText = strings.seeAll,
                     onAction = { filter = null },
                 )
             }
@@ -117,7 +120,7 @@ fun AllChallengesScreen(
             ) {
                 items(challenges, key = { it.id }) { challenge ->
                     ChallengeRow(
-                        challenge = challenge,
+                        challenge = challenge.localized(),
                         trailingText = if (state.isCompleted(challenge.id)) "✓" else "+${challenge.humanityPercent}%",
                         onClick = { onSelect(challenge) },
                     )

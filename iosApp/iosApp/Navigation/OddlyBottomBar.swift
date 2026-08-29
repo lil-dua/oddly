@@ -7,6 +7,7 @@ import SwiftUI
 /// the exact spacing match the Android bar and the design mockup.
 struct OddlyBottomBar: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let selected: TabDestination
     let onSelect: (TabDestination) -> Void
@@ -33,7 +34,7 @@ struct OddlyBottomBar: View {
                                     active ? OddlyColors.purple.opacity(0.16) : .clear,
                                     in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 )
-                            Text(tab.label)
+                            Text(tab.label(strings))
                                 .font(OddlyFont.labelSmall)
                                 .foregroundStyle(tint)
                         }

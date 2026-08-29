@@ -6,13 +6,28 @@ package dev.lildua.oddly.domain.model
  */
 enum class Difficulty(
     val id: String,
-    val title: String,
+    val title: LocalizedText,
     val rewardXp: Int,
     val humanityPercent: Int,
 ) {
-    EASY(id = "easy", title = "Dễ", rewardXp = 10, humanityPercent = 5),
-    MEDIUM(id = "medium", title = "Vừa", rewardXp = 20, humanityPercent = 5),
-    HARD(id = "hard", title = "Khó", rewardXp = 35, humanityPercent = 10);
+    EASY(
+        id = "easy",
+        title = LocalizedText(vi = "Dễ", en = "Easy"),
+        rewardXp = 10,
+        humanityPercent = 5,
+    ),
+    MEDIUM(
+        id = "medium",
+        title = LocalizedText(vi = "Vừa", en = "Medium"),
+        rewardXp = 20,
+        humanityPercent = 5,
+    ),
+    HARD(
+        id = "hard",
+        title = LocalizedText(vi = "Khó", en = "Hard"),
+        rewardXp = 35,
+        humanityPercent = 10,
+    );
 
     companion object {
         fun fromId(id: String): Difficulty? = entries.firstOrNull { it.id == id }

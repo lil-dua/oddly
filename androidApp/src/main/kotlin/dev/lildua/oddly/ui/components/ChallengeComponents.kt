@@ -27,8 +27,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.domain.model.Category
-import dev.lildua.oddly.domain.model.Challenge
+import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.domain.usecase.DayActivity
+import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyGradients
 import dev.lildua.oddly.ui.theme.OddlyTheme
@@ -40,13 +41,14 @@ import dev.lildua.oddly.ui.theme.color
  */
 @Composable
 fun TodayChallengeCard(
-    challenge: Challenge,
+    challenge: LocalizedChallenge,
     completed: Boolean,
     onClick: () -> Unit,
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val accent = challenge.category.color
 
     Box(
@@ -68,7 +70,7 @@ fun TodayChallengeCard(
 
         Column(Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionLabel("Thử thách hôm nay", color = palette.textSecondary)
+                SectionLabel(strings.todaysChallenge, color = palette.textSecondary)
                 Spacer(Modifier.weight(1f))
                 OddlyIcon(
                     OddlyIcon.ChevronRight,
@@ -102,20 +104,20 @@ fun TodayChallengeCard(
             Spacer(Modifier.height(16.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OddlyChip(challenge.category.title, leadingEmoji = challenge.category.emoji, accent = accent)
-                OddlyChip("${challenge.estimatedMinutes} phút")
+                OddlyChip(challenge.categoryTitle, leadingEmoji = challenge.category.emoji, accent = accent)
+                OddlyChip(strings.minutes(challenge.estimatedMinutes))
             }
 
             Spacer(Modifier.height(20.dp))
 
             if (completed) {
                 SecondaryButton(
-                    text = "Đã hoàn thành hôm nay",
+                    text = strings.homeAlreadyDoneToday,
                     onClick = onClick,
                     leadingIcon = OddlyIcon.Check,
                 )
             } else {
-                GradientButton(text = "Tôi sẽ làm!", onClick = onStart)
+                GradientButton(text = strings.homeStartChallenge, onClick = onStart)
             }
         }
     }
@@ -151,12 +153,13 @@ private fun CompletionBadge(completed: Boolean, accent: Color) {
  */
 @Composable
 fun ChallengeRow(
-    challenge: Challenge,
+    challenge: LocalizedChallenge,
     modifier: Modifier = Modifier,
     trailingText: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
     val accent = challenge.category.color
 
     Row(
@@ -182,7 +185,7 @@ fun ChallengeRow(
             )
             Spacer(Modifier.height(3.dp))
             Text(
-                text = "${challenge.category.title} · ${challenge.estimatedMinutes} phút",
+                text = "${challenge.categoryTitle} · ${strings.minutes(challenge.estimatedMinutes)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textTertiary,
             )
@@ -228,6 +231,7 @@ fun WeekStrip(
     modifier: Modifier = Modifier,
 ) {
     val palette = OddlyTheme.palette
+    val language = LocalStrings.current.language
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -235,7 +239,7 @@ fun WeekStrip(
         days.forEach { day ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = DateFormat.shortWeekday(day.date),
+                    text = DateFormat.shortWeekday(day.date, language),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (day.isToday) palette.textPrimary else palette.textTertiary,
                 )

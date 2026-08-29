@@ -11,15 +11,18 @@ private struct Benefit: Identifiable {
 /// single page; the spec caps onboarding at 2–3 screens total.
 struct OnboardingScreen: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let onStart: () -> Void
     let onSkip: () -> Void
 
-    private let benefits = [
-        Benefit(icon: .sparkle, label: "Thử thách\nmỗi ngày", tint: OddlyColors.warning),
-        Benefit(icon: .heart, label: "Dễ thực hiện\nnhưng ý nghĩa", tint: OddlyColors.pink),
-        Benefit(icon: .refresh, label: "Thay đổi\ncuộc sống", tint: OddlyColors.blue),
-    ]
+    private var benefits: [Benefit] {
+        [
+            Benefit(icon: .sparkle, label: strings.onboardingBenefitDaily, tint: OddlyColors.warning),
+            Benefit(icon: .heart, label: strings.onboardingBenefitMeaningful, tint: OddlyColors.pink),
+            Benefit(icon: .refresh, label: strings.onboardingBenefitChange, tint: OddlyColors.blue),
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -29,10 +32,10 @@ struct OnboardingScreen: View {
             VStack(spacing: 0) {
                 HStack {
                     Spacer()
-                    TextAction("Bỏ qua", action: onSkip)
+                    TextAction(strings.skip, action: onSkip)
                 }
 
-                Text("Chào mừng bạn đến với")
+                Text(strings.onboardingWelcome)
                     .font(OddlyFont.headlineSmall)
                     .foregroundStyle(palette.textPrimary)
                     .multilineTextAlignment(.center)
@@ -40,7 +43,7 @@ struct OnboardingScreen: View {
 
                 GradientText("1% HUMAN", font: OddlyFont.displaySmall)
 
-                Text("Mỗi ngày chúng tôi sẽ giao cho\nbạn một thử thách nhỏ.")
+                Text(strings.onboardingSubtitle)
                     .font(OddlyFont.bodyMedium)
                     .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -65,7 +68,7 @@ struct OnboardingScreen: View {
                     }
                 }
 
-                GradientButton("Bắt đầu", action: onStart)
+                GradientButton(strings.onboardingStart, action: onStart)
                     .padding(.top, 32)
 
                 PageDots(count: 3, selected: 0)

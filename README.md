@@ -4,8 +4,9 @@ An offline-first mobile app that turns one small action a day into a habit.
 One challenge, a few minutes, a reward, a streak — no account, no backend, no network.
 
 > **Status:** Android and iOS apps both complete and running against sample
-> data, including local share-image export. Persistence and notifications are
-> still to come — see [Not built yet](#not-built-yet).
+> data, fully bilingual (Vietnamese / English) with local share-image export.
+> Persistence and notifications are still to come — see
+> [Not built yet](#not-built-yet).
 
 ## Architecture
 
@@ -21,10 +22,12 @@ SwiftUI on iOS. There is no Compose Multiplatform in this project.
 
 ```
 sharedLogic/src/commonMain/kotlin/dev/lildua/oddly/
-  core/time/          DateFormat — Vietnamese date/weekday formatting
-  data/seed/          ChallengeSeed (60 challenges), QuoteSeed, SampleData
+  core/text/          Strings — every UI string, in both languages
+  core/time/          DateFormat — date/weekday formatting per language
+  data/seed/          ChallengeSeed (60 bilingual challenges), QuoteSeed, SampleData
   domain/model/       Category, Challenge, Difficulty, ChallengeCompletion,
-                      DailyChallenge, UserProfile, StreakInfo, Quote, AppSettings
+                      DailyChallenge, UserProfile, StreakInfo, Quote, AppSettings,
+                      LocalizedText
   domain/usecase/     ChallengeSelector, StreakCalculator, StatsCalculator
 
 androidApp/src/main/kotlin/dev/lildua/oddly/
@@ -138,6 +141,33 @@ Deliberate gaps, in the order the spec's roadmap tackles them:
 5. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
    pure functions and the obvious first candidates.
 
+## Localization
+
+The app is bilingual, and the language is an **in-app setting** rather than the
+system locale — a Vietnamese phone can run the app in English. Platform resource
+lookup (`strings.xml`, `Localizable.strings`) follows the device, so it cannot
+express that on its own, and duplicating the content library into two resource
+formats would let the two apps drift. Everything therefore lives in
+`sharedLogic` and both UIs read the same table:
+
+| What | Where |
+|---|---|
+| UI chrome (~130 strings) | `core/text/Strings.kt` — an interface with a `VietnameseStrings` and an `EnglishStrings` object |
+| Content (challenges, quotes, category and difficulty names) | `LocalizedText` fields on the domain models themselves |
+| Dates and weekdays | `DateFormat`, which takes the language as an argument |
+
+`Strings` being an interface is deliberate: adding a string breaks both
+implementations until each supplies a translation, so a half-translated build
+cannot compile.
+
+Screens never thread the language through their own bodies. Android reads
+`LocalStrings.current`, iOS reads `@Environment(\.strings)`, and content is
+resolved once at the navigation boundary — `challenge.localized(language)`
+returns a `LocalizedChallenge` whose every field is already a plain `String`.
+
+The English side of the 60 seed challenges is written, not machine-translated,
+and quotes with a known original use that original rather than a round trip.
+
 ## Share export
 
 Both platforms generate the card locally and hand it to the system share sheet
@@ -150,6 +180,17 @@ behind it and washes out.
 Android exposes exactly one path through the provider — the cache directory the
 card is written to (`res/xml/file_paths.xml`) — and the image carries only the
 aggregate achievements the card shows, never notes or dates.
+
+## Settings pickers
+
+Theme, language and reminder time each open a picker — a dialog on Android, a
+bottom sheet on iOS — rather than cycling their value on tap. With three theme
+modes and a free-form time, a row that changes on every tap makes the user hunt
+for the option they wanted.
+
+Reminder time is genuinely free-form (Material 3 `TimePicker` on Android, a
+wheel `DatePicker` on iOS). The four preset times remain only in onboarding,
+where the spec asks for a single quick choice (§S04).
 
 ## Navigation
 

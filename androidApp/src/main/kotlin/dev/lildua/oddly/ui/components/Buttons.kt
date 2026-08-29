@@ -128,7 +128,7 @@ fun SecondaryButton(
     }
 }
 
-/** Low-emphasis inline action, e.g. "Để sau" or "Bỏ qua". */
+/** Low-emphasis inline action, e.g. "Maybe later" or "Skip". */
 @Composable
 fun TextAction(
     text: String,
