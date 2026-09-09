@@ -2,6 +2,7 @@ package dev.lildua.oddly.domain.model
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.Serializable
 
 /**
  * A record that the user finished [challengeId] on [date] (spec §6).
@@ -9,6 +10,7 @@ import kotlinx.datetime.LocalTime
  * Completions are the single source of truth for the calendar, statistics,
  * streak and journey screens — everything else is derived from this list.
  */
+@Serializable
 data class ChallengeCompletion(
     val id: String,
     val challengeId: String,

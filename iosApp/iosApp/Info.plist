@@ -4,5 +4,29 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- The home-screen name, matching the Android label. Without this the app
+	     shows as "Oddly" on iOS and "1% HUMAN" on Android. -->
+	<key>CFBundleDisplayName</key>
+	<string>1% HUMAN</string>
+	<!-- The app performs no encryption of its own and makes no network calls at
+	     all, so it is outside the scope of US export regulations. Declaring it
+	     here answers App Store Connect's export-compliance question once
+	     instead of on every upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Launch screen.
+	     Xcode's generated one is a plain system background, which on a light
+	     device flashes white before the dark splash paints — the app looks like
+	     it stuttered. This paints the launch window in the app background
+	     (#07070C, the same value Android sets as its windowBackground) so the
+	     hand-off to SplashScreen is invisible. Fixed rather than
+	     appearance-aware: the app ships with the dark theme selected, so
+	     following the *system* appearance would reintroduce the white flash for
+	     most users. -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 </dict>
 </plist>

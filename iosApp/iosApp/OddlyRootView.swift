@@ -13,6 +13,12 @@ struct OddlyRootView: View {
     @State private var state = OddlyAppState()
     @State private var phase: Phase = .splash
 
+    /// Spec §S01: onboarding is a first-launch event, not something a returning
+    /// user walks through every morning.
+    private var afterSplash: Phase {
+        state.hasCompletedOnboarding ? .main : .onboarding
+    }
+
     private enum Phase {
         case splash
         case onboarding
@@ -24,12 +30,13 @@ struct OddlyRootView: View {
             switch phase {
             case .splash:
                 SplashScreen {
-                    withAnimation(.easeInOut(duration: 0.3)) { phase = .onboarding }
+                    withAnimation(.easeInOut(duration: 0.3)) { phase = afterSplash }
                 }
                 .transition(.opacity)
 
             case .onboarding:
                 OnboardingFlow(state: state) {
+                    state.completeOnboarding()
                     withAnimation(.easeInOut(duration: 0.3)) { phase = .main }
                 }
                 .transition(.opacity)

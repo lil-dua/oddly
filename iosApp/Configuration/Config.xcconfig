@@ -1,7 +1,17 @@
+// Signing identity.
+//
+// TEAM_ID must be filled in before an App Store build — find it in the Apple
+// Developer portal under Membership. It is deliberately blank in the repository
+// so no one's team is committed.
 TEAM_ID=
 
 PRODUCT_NAME=Oddly
-PRODUCT_BUNDLE_IDENTIFIER=dev.lildua.oddly.Oddly$(TEAM_ID)
 
+// No $(TEAM_ID) suffix: that is a KMP-template trick so several developers can
+// install side by side, and it would ship a bundle id nobody registered.
+PRODUCT_BUNDLE_IDENTIFIER=dev.lildua.oddly
+
+// CURRENT_PROJECT_VERSION is the build number — it must increase with every
+// upload to App Store Connect, even for the same MARKETING_VERSION.
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0

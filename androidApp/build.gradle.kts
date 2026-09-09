@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -40,6 +41,18 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
 }
 
+/**
+ * Upload-key credentials, kept out of the repository.
+ *
+ * Create `keystore.properties` beside the root `settings.gradle.kts` with
+ * `storeFile`, `storePassword`, `keyAlias` and `keyPassword`. When the file is
+ * absent — a fresh clone, or CI without the secret — the release build still
+ * assembles, just unsigned, so the toolchain stays verifiable without the key.
+ */
+val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exists() }?.let {
+    Properties().apply { it.inputStream().use(::load) }
+}
+
 android {
     namespace = "dev.lildua.oddly"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -57,9 +70,24 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        if (keystoreProperties != null) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+            // R8 on: a habit app has no reflection-driven code to trip over, and
+            // the shrink is worth it on a download users decide about in a second.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

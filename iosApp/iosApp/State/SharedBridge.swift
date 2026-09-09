@@ -60,12 +60,16 @@ extension AppSettings {
 }
 
 extension UserProfile {
-    func with(level: Int32? = nil, xpInLevel: Int32? = nil) -> UserProfile {
+    func with(
+        interests: Set<ChallengeCategory>? = nil,
+        level: Int32? = nil,
+        xpInLevel: Int32? = nil
+    ) -> UserProfile {
         doCopy(
             id: id,
             displayName: displayName,
             createdAt: createdAt,
-            interests: interests,
+            interests: interests ?? self.interests,
             level: level ?? self.level,
             xpInLevel: xpInLevel ?? self.xpInLevel
         )

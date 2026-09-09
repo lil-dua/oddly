@@ -16,6 +16,7 @@ struct SettingsScreen: View {
 
     @State private var notificationsAllowed = true
     @State private var showResetDialog = false
+    @State private var exportFailed = false
     @State private var showAboutDialog = false
     @State private var sheet: SettingsSheet?
 
@@ -117,9 +118,21 @@ struct SettingsScreen: View {
                     .padding(.bottom, 8)
 
                 SettingsGroup {
-                    SettingsRow(icon: .download, title: strings.backupData, action: {})
-                    SettingsRow(icon: .share, title: strings.exportData, action: {})
+                    SettingsRow(icon: .download, title: strings.exportData, action: { exportBackup() })
                     SettingsRow(icon: .info, title: strings.about, action: { showAboutDialog = true })
+                }
+
+                if exportFailed {
+                    Text(strings.exportFailed)
+                        .font(OddlyFont.bodySmall)
+                        .foregroundStyle(OddlyColors.warning)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(
+                            OddlyColors.warning.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .padding(.top, 10)
                 }
 
                 SettingsGroup {
@@ -201,6 +214,42 @@ struct SettingsScreen: View {
                 onCancel: { sheet = nil }
             )
         }
+    }
+
+    /// Writes the saved document to a file and offers it to the share sheet
+    /// (spec §S22). The exported file is exactly what the app reads back on
+    /// launch, so there is no separate backup format to keep in step.
+    private func exportBackup() {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("one-percent-human-backup.json")
+        do {
+            try state.exportJson().write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            exportFailed = true
+            return
+        }
+        exportFailed = false
+        present(activityItems: [url])
+    }
+
+    /// UIKit's share sheet: `ShareLink` needs its item at construction, and this
+    /// one only exists once the user has asked for it.
+    private func present(activityItems: [Any]) {
+        guard
+            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            let root = scene.keyWindow?.rootViewController
+        else { return }
+
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: nil
+        )
+        // iPad presents this as a popover and requires an anchor.
+        controller.popoverPresentationController?.sourceView = root.view
+        controller.popoverPresentationController?.sourceRect = CGRect(
+            x: root.view.bounds.midX, y: root.view.bounds.midY, width: 0, height: 0
+        )
+        root.present(controller, animated: true)
     }
 
     private func openSystemSettings() {

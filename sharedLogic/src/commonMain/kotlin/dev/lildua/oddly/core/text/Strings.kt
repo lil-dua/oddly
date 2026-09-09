@@ -128,8 +128,8 @@ interface Strings {
     val dailyReminder: String
     val reminderTime: String
     val soundAndHaptics: String
-    val backupData: String
     val exportData: String
+    val exportFailed: String
     val about: String
     val eraseAllData: String
     val eraseAllDataConfirm: String
@@ -293,8 +293,9 @@ object VietnameseStrings : Strings {
     override val dailyReminder = "Lời nhắc hằng ngày"
     override val reminderTime = "Giờ nhắc"
     override val soundAndHaptics = "Âm thanh & rung"
-    override val backupData = "Sao lưu dữ liệu"
     override val exportData = "Xuất dữ liệu (JSON)"
+    override val exportFailed =
+        "Không tạo được tệp sao lưu. Hãy kiểm tra dung lượng trống rồi thử lại."
     override val about = "Giới thiệu"
     override val eraseAllData = "Xóa tất cả dữ liệu"
     override val eraseAllDataConfirm = "Xóa tất cả dữ liệu?"
@@ -455,8 +456,9 @@ object EnglishStrings : Strings {
     override val dailyReminder = "Daily reminder"
     override val reminderTime = "Reminder time"
     override val soundAndHaptics = "Sound & haptics"
-    override val backupData = "Back up data"
     override val exportData = "Export data (JSON)"
+    override val exportFailed =
+        "Couldn't create the backup file. Check your free storage and try again."
     override val about = "About"
     override val eraseAllData = "Erase all data"
     override val eraseAllDataConfirm = "Erase all data?"

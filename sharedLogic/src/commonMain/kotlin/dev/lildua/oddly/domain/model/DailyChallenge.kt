@@ -1,7 +1,9 @@
 package dev.lildua.oddly.domain.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class DailyChallengeStatus { PENDING, COMPLETED, SKIPPED }
 
 /**
@@ -9,6 +11,7 @@ enum class DailyChallengeStatus { PENDING, COMPLETED, SKIPPED }
  * that reopening the app on the same day always shows the same challenge
  * (spec §6.1).
  */
+@Serializable
 data class DailyChallenge(
     val date: LocalDate,
     val challengeId: String,

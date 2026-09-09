@@ -1,21 +1,18 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# kotlinx.serialization generates a `Companion.serializer()` per @Serializable
+# class and looks it up reflectively; R8 cannot see that use and would strip it,
+# which surfaces at runtime as an empty save file rather than a build error.
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.**
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+-keepclassmembers class dev.lildua.oddly.** {
+    *** Companion;
+}
+-keepclasseswithmembers class dev.lildua.oddly.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep,includedescriptorclasses class dev.lildua.oddly.**$$serializer { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# The reminder receivers are named in AndroidManifest.xml, so nothing in code
+# references them and R8 would otherwise consider them unreachable.
+-keep class dev.lildua.oddly.notifications.ReminderReceiver { *; }
+-keep class dev.lildua.oddly.notifications.BootReceiver { *; }

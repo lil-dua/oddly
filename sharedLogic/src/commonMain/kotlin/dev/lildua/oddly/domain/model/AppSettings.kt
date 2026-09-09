@@ -1,7 +1,9 @@
 package dev.lildua.oddly.domain.model
 
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class ThemeMode(val title: LocalizedText) {
     SYSTEM(LocalizedText(vi = "Hệ thống", en = "System")),
     LIGHT(LocalizedText(vi = "Sáng", en = "Light")),
@@ -13,12 +15,14 @@ enum class ThemeMode(val title: LocalizedText) {
  * in its own language, so the option you are looking for is legible whichever
  * one is currently selected.
  */
+@Serializable
 enum class AppLanguage(val title: String, val tag: String) {
     VIETNAMESE("Tiếng Việt", "vi"),
     ENGLISH("English", "en"),
 }
 
 /** User configuration surfaced on the Settings screen (spec §S15). */
+@Serializable
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val reminderEnabled: Boolean = true,

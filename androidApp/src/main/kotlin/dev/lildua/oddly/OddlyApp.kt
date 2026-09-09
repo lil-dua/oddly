@@ -104,12 +104,26 @@ fun OddlyApp() {
                             // --- Onboarding ---
 
                             Destination.Splash -> SplashScreen(
-                                onFinished = { navigator.resetTo(Destination.Onboarding) },
+                                onFinished = {
+                                    // Spec §S01: onboarding is a first-launch
+                                    // event, not something a returning user
+                                    // walks through every morning.
+                                    navigator.resetTo(
+                                        if (state.hasCompletedOnboarding) {
+                                            TabDestination.HOME
+                                        } else {
+                                            Destination.Onboarding
+                                        },
+                                    )
+                                },
                             )
 
                             Destination.Onboarding -> OnboardingScreen(
                                 onStart = { navigator.push(Destination.ChooseInterest) },
-                                onSkip = { navigator.resetTo(TabDestination.HOME) },
+                                onSkip = {
+                                    state.completeOnboarding()
+                                    navigator.resetTo(TabDestination.HOME)
+                                },
                             )
 
                             Destination.ChooseInterest -> ChooseInterestScreen(
@@ -126,10 +140,12 @@ fun OddlyApp() {
                                         reminderTime = kotlinx.datetime.LocalTime(hour, minute),
                                     )
                                     notifications.request()
+                                    state.completeOnboarding()
                                     navigator.resetTo(TabDestination.HOME)
                                 },
                                 onSkip = {
                                     state.settings = state.settings.copy(reminderEnabled = false)
+                                    state.completeOnboarding()
                                     navigator.resetTo(TabDestination.HOME)
                                 },
                             )

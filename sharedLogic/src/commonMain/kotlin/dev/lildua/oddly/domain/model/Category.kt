@@ -1,5 +1,7 @@
 package dev.lildua.oddly.domain.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * The six challenge categories from Appendix B of the product spec.
  *
@@ -7,6 +9,7 @@ package dev.lildua.oddly.domain.model
  * fully offline with no image assets to ship. [colorHex] is consumed by the UI
  * layer to tint cards, chips and charts.
  */
+@Serializable
 enum class Category(
     val id: String,
     val title: LocalizedText,

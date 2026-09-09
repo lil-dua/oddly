@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.core.text.Strings
@@ -70,8 +71,10 @@ fun SettingsScreen(state: OddlyAppState) {
     val strings = LocalStrings.current
     val settings = state.settings
     val notifications = rememberNotificationPermission()
+    val context = LocalContext.current
 
     var showResetDialog by remember { mutableStateOf(false) }
+    var exportFailed by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
@@ -237,18 +240,30 @@ fun SettingsScreen(state: OddlyAppState) {
         SettingsGroup {
             SettingsRow(
                 icon = OddlyIcon.Download,
-                title = strings.backupData,
-                onClick = { },
-            )
-            SettingsRow(
-                icon = OddlyIcon.Share,
                 title = strings.exportData,
-                onClick = { },
+                onClick = {
+                    val intent = DataExport.chooserIntent(context, state.exportJson())
+                    if (intent == null) exportFailed = true else context.startActivity(intent)
+                },
             )
             SettingsRow(
                 icon = OddlyIcon.Info,
                 title = strings.about,
                 onClick = { showAboutDialog = true },
+            )
+        }
+
+        if (exportFailed) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = strings.exportFailed,
+                style = MaterialTheme.typography.bodySmall,
+                color = OddlyColors.Warning,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(OddlyColors.Warning.copy(alpha = 0.12f))
+                    .padding(14.dp),
             )
         }
 

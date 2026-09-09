@@ -26,7 +26,8 @@ sharedLogic/src/commonMain/kotlin/dev/lildua/oddly/
                       ReminderSeed — rotating reminder copy
                       Brand — the share card's call to action
   core/time/          DateFormat — date/weekday formatting per language
-  data/seed/          ChallengeSeed (60 bilingual challenges), QuoteSeed, SampleData
+  data/local/         KeyValueStore, PersistedState, OddlyRepository
+  data/seed/          ChallengeSeed (120 bilingual challenges), QuoteSeed
   domain/model/       Category, Challenge, Difficulty, ChallengeCompletion,
                       DailyChallenge, UserProfile, StreakInfo, Quote, AppSettings,
                       LocalizedText
@@ -38,7 +39,8 @@ androidApp/src/main/kotlin/dev/lildua/oddly/
   ui/theme/           Colors, gradients, typography, shapes, OddlyTheme
   ui/components/      Buttons, surfaces, icons, illustrations, challenge widgets
   ui/navigation/      Destination, Navigator, bottom bar
-  ui/state/           OddlyAppState — in-memory app state seeded from SampleData
+  ui/state/           OddlyAppState — app state, loaded from and saved to
+                      OddlyRepository on every mutation
   ui/screens/         onboarding · home · challenge · journey · statistics ·
                       quotes · settings · share
 
@@ -50,6 +52,7 @@ iosApp/iosApp/
   Navigation/         Destination, MainShell, bottom bar, swipe-back shim
   State/              OddlyAppState — the SwiftUI twin of the Android one,
                       plus the bridging helpers for the Kotlin framework
+  PrivacyInfo.xcprivacy  App Store privacy manifest
   Screens/            Onboarding · Home · Challenge · Journey · Statistics ·
                       Quotes · Settings · Share
 ```
@@ -78,19 +81,58 @@ platform surfaces (S16 notification, S17 widget).
 | S09 | Choose Category | | |
 | S10 | Calendar | | |
 
-## Sample data
+## Persistence
 
-`SampleData` generates state relative to the real "today", so the calendar,
-streak and statistics look live rather than frozen at a fixed date:
+Everything the app remembers is one JSON document in the platform key-value
+store — `SharedPreferences` on Android, `NSUserDefaults` on iOS — behind
+`OddlyRepository`.
 
-- 32 completions — a 12-day run ending yesterday (current streak), an earlier
-  18-day run (personal best), and two stragglers.
-- Today is deliberately left unfinished, because that is the state the daily
-  loop is designed around.
-- Level 7, 260/500 XP, 96% completion rate, six categories explored.
+```
+KeyValueStore          read/write/remove a string. An interface, not
+                       expect/actual, so Android's implementation can take a
+                       Context and iOS's can take nothing.
+PersistedState         profile · settings · completions · today's pick ·
+                       skipped count · onboarding flag, plus a version field.
+OddlyRepository        encode/decode, and the two decisions that have to happen
+                       before the first frame: freshState() and
+                       resolveDailyChallenge().
+```
 
-Everything else is **derived, not hardcoded**: completing a challenge really does
-advance XP, level, streak, calendar and statistics. Reset in Settings clears it.
+Not a database, deliberately. The whole data set is one profile, one settings
+record and a completion list the app already holds in memory to derive the
+streak, calendar and statistics from — there is nothing to query, so a schema
+and a query engine would buy nothing. Seed content is not persisted either: a
+completion stores only the challenge id, so new content in a later release needs
+no migration.
+
+Writes happen on every mutation rather than on a timer, and Android's store uses
+`commit()` rather than `apply()` — a write still in flight when the process is
+killed loses the completion the user was just congratulated for.
+
+Today's challenge is resolved and written back during load, so reopening the app
+at lunchtime shows the challenge it showed at breakfast. A saved pick from
+another day, or one whose challenge no longer exists, is replaced.
+
+Everything else is **derived, not stored**: completing a challenge advances XP,
+level, streak, calendar and statistics from the completion list alone, so there
+is only one source of truth to keep consistent. Reset in Settings clears it.
+
+## Tests
+
+```bash
+./gradlew :sharedLogic:iosSimulatorArm64Test :sharedLogic:testAndroidHostTest
+```
+
+67 tests in `sharedLogic/src/commonTest`, run against both Kotlin/Native and the
+JVM: streak edges (a run ending yesterday is still current), the selector's
+cooldown, interest and difficulty weighting, the statistics windows and the
+invariant that chart bars sum to the headline total, repository round-trips and
+the refusal to load a document from a future version, and integrity checks on
+the shipped content — unique ids, both languages present, no category too thin
+to reroll within.
+
+Test names use backticks; note that Kotlin/Native rejects a comma inside one,
+so the JVM-only habit of writing prose titles does not port.
 
 ## Design system
 
@@ -127,20 +169,76 @@ That is the newest line that still compiles against `compileSdk 36` with
 AGP 9.0.1 — later BOMs require AGP 9.1+ and `compileSdk 37`. Bump all three
 together when you upgrade.
 
+## Releasing
+
+### Android
+
+Release builds are signed from a `keystore.properties` at the repository root,
+which is gitignored along with `*.jks` / `*.keystore` — copy
+`keystore.properties.example` and follow the `keytool` line in it. Without that
+file the release build still assembles, unsigned, so a clone that has never seen
+the keystore is not broken by its absence.
+
+```bash
+./gradlew :androidApp:bundleRelease     # the .aab Play wants
+```
+
+R8 and resource shrinking are on for release. `proguard-rules.pro` keeps the
+kotlinx-serialization `$serializer` classes and the two manifest-declared
+receivers, which R8 otherwise cannot see a reference to.
+
+### iOS
+
+```bash
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
+  -configuration Release -destination 'generic/platform=iOS' archive
+```
+
+`TEAM_ID` in `iosApp/Configuration/Config.xcconfig` is deliberately blank in the
+repository and has to be filled in before an App Store build.
+
+Decisions already baked in:
+
+- **iPhone only** (`TARGETED_DEVICE_FAMILY = 1`). The layout is phone-shaped;
+  on a 13" iPad it stretched rather than adapted, and shipping it would have
+  meant a separate iPad screenshot set and an iPad design review.
+- **Portrait only**, matching Android.
+- `PrivacyInfo.xcprivacy` declares no tracking, no collected data, and
+  `UserDefaults` as the only required-reason API (`CA92.1`).
+- `ITSAppUsesNonExemptEncryption = false`, so App Store Connect stops asking
+  about export compliance on every upload. Accurate: the app has no networking
+  at all.
+- `UILaunchScreen` paints the launch window `#07070C`, the same colour Android
+  sets as its `windowBackground`. Xcode's generated launch screen flashed white
+  before the dark splash painted.
+
+### Store submission
+
+- [`docs/privacy-policy.html`](docs/privacy-policy.html) — a self-contained
+  bilingual page. Both stores require a live URL for it; GitHub Pages serving
+  `/docs` is the cheapest route. Fill in the developer name and contact address
+  placeholders first.
+- [`docs/store-listing.md`](docs/store-listing.md) — paste-ready titles,
+  descriptions, keywords and release notes in both languages, within each
+  store's character limits, plus the Data Safety and privacy-label answers and
+  a screenshot plan.
+
 ## Not built yet
 
 Deliberate gaps, in the order the spec's roadmap tackles them:
 
-1. **Persistence.** `OddlyAppState` is in-memory on both platforms, so state
-   resets on relaunch. Replace with Room/SQLite repositories — the domain models
-   already match the entity shapes, and screens take plain values, so only the
-   state holders change.
-2. **Daily challenge locking.** `DailyChallenge` is modelled but not yet
-   persisted, so reopening the app re-picks today's challenge.
-3. **Content.** 60 seed challenges of the ~240 the spec targets for beta.
-4. **Tests.** `ChallengeSelector`, `StreakCalculator` and `StatsCalculator` are
-   pure functions and the obvious first candidates.
-5. **Real share link.** `Brand.SHORT_LINK` is a placeholder.
+1. **Content.** 120 seed challenges of the ~240 the spec targets for beta —
+   twenty per category, which is what `ChallengeSelector`'s 30-day cooldown
+   needs so nothing repeats inside a month even when a user's interests narrow
+   the pool to two categories. Adding more needs no migration: completions
+   store only the challenge id.
+2. **Real share link.** `Brand.SHORT_LINK` is a placeholder until the domain
+   exists.
+3. **Crash reporting.** None wired up. Adding one means revisiting the Play Data
+   Safety answers and the App Store privacy labels, which currently declare that
+   nothing is collected.
+4. **Import.** `OddlyRepository.importJson` restores an exported document, but
+   no screen calls it yet — export is one-way in the UI.
 
 ## Localization
 
@@ -166,7 +264,7 @@ Screens never thread the language through their own bodies. Android reads
 resolved once at the navigation boundary — `challenge.localized(language)`
 returns a `LocalizedChallenge` whose every field is already a plain `String`.
 
-The English side of the 60 seed challenges is written, not machine-translated,
+The English side of the 120 seed challenges is written, not machine-translated,
 and quotes with a known original use that original rather than a round trip.
 
 ## Share export

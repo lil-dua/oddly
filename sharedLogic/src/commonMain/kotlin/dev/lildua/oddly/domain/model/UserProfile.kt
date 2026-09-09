@@ -1,11 +1,13 @@
 package dev.lildua.oddly.domain.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 
 /**
  * Local-only user state (spec §6). No account, no server — everything here
  * lives on the device.
  */
+@Serializable
 data class UserProfile(
     val id: String,
     val displayName: String,

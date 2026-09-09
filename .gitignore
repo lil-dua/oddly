@@ -5,6 +5,11 @@
 xcuserdata
 !src/**/build/
 local.properties
+
+# Upload-key credentials and the key itself — never commit these.
+keystore.properties
+*.jks
+*.keystore
 .idea
 .DS_Store
 captures

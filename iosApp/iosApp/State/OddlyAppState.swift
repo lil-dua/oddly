@@ -1,16 +1,19 @@
 import Observation
 import SharedLogic
 
-/// In-memory application state, seeded from `SampleData`.
+/// Application state, loaded from and written back to `OddlyRepository`.
 ///
-/// This stands in for the repository layer that arrives in Phase 2. Everything
-/// is real, derived state — completing a challenge genuinely updates the streak,
-/// calendar, statistics and XP — so the screens can be reviewed with live
-/// behaviour rather than static mock values.
+/// Every mutation persists immediately rather than on a timer or at shutdown:
+/// the writes are a few kilobytes of JSON, and a habit app that loses the
+/// completion the user was just congratulated for is worse than a slow one.
 ///
-/// The Android app has the same class backed by Compose snapshot state; this is
-/// the SwiftUI half, and the two stay deliberately parallel so the shared
-/// domain layer remains the only place business rules live.
+/// Derived values — streak, statistics, category mix — are still computed from
+/// the completion list on demand rather than stored, so there is only ever one
+/// source of truth to keep consistent.
+///
+/// The Android app has the same class backed by Compose snapshot state; the two
+/// stay deliberately parallel so the shared layer remains the only place the
+/// rules live.
 @Observable
 final class OddlyAppState {
 
@@ -25,27 +28,53 @@ final class OddlyAppState {
 
     private(set) var completions: [ChallengeCompletion]
     private(set) var profile: UserProfile
-    var settings: AppSettings
-    var interests: Set<ChallengeCategory>
+    private(set) var interests: Set<ChallengeCategory>
+
+    var settings: AppSettings {
+        didSet { persist() }
+    }
 
     /// The challenge shown on Home; stable for the whole day (spec §6.1).
     private(set) var todayChallenge: Challenge
 
-    /// How many challenges were started and set aside — drives completion rate.
+    /// Started but set aside — drives the completion-rate statistic.
     private(set) var skippedCount: Int
+
+    private(set) var hasCompletedOnboarding: Bool
 
     /// XP and Humanity gained by the most recent completion, for the reward screen.
     private(set) var lastReward: Reward?
 
+    private let repository: OddlyRepository
+    private var dailyChallengeDate: LocalDate?
+
     init() {
-        let sample = SampleData.shared
-        today = sample.today
-        completions = sample.completions
-        profile = sample.profile
-        settings = sample.settings
-        interests = sample.profile.interests
-        todayChallenge = sample.todayChallenge
-        skippedCount = Int(sample.SKIPPED_COUNT)
+        let repository = OddlyRepository(store: UserDefaultsStore())
+        let today = Today.shared.local()
+
+        let loaded = repository.load()
+            ?? OddlyRepository.companion.freshState(today: today, interests: [])
+
+        // Picking today's challenge is part of loading: it has to be settled and
+        // written back before the first frame, or reopening the app mid-morning
+        // would show a different challenge than it did at breakfast.
+        let resolution = OddlyRepository.companion.resolveDailyChallenge(
+            state: loaded,
+            today: today,
+            random: KotlinRandom.Default.shared
+        )
+        repository.save(state: resolution.state)
+
+        self.repository = repository
+        self.today = today
+        self.completions = resolution.state.completions
+        self.profile = resolution.state.profile
+        self.settings = resolution.state.settings
+        self.interests = resolution.state.profile.interests
+        self.todayChallenge = resolution.challenge
+        self.skippedCount = Int(resolution.state.skippedCount)
+        self.hasCompletedOnboarding = resolution.state.hasCompletedOnboarding
+        self.dailyChallengeDate = resolution.state.dailyChallenge?.date
     }
 
     // MARK: - Derived state
@@ -139,6 +168,7 @@ final class OddlyAppState {
             leveledUp: leveledUp,
             newLevel: Int(level)
         )
+        persist()
     }
 
     /// Swap today's challenge for another one (spec §2.3).
@@ -155,8 +185,11 @@ final class OddlyAppState {
             random: KotlinRandom.Default.shared
         )
         guard let next else { return nil }
+
         skippedCount += 1
         todayChallenge = next
+        dailyChallengeDate = today
+        persist()
         return next
     }
 
@@ -166,6 +199,23 @@ final class OddlyAppState {
         } else {
             interests.insert(category)
         }
+        profile = profile.with(interests: interests)
+        persist()
+    }
+
+    func completeOnboarding() {
+        hasCompletedOnboarding = true
+        // Today's challenge was picked while the app loaded, before onboarding
+        // had asked what the user cares about. Give them one that matches.
+        if let realigned = OddlyRepository.companion.realignToInterests(
+            state: currentState(),
+            today: today,
+            random: KotlinRandom.Default.shared
+        ) {
+            todayChallenge = realigned.challenge
+            dailyChallengeDate = today
+        }
+        persist()
     }
 
     func clearReward() {
@@ -178,5 +228,28 @@ final class OddlyAppState {
         profile = profile.with(level: 1, xpInLevel: 0)
         skippedCount = 0
         lastReward = nil
+        persist()
+    }
+
+    /// The saved document, for the export row in Settings (spec §S22).
+    func exportJson() -> String { repository.exportJson() }
+
+    private func currentState() -> PersistedState {
+        let daily = dailyChallengeDate.map {
+            DailyChallenge(date: $0, challengeId: todayChallenge.id, status: .pending)
+        }
+        return PersistedState(
+            version: PersistedState.companion.CURRENT_VERSION,
+            profile: profile.with(interests: interests),
+            settings: settings,
+            completions: completions,
+            dailyChallenge: daily,
+            skippedCount: Int32(skippedCount),
+            hasCompletedOnboarding: hasCompletedOnboarding
+        )
+    }
+
+    private func persist() {
+        repository.save(state: currentState())
     }
 }
