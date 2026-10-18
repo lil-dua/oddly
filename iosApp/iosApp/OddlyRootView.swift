@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import SharedLogic
 
@@ -9,6 +10,7 @@ import SharedLogic
 /// container — the same contract the Android screens follow.
 struct OddlyRootView: View {
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var state = OddlyAppState()
     @State private var phase: Phase = .splash
@@ -30,6 +32,8 @@ struct OddlyRootView: View {
             switch phase {
             case .splash:
                 SplashScreen {
+                    // A day change during Splash is not news: Home was never shown.
+                    state.clearDayChangeNotice()
                     withAnimation(.easeInOut(duration: 0.3)) { phase = afterSplash }
                 }
                 .transition(.opacity)
@@ -52,6 +56,22 @@ struct OddlyRootView: View {
         .task(id: ReminderSettingsKey(state.settings)) {
             await ReminderScheduler.reschedule(settings: state.settings)
         }
+        // Coming back to the foreground is the common way to meet a new day.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { state.refreshDay() }
+        }
+        // While running, follow the clock too. NSCalendarDayChanged can be posted
+        // from another thread, so hop to the main run loop before touching the
+        // @Observable state. The significant-time-change one covers manual clock
+        // and time-zone edits, which the day-changed one does not.
+        .onReceive(
+            NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                .receive(on: RunLoop.main)
+        ) { _ in state.refreshDay() }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
+                .receive(on: RunLoop.main)
+        ) { _ in state.refreshDay() }
         .measuringTopSafeArea()
         .oddlyTheme(state.settings.themeMode, systemIsDark: systemColorScheme == .dark)
     }

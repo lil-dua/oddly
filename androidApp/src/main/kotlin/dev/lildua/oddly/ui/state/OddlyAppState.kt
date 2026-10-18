@@ -18,13 +18,18 @@ import dev.lildua.oddly.domain.model.Category
 import dev.lildua.oddly.domain.model.Challenge
 import dev.lildua.oddly.domain.model.ChallengeCompletion
 import dev.lildua.oddly.domain.model.DailyChallenge
+import dev.lildua.oddly.domain.model.DayChangeNotice
+import dev.lildua.oddly.domain.model.Reward
 import dev.lildua.oddly.domain.model.StreakInfo
 import dev.lildua.oddly.domain.model.UserProfile
-import dev.lildua.oddly.domain.usecase.ChallengeSelector
+import dev.lildua.oddly.domain.usecase.ChallengeAvailability
+import dev.lildua.oddly.domain.usecase.CompletionOutcome
+import dev.lildua.oddly.domain.usecase.CompletionRejection
+import dev.lildua.oddly.domain.usecase.DailyChallengeRules
 import dev.lildua.oddly.domain.usecase.DayActivity
 import dev.lildua.oddly.domain.usecase.StreakCalculator
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDateTime
 import kotlin.random.Random
 
 /**
@@ -40,11 +45,21 @@ import kotlin.random.Random
  */
 @Stable
 class OddlyAppState(
-    val today: LocalDate,
+    initialToday: LocalDate,
     private val repository: OddlyRepository,
     initial: PersistedState,
     initialChallenge: Challenge,
+    /** Wall-clock source for completion times; a parameter so it can be pinned. */
+    private val clock: () -> LocalDateTime = Today::now,
 ) {
+    /**
+     * The calendar day every screen shows. Moves only through [refreshDay], so
+     * a day change is one state write that Home, Statistics and the rest
+     * recompose from.
+     */
+    var today: LocalDate by mutableStateOf(initialToday)
+        private set
+
     private val _completions = mutableStateListOf<ChallengeCompletion>().apply {
         addAll(initial.completions)
     }
@@ -83,7 +98,12 @@ class OddlyAppState(
 
     private var dailyChallengeDate: LocalDate? = initial.dailyChallenge?.date
 
-    private val random = Random(today.toEpochDays())
+    // Reseeded on a day change so rerolls differ from day to day.
+    private var random = Random(initialToday.toEpochDays())
+
+    /** One-off banner for Home after the day changed under a running app. */
+    var dayChangeNotice: DayChangeNotice? by mutableStateOf(null)
+        private set
 
     // MARK: - Derived state
 
@@ -94,7 +114,12 @@ class OddlyAppState(
         get() = StreakCalculator.recentActivity(_completions, today)
 
     val completedToday: Boolean
-        get() = _completions.any { it.date == today }
+        get() = DailyChallengeRules.isDayDone(_completions, today)
+
+    /**
+     * False once today is done: no more swapping. Also the condition for [adopt].
+     */
+    val canReroll: Boolean get() = !completedToday
 
     val totalCompleted: Int get() = _completions.size
 
@@ -122,58 +147,111 @@ class OddlyAppState(
     fun isCompletedToday(challengeId: String): Boolean =
         _completions.any { it.date == today && it.challengeId == challengeId }
 
+    fun availability(challengeId: String): ChallengeAvailability =
+        DailyChallengeRules.availability(currentState(), challengeId, today)
+
     // MARK: - Mutations
 
-    /** Record a completion and award XP, levelling up if the bar fills. */
-    fun complete(challenge: Challenge, at: LocalTime = LocalTime(9, 41)) {
-        if (isCompletedToday(challenge.id)) return
+    /**
+     * Moves the app to [date] (default: the clock's today) if the calendar has
+     * changed since the state was built. Returns true when the day changed, so
+     * the caller can stop whatever it was doing for the old day.
+     *
+     * Same-day calls are no-ops and write nothing, since this runs on every
+     * resume. Going back in time counts too; see [OddlyRepository.rollover].
+     */
+    fun refreshDay(date: LocalDate = clock().date): Boolean {
+        val dayChanged = date != today
+        val nextRandom = if (dayChanged) Random(date.toEpochDays()) else random
+        val resolution = OddlyRepository.rollover(currentState(), date, nextRandom) ?: return false
 
-        _completions.add(
-            ChallengeCompletion(
-                id = "completion_${challenge.id}_${today.toEpochDays()}",
-                challengeId = challenge.id,
-                date = today,
-                completedAt = at,
-                xpEarned = challenge.rewardXp,
-                humanityPercent = challenge.humanityPercent,
-            ),
-        )
-
-        var level = profile.level
-        var xp = profile.xpInLevel + challenge.rewardXp
-        while (xp >= UserProfile.xpForLevel(level)) {
-            xp -= UserProfile.xpForLevel(level)
-            level += 1
+        random = nextRandom
+        today = date
+        absorb(resolution.state)
+        todayChallenge = resolution.challenge
+        if (dayChanged) {
+            lastReward = null
+            dayChangeNotice = DayChangeNotice.NEW_DAY
         }
-        val leveledUp = level > profile.level
-        profile = profile.copy(level = level, xpInLevel = xp)
-
-        lastReward = Reward(
-            xp = challenge.rewardXp,
-            humanityPercent = challenge.humanityPercent,
-            leveledUp = leveledUp,
-            newLevel = level,
-        )
         persist()
+        return dayChanged
     }
 
-    /** Swap today's challenge for another one (spec §2.3). */
-    fun reroll(category: Category? = null) {
-        val next = ChallengeSelector.select(
-            library = ChallengeSeed.all,
-            interests = interests,
-            completions = _completions,
-            level = profile.level,
-            today = today,
-            restrictTo = category,
-            excludeChallengeId = todayChallenge.id,
-            random = random,
-        ) ?: return
+    /**
+     * Record a completion and award XP, levelling up if the bar fills.
+     *
+     * Returns true when it was recorded. False means nothing was awarded: either
+     * the day had changed (the state has already moved on to the new day and
+     * Home explains why), today already has a completion, or the challenge is
+     * not today's pick (see [availability]).
+     *
+     * The completion is dated by the clock, never by [today]: if this state
+     * missed midnight, filing it under the old day would be wrong, so the call
+     * is refused instead.
+     */
+    fun complete(challenge: Challenge): Boolean {
+        val now = clock()
+        if (refreshDay(now.date)) {
+            dayChangeNotice = DayChangeNotice.COMPLETION_REJECTED
+            return false
+        }
+        val outcome = DailyChallengeRules.complete(
+            state = currentState(),
+            challenge = challenge,
+            now = now,
+        )
+        if (outcome is CompletionOutcome.Rejected) {
+            // Safety net: refreshDay already caught a stale day, so this should
+            // not be reached unless the shared rule changes.
+            if (outcome.reason == CompletionRejection.DAY_CHANGED) {
+                dayChangeNotice = DayChangeNotice.COMPLETION_REJECTED
+            }
+            return false
+        }
+        outcome as CompletionOutcome.Completed
 
-        skippedCount += 1
-        todayChallenge = next
-        dailyChallengeDate = today
+        absorb(outcome.state)
+        lastReward = outcome.reward
         persist()
+        return true
+    }
+
+    /**
+     * Swap today's challenge for another one (spec §2.3).
+     *
+     * Returns the new challenge, or null when there was nothing to swap to,
+     * today is already done, or the day had changed (nothing is rerolled or
+     * counted as skipped then).
+     */
+    fun reroll(category: Category? = null): Challenge? {
+        if (refreshDay()) return null
+        val resolution = DailyChallengeRules.reroll(
+            state = currentState(),
+            today = today,
+            currentChallengeId = todayChallenge.id,
+            category = category,
+            random = random,
+        ) ?: return null
+
+        absorb(resolution.state)
+        todayChallenge = resolution.challenge
+        persist()
+        return resolution.challenge
+    }
+
+    /**
+     * Makes a library [challenge] today's challenge; counts as one swap. Returns
+     * false when nothing changed: the day changed, today is done, or it already
+     * is today's pick.
+     */
+    fun adopt(challenge: Challenge): Boolean {
+        if (refreshDay()) return false
+        val resolution = DailyChallengeRules.adopt(currentState(), challenge, today) ?: return false
+
+        absorb(resolution.state)
+        todayChallenge = resolution.challenge
+        persist()
+        return true
     }
 
     fun toggleInterest(category: Category) {
@@ -184,6 +262,8 @@ class OddlyAppState(
 
     fun completeOnboarding() {
         hasCompletedOnboarding = true
+        // A day change during onboarding is not news: Home was never shown.
+        dayChangeNotice = null
         // Today's challenge was picked while the app loaded, before onboarding
         // had asked what the user cares about. Give them one that matches.
         OddlyRepository.realignToInterests(currentState(), today, random)?.let { realigned ->
@@ -195,6 +275,10 @@ class OddlyAppState(
 
     fun clearReward() {
         lastReward = null
+    }
+
+    fun clearDayChangeNotice() {
+        dayChangeNotice = null
     }
 
     /** Wipes local data (spec §S15). Used by the Reset action in Settings. */
@@ -220,16 +304,21 @@ class OddlyAppState(
         hasCompletedOnboarding = hasCompletedOnboarding,
     )
 
+    /**
+     * Takes back the parts of [state] a shared rule may have changed. Interests
+     * and settings are only ever edited here, so they are left alone.
+     */
+    private fun absorb(state: PersistedState) {
+        _completions.clear()
+        _completions.addAll(state.completions)
+        profile = state.profile
+        skippedCount = state.skippedCount
+        dailyChallengeDate = state.dailyChallenge?.date
+    }
+
     private fun persist() {
         repository.save(currentState())
     }
-
-    data class Reward(
-        val xp: Int,
-        val humanityPercent: Int,
-        val leveledUp: Boolean,
-        val newLevel: Int,
-    )
 }
 
 @Composable
@@ -251,7 +340,7 @@ fun rememberOddlyAppState(): OddlyAppState {
         repository.save(resolution.state)
 
         OddlyAppState(
-            today = today,
+            initialToday = today,
             repository = repository,
             initial = resolution.state,
             initialChallenge = resolution.challenge,

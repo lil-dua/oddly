@@ -17,6 +17,15 @@ struct HomeScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if let notice = state.dayChangeNotice {
+                    OddlyCard(action: state.clearDayChangeNotice) {
+                        Text(noticeText(notice))
+                            .font(OddlyFont.bodyMedium)
+                            .foregroundStyle(palette.textPrimary)
+                    }
+                    .padding(.top, 20)
+                }
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text(DateFormat.shared.dayAndMonth(date: state.today, language: strings.language))
                         .font(OddlyFont.labelMedium)
@@ -25,12 +34,12 @@ struct HomeScreen: View {
                         .font(OddlyFont.headlineSmall)
                         .foregroundStyle(palette.textPrimary)
                 }
-                .padding(.top, 20)
+                .padding(.top, state.dayChangeNotice == nil ? 20 : 4)
                 .padding(.bottom, 4)
 
                 TodayChallengeCard(
                     challenge: state.todayChallenge.localized(strings),
-                    completed: state.isCompletedToday(state.todayChallenge.id),
+                    completed: state.completedToday,
                     onOpen: onOpenChallenge,
                     onStart: onStartChallenge
                 )
@@ -59,6 +68,20 @@ struct HomeScreen: View {
         }
         .background(palette.background)
         .statusBarScrim(palette.background)
+        // Self-dismiss; a fresh notice restarts the timer because the id changes.
+        .task(id: state.dayChangeNotice) {
+            guard state.dayChangeNotice != nil else { return }
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled { state.clearDayChangeNotice() }
+        }
+    }
+
+    private func noticeText(_ notice: DayChangeNotice) -> String {
+        switch notice {
+        case .theNewDay: return strings.newDayNotice
+        case .completionRejected: return strings.dayChangedCompletionNotice
+        default: return strings.newDayNotice
+        }
     }
 
     private var streakCard: some View {
@@ -97,13 +120,14 @@ struct HomeScreen: View {
     }
 
     private var exploreCard: some View {
-        OddlyCard(action: onAnotherChallenge) {
+        // Dimmed and inert once today is done: swapping is closed until tomorrow.
+        OddlyCard(action: state.canReroll ? onAnotherChallenge : nil) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(strings.wantAnotherChallenge)
                         .font(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
-                    Text(strings.wantAnotherChallengeBody)
+                    Text(state.canReroll ? strings.wantAnotherChallengeBody : strings.wantAnotherChallengeDoneBody)
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                 }
@@ -111,5 +135,6 @@ struct HomeScreen: View {
                 OddlyIconView(.dice, size: 28, tint: OddlyColors.purple)
             }
         }
+        .opacity(state.canReroll ? 1 : 0.45)
     }
 }

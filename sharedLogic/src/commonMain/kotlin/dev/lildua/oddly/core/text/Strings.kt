@@ -60,6 +60,10 @@ interface Strings {
     val begin: String
     val alreadyCompletedThis: String
     val seeAnotherChallenge: String
+    val setAsTodaysChallenge: String
+    val todayDoneComeBackTomorrow: String
+    val browseLibrary: String
+    val wantAnotherChallengeDoneBody: String
 
     // --- Complete (S07) ---
     val done: String
@@ -180,6 +184,10 @@ interface Strings {
     /** The text that travels with the shared image, link included. */
     fun shareCaption(count: Int): String
 
+    // --- Day change banner on Home ---
+    val newDayNotice: String
+    val dayChangedCompletionNotice: String
+
     companion object {
         fun of(language: AppLanguage): Strings = when (language) {
             AppLanguage.VIETNAMESE -> VietnameseStrings
@@ -233,6 +241,10 @@ object VietnameseStrings : Strings {
     override val begin = "Bắt đầu"
     override val alreadyCompletedThis = "Bạn đã hoàn thành thử thách này"
     override val seeAnotherChallenge = "Xem thử thách khác"
+    override val setAsTodaysChallenge = "Chọn làm thử thách hôm nay"
+    override val todayDoneComeBackTomorrow = "Bạn đã xong thử thách hôm nay. Hẹn mai nhé!"
+    override val browseLibrary = "Khám phá thư viện"
+    override val wantAnotherChallengeDoneBody = "Hẹn mai nhé"
 
     override val done = "Xong"
     override val celebrationTitle = "Tuyệt vời!"
@@ -349,6 +361,10 @@ object VietnameseStrings : Strings {
     override fun keptStreakFor(count: Int) = "và duy trì chuỗi ngày\n$count ngày liên tiếp!"
     override fun shareCaption(count: Int) =
         "Tôi đã hoàn thành $count thử thách cùng ${Brand.NAME}. Thử xem: ${Brand.SHORT_LINK}"
+
+    override val newDayNotice = "Đã sang ngày mới — đây là thử thách hôm nay."
+    override val dayChangedCompletionNotice =
+        "Đã qua nửa đêm nên thử thách hôm qua đã khép lại. Đây là thử thách mới cho hôm nay."
 }
 
 object EnglishStrings : Strings {
@@ -396,6 +412,10 @@ object EnglishStrings : Strings {
     override val begin = "Start"
     override val alreadyCompletedThis = "You've already done this one"
     override val seeAnotherChallenge = "See another challenge"
+    override val setAsTodaysChallenge = "Make this today's challenge"
+    override val todayDoneComeBackTomorrow = "Today's challenge is done. See you tomorrow!"
+    override val browseLibrary = "Browse the library"
+    override val wantAnotherChallengeDoneBody = "See you tomorrow"
 
     override val done = "Done"
     override val celebrationTitle = "Brilliant!"
@@ -519,4 +539,8 @@ object EnglishStrings : Strings {
         } else {
             "I've completed $count challenges with ${Brand.NAME}. Try it: ${Brand.SHORT_LINK}"
         }
+
+    override val newDayNotice = "It's a new day — here's today's challenge."
+    override val dayChangedCompletionNotice =
+        "Midnight passed, so yesterday's challenge has closed. Here's a fresh one for today."
 }

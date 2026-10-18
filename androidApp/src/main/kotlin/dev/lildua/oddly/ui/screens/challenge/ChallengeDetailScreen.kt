@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.domain.model.LocalizedChallenge
+import dev.lildua.oddly.domain.usecase.ChallengeAvailability
 import dev.lildua.oddly.ui.components.GlowOrb
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyChip
@@ -41,14 +42,17 @@ import dev.lildua.oddly.ui.theme.color
 
 /**
  * S06 — the full brief for a challenge: why it matters, how to do it, and what
- * it pays. One dominant CTA, with skip and reroll as secondary text actions.
+ * it pays. One dominant CTA that follows [availability]: start (today's pick),
+ * make it today's (library entry), or a banner when today is already done.
+ * Reroll is a secondary text action, only while today's pick can still be done.
  */
 @Composable
 fun ChallengeDetailScreen(
     challenge: LocalizedChallenge,
-    alreadyCompleted: Boolean,
+    availability: ChallengeAvailability,
     onBack: () -> Unit,
     onComplete: () -> Unit,
+    onAdopt: () -> Unit,
     onAnother: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
@@ -174,7 +178,7 @@ fun ChallengeDetailScreen(
             Spacer(Modifier.height(28.dp))
 
             Column(Modifier.padding(horizontal = 24.dp)) {
-                if (alreadyCompleted) {
+                if (availability == ChallengeAvailability.DONE_THIS_TODAY) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -197,14 +201,33 @@ fun ChallengeDetailScreen(
                             color = OddlyColors.Success,
                         )
                     }
+                } else if (availability == ChallengeAvailability.DAY_ALREADY_DONE) {
+                    // Neutral rather than green: this is not a win for *this* challenge.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(palette.surfaceElevated)
+                            .padding(vertical = 16.dp, horizontal = 20.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = strings.todayDoneComeBackTomorrow,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.textSecondary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                } else if (availability == ChallengeAvailability.NOT_TODAYS) {
+                    GradientButton(text = strings.setAsTodaysChallenge, onClick = onAdopt)
                 } else {
                     GradientButton(text = strings.begin, onClick = onComplete)
-                }
 
-                Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    TextAction(strings.seeAnotherChallenge, onAnother)
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        TextAction(strings.seeAnotherChallenge, onAnother)
+                    }
                 }
             }
 

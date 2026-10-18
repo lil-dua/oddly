@@ -8,11 +8,11 @@ struct ChallengeCompleteScreen: View {
     @Environment(\.strings) private var strings
 
     let challenge: LocalizedChallenge
-    let reward: OddlyAppState.Reward?
+    let reward: Reward?
     let streakDays: Int
     let quote: String
     let onShare: () -> Void
-    let onAnother: () -> Void
+    let onBrowseLibrary: () -> Void
     let onDone: () -> Void
 
     @State private var burst: CGFloat = 0
@@ -49,13 +49,13 @@ struct ChallengeCompleteScreen: View {
                     .padding(.top, 6)
 
                 GradientText(
-                    "+\(reward?.humanityPercent ?? Int(challenge.humanityPercent))% Humanity",
+                    "+\(reward?.humanityPercent ?? challenge.humanityPercent)% Humanity",
                     font: OddlyFont.headlineMedium
                 )
                 .padding(.top, 24)
 
                 HStack(spacing: 12) {
-                    RewardPill(text: "+\(reward?.xp ?? Int(challenge.rewardXp)) XP", color: OddlyColors.purple)
+                    RewardPill(text: "+\(reward?.xp ?? challenge.rewardXp) XP", color: OddlyColors.purple)
                     RewardPill(text: "🔥 \(strings.streakDays(count: Int32(streakDays)))", color: OddlyColors.flame)
                 }
                 .padding(.top, 20)
@@ -89,7 +89,7 @@ struct ChallengeCompleteScreen: View {
 
                 GradientButton(strings.share, leadingIcon: .share, action: onShare)
 
-                SecondaryButton(strings.seeAnotherChallenge, action: onAnother)
+                SecondaryButton(strings.browseLibrary, action: onBrowseLibrary)
                     .padding(.top, 12)
             }
             .padding(.horizontal, 28)

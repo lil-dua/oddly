@@ -1,5 +1,9 @@
 package dev.lildua.oddly
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -15,8 +19,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.notifications.ReminderScheduler
 import dev.lildua.oddly.notifications.rememberNotificationPermission
@@ -76,10 +88,46 @@ fun OddlyApp() {
         }
     }
 
+    // Coming back from the background is the common way to meet a new day.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { state.refreshDay() }
+
+    // While visible, also follow the clock live. DATE_CHANGED alone is not
+    // enough: it does not fire when the time is set by hand or moved backwards,
+    // which TIME_CHANGED and TIMEZONE_CHANGED cover. Registered only between
+    // start and stop; ON_RESUME above catches anything missed in the background.
+    LifecycleStartEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                state.refreshDay()
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_DATE_CHANGED)
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+        }
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        onStopOrDispose { context.unregisterReceiver(receiver) }
+    }
+
     CompositionLocalProvider(LocalStrings provides Strings.of(state.settings.language)) {
         OddlyTheme(themeMode = state.settings.themeMode) {
             val navigator = rememberNavigator(Destination.Splash)
             val current = navigator.current
+
+            // A new day sends everyone back to Home: the screens above it were
+            // built for yesterday. Onboarding is left alone; the data still updates.
+            var shownDay by remember { mutableStateOf(state.today) }
+            LaunchedEffect(state.today) {
+                if (state.today == shownDay) return@LaunchedEffect
+                shownDay = state.today
+                val destination = navigator.current
+                val inOnboarding = destination == Destination.Splash ||
+                    destination == Destination.Onboarding ||
+                    destination == Destination.ChooseInterest ||
+                    destination == Destination.NotificationPermission
+                if (!inOnboarding) navigator.resetTo(TabDestination.HOME)
+            }
 
             // Root tabs have nothing above them, so back falls through to the
             // system and leaves the app — which is the expected Android behaviour.
@@ -105,6 +153,9 @@ fun OddlyApp() {
 
                             Destination.Splash -> SplashScreen(
                                 onFinished = {
+                                    // A day change during Splash is not news:
+                                    // Home was never shown.
+                                    state.clearDayChangeNotice()
                                     // Spec §S01: onboarding is a first-launch
                                     // event, not something a returning user
                                     // walks through every morning.
@@ -187,14 +238,21 @@ fun OddlyApp() {
                                     ?: state.todayChallenge
                                 ChallengeDetailScreen(
                                     challenge = challenge.localized(),
-                                    // Completion is once *per day* (spec §6.2), so a
-                                    // challenge done last month is startable again.
-                                    alreadyCompleted = state.isCompletedToday(challenge.id),
+                                    // One scoring completion a day, for today's pick only;
+                                    // library entries must be adopted first.
+                                    availability = state.availability(challenge.id),
                                     onBack = { navigator.pop() },
                                     onComplete = {
-                                        state.complete(challenge)
-                                        navigator.push(Destination.ChallengeComplete(challenge.id))
+                                        // Refused (e.g. midnight passed): no reward screen;
+                                        // the day-change reset above takes over.
+                                        if (state.complete(challenge)) {
+                                            navigator.push(Destination.ChallengeComplete(challenge.id))
+                                        }
                                     },
+                                    // Stays on this screen: availability flips to
+                                    // CAN_COMPLETE once todayChallenge changes. A day
+                                    // change is handled by the reset to Home above.
+                                    onAdopt = { state.adopt(challenge) },
                                     onAnother = { navigator.push(Destination.AnotherChallenge) },
                                 )
                             }
@@ -211,10 +269,10 @@ fun OddlyApp() {
                                         .localized()
                                         .text,
                                     onShare = { navigator.push(Destination.ShareCard(challenge.id)) },
-                                    onAnother = {
+                                    onBrowseLibrary = {
                                         state.clearReward()
                                         navigator.selectTab(TabDestination.HOME)
-                                        navigator.push(Destination.AnotherChallenge)
+                                        navigator.push(Destination.AllChallenges)
                                     },
                                     onDone = {
                                         state.clearReward()
@@ -226,7 +284,15 @@ fun OddlyApp() {
                             Destination.AnotherChallenge -> AnotherChallengeScreen(
                                 onBack = { navigator.pop() },
                                 onSurpriseMe = {
+                                    // Reachable via the back stack after completing.
+                                    if (!state.canReroll) {
+                                        navigator.selectTab(TabDestination.HOME)
+                                        return@AnotherChallengeScreen
+                                    }
+                                    val day = state.today
                                     state.reroll()
+                                    // Day changed: the reset to Home takes over.
+                                    if (state.today != day) return@AnotherChallengeScreen
                                     navigator.pop()
                                     navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                 },
@@ -237,7 +303,13 @@ fun OddlyApp() {
                                 state = state,
                                 onBack = { navigator.pop() },
                                 onPick = { category ->
+                                    if (!state.canReroll) {
+                                        navigator.selectTab(TabDestination.HOME)
+                                        return@ChooseCategoryScreen
+                                    }
+                                    val day = state.today
                                     state.reroll(category)
+                                    if (state.today != day) return@ChooseCategoryScreen
                                     navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                 },
                             )

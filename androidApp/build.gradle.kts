@@ -30,8 +30,9 @@ dependencies {
     // androidx.core (FileProvider, used by the share export) arrives transitively
     // with Compose. It is not declared explicitly because the catalogue's
     // core-ktx 1.19 needs AGP 9.1 / compileSdk 37 — see the toolchain note.
-    // No lifecycle-compose yet: state lives in a plain holder, not a ViewModel.
-    // Add lifecycle-viewmodel-compose when the repository layer lands.
+    // LifecycleEventEffect / LifecycleStartEffect let the app notice a new day on
+    // resume. State stays a plain holder, not a ViewModel.
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

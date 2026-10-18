@@ -45,6 +45,15 @@ struct MainShell: View {
                 .enableSwipeBack()
         }
         .background(palette.background)
+        // A new day sends everyone back to Home: the screens above it were
+        // built for yesterday. This shell only exists in the main phase, so
+        // Splash and onboarding are never reset.
+        .onChange(of: state.today.epochDays) { _, _ in
+            celebrating = nil
+            sharingFromReward = nil
+            sharing = nil
+            goHome()
+        }
         .fullScreenCover(item: $celebrating) { ref in
             ChallengeCompleteScreen(
                 challenge: ref.challenge.localized(strings),
@@ -52,10 +61,10 @@ struct MainShell: View {
                 streakDays: Int(state.streak.current),
                 quote: state.quoteOfTheDay.localized(strings).text,
                 onShare: { sharingFromReward = ref },
-                onAnother: {
+                onBrowseLibrary: {
                     state.clearReward()
                     celebrating = nil
-                    goHome(then: .anotherChallenge)
+                    goHome(then: .allChallenges)
                 },
                 onDone: {
                     state.clearReward()
@@ -124,14 +133,20 @@ struct MainShell: View {
             let challenge = ChallengeSeed.shared.byId(id: challengeId) ?? state.todayChallenge
             ChallengeDetailScreen(
                 challenge: challenge.localized(strings),
-                // Completion is once *per day* (spec §6.2), so a challenge done
-                // last month is startable again.
-                alreadyCompleted: state.isCompletedToday(challenge.id),
+                // One scoring completion a day, for today's pick only; library
+                // entries must be adopted first.
+                availability: state.availability(challenge.id),
                 onBack: pop,
                 onComplete: {
-                    state.complete(challenge)
-                    celebrating = ChallengeRef(challenge)
+                    // Refused (e.g. midnight passed): no reward screen; the
+                    // day-change reset below takes over.
+                    if state.complete(challenge) {
+                        celebrating = ChallengeRef(challenge)
+                    }
                 },
+                // Stays on this screen: availability flips to canComplete once
+                // todayChallenge changes. A day change is handled by the reset.
+                onAdopt: { state.adopt(challenge) },
                 onAnother: { push(.anotherChallenge) }
             )
 
@@ -139,7 +154,11 @@ struct MainShell: View {
             AnotherChallengeScreen(
                 onBack: pop,
                 onSurpriseMe: {
+                    guard state.canReroll else { goHome(); return }
+                    let day = state.today
                     let next = state.reroll() ?? state.todayChallenge
+                    // Day changed: the reset to Home takes over.
+                    if state.today != day { return }
                     pop()
                     push(.challengeDetail(challengeId: next.id))
                 },
@@ -151,7 +170,10 @@ struct MainShell: View {
                 state: state,
                 onBack: pop,
                 onPick: { category in
+                    guard state.canReroll else { goHome(); return }
+                    let day = state.today
                     let next = state.reroll(category: category) ?? state.todayChallenge
+                    if state.today != day { return }
                     push(.challengeDetail(challengeId: next.id))
                 }
             )

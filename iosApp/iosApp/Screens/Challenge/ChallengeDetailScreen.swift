@@ -8,9 +8,10 @@ struct ChallengeDetailScreen: View {
     @Environment(\.strings) private var strings
 
     let challenge: LocalizedChallenge
-    let alreadyCompleted: Bool
+    let availability: ChallengeAvailability
     let onBack: () -> Void
     let onComplete: () -> Void
+    let onAdopt: () -> Void
     let onAnother: () -> Void
 
     var body: some View {
@@ -96,7 +97,15 @@ struct ChallengeDetailScreen: View {
                     .padding(.horizontal, 24)
 
                     VStack(spacing: 12) {
-                        if alreadyCompleted {
+                        // Kotlin enums are not exhaustive to Swift, hence the
+                        // default: the safest state is the "done" banner, no button.
+                        switch availability {
+                        case .canComplete:
+                            GradientButton(strings.begin, action: onComplete)
+                            TextAction(strings.seeAnotherChallenge, action: onAnother)
+                        case .notTodays:
+                            GradientButton(strings.setAsTodaysChallenge, action: onAdopt)
+                        case .doneThisToday:
                             HStack(spacing: 8) {
                                 OddlyIconView(.check, size: 18, tint: OddlyColors.success, lineWidth: 2)
                                 Text(strings.alreadyCompletedThis)
@@ -106,11 +115,17 @@ struct ChallengeDetailScreen: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(OddlyColors.success.opacity(0.14), in: Capsule())
-                        } else {
-                            GradientButton(strings.begin, action: onComplete)
+                        default:
+                            // Neutral rather than green: not a win for *this* challenge.
+                            Text(strings.todayDoneComeBackTomorrow)
+                                .font(OddlyFont.labelLarge)
+                                .foregroundStyle(palette.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 20)
+                                .background(palette.surfaceElevated, in: RoundedRectangle(cornerRadius: 24))
                         }
-
-                        TextAction(strings.seeAnotherChallenge, action: onAnother)
                     }
                     .padding(.top, 28)
                     .padding(.horizontal, 24)

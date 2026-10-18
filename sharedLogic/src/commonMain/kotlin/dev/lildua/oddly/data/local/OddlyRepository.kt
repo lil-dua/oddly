@@ -124,6 +124,28 @@ class OddlyRepository(private val store: KeyValueStore) {
         }
 
         /**
+         * Moves the saved pick to [today] when the calendar has moved, and
+         * returns null when nothing needs to change.
+         *
+         * Kept apart from [resolveDailyChallenge], which always answers with a
+         * challenge: a running app has to know whether the day actually changed
+         * so it can send the user back to Home. Going back in time (the clock
+         * set to yesterday) counts as a change too; completions dated in the
+         * "future" are left alone rather than deleted.
+         */
+        fun rollover(
+            state: PersistedState,
+            today: LocalDate,
+            random: Random = Random.Default,
+        ): DailyChallengeResolution? {
+            val saved = state.dailyChallenge
+            if (saved != null && saved.date == today && ChallengeSeed.byId(saved.challengeId) != null) {
+                return null
+            }
+            return resolveDailyChallenge(state, today, random)
+        }
+
+        /**
          * Today's pick again, this time honouring interests chosen after it was
          * made. Returns null when the pick already fits and nothing should change.
          *

@@ -289,4 +289,84 @@ class OddlyRepositoryTest {
         assertNotNull(realigned)
         assertEquals(state.skippedCount, realigned.state.skippedCount)
     }
+
+    // MARK: - Rollover
+
+    private fun stateWithPick(date: kotlinx.datetime.LocalDate, id: String) =
+        OddlyRepository.freshState(date).copy(
+            dailyChallenge = DailyChallenge(date = date, challengeId = id),
+        )
+
+    @Test
+    fun `rollover on the same day returns null`() {
+        val state = stateWithPick(TODAY, ChallengeSeed.all[5].id)
+
+        assertNull(OddlyRepository.rollover(state, TODAY, Random(1)))
+    }
+
+    @Test
+    fun `rollover to a new day picks a new challenge and keeps completions`() {
+        val base = stateWithPick(daysAgo(1), ChallengeSeed.all[5].id)
+        val state = base.copy(
+            completions = completionsOn(1, 2, 3),
+            skippedCount = 4,
+            profile = base.profile.copy(level = 3, xpInLevel = 40, interests = setOf(Category.HEALTH)),
+        )
+
+        val resolution = OddlyRepository.rollover(state, TODAY, Random(1))
+
+        assertNotNull(resolution)
+        assertEquals(TODAY, resolution.state.dailyChallenge?.date)
+        assertEquals(resolution.challenge.id, resolution.state.dailyChallenge?.challengeId)
+        assertEquals(state.completions, resolution.state.completions)
+        assertEquals(state.profile, resolution.state.profile)
+        assertEquals(4, resolution.state.skippedCount)
+    }
+
+    @Test
+    fun `rollover does not hand back a challenge just completed`() {
+        val doneYesterday = ChallengeSeed.all[5]
+        val base = stateWithPick(daysAgo(1), doneYesterday.id)
+        val state = base.copy(
+            completions = listOf(
+                dev.lildua.oddly.completion(daysAgo(1), challengeId = doneYesterday.id),
+            ),
+        )
+
+        for (seed in 0 until 50) {
+            val resolution = OddlyRepository.rollover(state, TODAY, Random(seed))
+            assertNotNull(resolution)
+            assertNotEquals(doneYesterday.id, resolution.challenge.id, "seed $seed")
+        }
+    }
+
+    @Test
+    fun `rollover to an earlier day re-resolves`() {
+        val state = stateWithPick(daysAgo(-1), ChallengeSeed.all[5].id)
+
+        val resolution = OddlyRepository.rollover(state, TODAY, Random(1))
+
+        assertNotNull(resolution)
+        assertEquals(TODAY, resolution.state.dailyChallenge?.date)
+    }
+
+    @Test
+    fun `rollover replaces a pick that is no longer in the library`() {
+        val state = stateWithPick(TODAY, "cut-from-the-library")
+
+        val resolution = OddlyRepository.rollover(state, TODAY, Random(1))
+
+        assertNotNull(resolution)
+        assertNotNull(ChallengeSeed.byId(resolution.challenge.id))
+    }
+
+    @Test
+    fun `rollover with no saved pick picks one`() {
+        val state = OddlyRepository.freshState(TODAY).copy(dailyChallenge = null)
+
+        val resolution = OddlyRepository.rollover(state, TODAY, Random(1))
+
+        assertNotNull(resolution)
+        assertEquals(TODAY, resolution.state.dailyChallenge?.date)
+    }
 }

@@ -41,11 +41,12 @@ fun completion(
     date: LocalDate,
     challengeId: String = "c1",
     xp: Int = 10,
+    at: LocalTime = LocalTime(9, 41),
 ): ChallengeCompletion = ChallengeCompletion(
     id = "${challengeId}_${date.toEpochDays()}",
     challengeId = challengeId,
     date = date,
-    completedAt = LocalTime(9, 41),
+    completedAt = at,
     xpEarned = xp,
     humanityPercent = 5,
 )

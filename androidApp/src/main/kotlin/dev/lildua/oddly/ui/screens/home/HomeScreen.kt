@@ -17,11 +17,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.data.seed.QuoteSeed
+import dev.lildua.oddly.domain.model.DayChangeNotice
 import dev.lildua.oddly.ui.components.OddlyCard
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.SectionLabel
@@ -33,6 +36,7 @@ import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
+import kotlinx.coroutines.delay
 
 /**
  * S05 — the default screen on every launch after the first. Today's challenge is
@@ -50,6 +54,15 @@ fun HomeScreen(
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
     val streak = state.streak
+    val notice = state.dayChangeNotice
+
+    // Self-dismiss; a fresh notice restarts the timer because the key changes.
+    LaunchedEffect(notice) {
+        if (notice != null) {
+            delay(4000)
+            state.clearDayChangeNotice()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -60,6 +73,20 @@ fun HomeScreen(
             .padding(horizontal = 20.dp),
     ) {
         Spacer(Modifier.height(20.dp))
+
+        if (notice != null) {
+            OddlyCard(onClick = state::clearDayChangeNotice) {
+                Text(
+                    text = when (notice) {
+                        DayChangeNotice.NEW_DAY -> strings.newDayNotice
+                        DayChangeNotice.COMPLETION_REJECTED -> strings.dayChangedCompletionNotice
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textPrimary,
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+        }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -81,7 +108,7 @@ fun HomeScreen(
 
         TodayChallengeCard(
             challenge = state.todayChallenge.localized(),
-            completed = state.isCompletedToday(state.todayChallenge.id),
+            completed = state.completedToday,
             onClick = onOpenChallenge,
             onStart = onStartChallenge,
         )
@@ -152,7 +179,11 @@ fun HomeScreen(
         Spacer(Modifier.height(16.dp))
 
         // Explore another challenge
-        OddlyCard(onClick = onAnotherChallenge) {
+        // Dimmed and inert once today is done: swapping is closed until tomorrow.
+        OddlyCard(
+            modifier = if (state.canReroll) Modifier else Modifier.alpha(0.45f),
+            onClick = if (state.canReroll) onAnotherChallenge else null,
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) {
                     Column {
@@ -163,7 +194,7 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = strings.wantAnotherChallengeBody,
+                            text = if (state.canReroll) strings.wantAnotherChallengeBody else strings.wantAnotherChallengeDoneBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.textTertiary,
                         )

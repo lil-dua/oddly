@@ -35,13 +35,13 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.domain.model.LocalizedChallenge
+import dev.lildua.oddly.domain.model.Reward
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.SecondaryButton
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
-import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
@@ -56,11 +56,11 @@ import kotlin.random.Random
 @Composable
 fun ChallengeCompleteScreen(
     challenge: LocalizedChallenge,
-    reward: OddlyAppState.Reward?,
+    reward: Reward?,
     streakDays: Int,
     quote: String,
     onShare: () -> Unit,
-    onAnother: () -> Unit,
+    onBrowseLibrary: () -> Unit,
     onDone: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
@@ -180,7 +180,7 @@ fun ChallengeCompleteScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            SecondaryButton(text = strings.seeAnotherChallenge, onClick = onAnother)
+            SecondaryButton(text = strings.browseLibrary, onClick = onBrowseLibrary)
 
             Spacer(Modifier.height(16.dp))
         }

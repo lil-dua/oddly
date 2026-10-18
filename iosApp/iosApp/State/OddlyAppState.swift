@@ -17,14 +17,8 @@ import SharedLogic
 @Observable
 final class OddlyAppState {
 
-    struct Reward {
-        let xp: Int
-        let humanityPercent: Int
-        let leveledUp: Bool
-        let newLevel: Int
-    }
-
-    let today: LocalDate
+    /// The calendar day every screen shows. Moves only through `refreshDay`.
+    private(set) var today: LocalDate
 
     private(set) var completions: [ChallengeCompletion]
     private(set) var profile: UserProfile
@@ -44,6 +38,9 @@ final class OddlyAppState {
 
     /// XP and Humanity gained by the most recent completion, for the reward screen.
     private(set) var lastReward: Reward?
+
+    /// One-off banner for Home after the day changed under a running app.
+    private(set) var dayChangeNotice: DayChangeNotice?
 
     private let repository: OddlyRepository
     private var dailyChallengeDate: LocalDate?
@@ -88,8 +85,11 @@ final class OddlyAppState {
     }
 
     var completedToday: Bool {
-        completions.contains { $0.date == today }
+        DailyChallengeRules.shared.isDayDone(completions: completions, today: today)
     }
+
+    /// False once today is done: no more swapping. Also the condition for `adopt`.
+    var canReroll: Bool { !completedToday }
 
     var totalCompleted: Int { completions.count }
 
@@ -135,62 +135,115 @@ final class OddlyAppState {
         completions.contains { $0.date == today && $0.challengeId == challengeId }
     }
 
+    func availability(_ challengeId: String) -> ChallengeAvailability {
+        DailyChallengeRules.shared.availability(state: currentState(), challengeId: challengeId, today: today)
+    }
+
     // MARK: - Mutations
 
-    /// Record a completion and award XP, levelling up if the bar fills.
-    func complete(_ challenge: Challenge, at time: LocalTime = LocalTime(hour: 9, minute: 41, second: 0, nanosecond: 0)) {
-        guard !isCompletedToday(challenge.id) else { return }
+    /// Moves the app to `date` (default: the clock's today) if the calendar has
+    /// changed since the state was built. Returns true when the day changed, so
+    /// the caller can stop whatever it was doing for the old day.
+    ///
+    /// Same-day calls are no-ops and write nothing, since this runs on every
+    /// foreground. Going back in time counts too; see `OddlyRepository.rollover`.
+    @discardableResult
+    func refreshDay(_ date: LocalDate = Today.shared.local()) -> Bool {
+        let dayChanged = date != today
+        guard let resolution = OddlyRepository.companion.rollover(
+            state: currentState(),
+            today: date,
+            random: KotlinRandom.Default.shared
+        ) else { return false }
 
-        completions.append(
-            ChallengeCompletion(
-                id: "completion_\(challenge.id)_\(today.epochDays)",
-                challengeId: challenge.id,
-                date: today,
-                completedAt: time,
-                xpEarned: challenge.rewardXp,
-                humanityPercent: challenge.humanityPercent,
-                note: nil
-            )
-        )
-
-        var level = profile.level
-        var xp = profile.xpInLevel + challenge.rewardXp
-        while xp >= UserProfile.companion.xpForLevel(level: level) {
-            xp -= UserProfile.companion.xpForLevel(level: level)
-            level += 1
+        today = date
+        absorb(resolution.state)
+        todayChallenge = resolution.challenge
+        if dayChanged {
+            lastReward = nil
+            dayChangeNotice = .theNewDay
         }
-        let leveledUp = level > profile.level
-        profile = profile.with(level: level, xpInLevel: xp)
-
-        lastReward = Reward(
-            xp: Int(challenge.rewardXp),
-            humanityPercent: Int(challenge.humanityPercent),
-            leveledUp: leveledUp,
-            newLevel: Int(level)
-        )
         persist()
+        return dayChanged
+    }
+
+    /// Record a completion and award XP, levelling up if the bar fills.
+    ///
+    /// Returns true when it was recorded. False means nothing was awarded: either
+    /// the day had changed (the state has already moved on to the new day and
+    /// Home explains why), today already has a completion, or the challenge is
+    /// not today's pick (see `availability`).
+    ///
+    /// The completion is dated by the clock, never by `today`: if this state
+    /// missed midnight, filing it under the old day would be wrong, so the call
+    /// is refused instead.
+    @discardableResult
+    func complete(_ challenge: Challenge) -> Bool {
+        let now = Today.shared.now()
+        if refreshDay(now.date) {
+            dayChangeNotice = .completionRejected
+            return false
+        }
+        let outcome = DailyChallengeRules.shared.complete(
+            state: currentState(),
+            challenge: challenge,
+            now: now
+        )
+        guard let completed = outcome as? CompletionOutcome.Completed else {
+            // Safety net: refreshDay already caught a stale day, so this should
+            // not be reached unless the shared rule changes.
+            if let rejected = outcome as? CompletionOutcome.Rejected,
+               rejected.reason == .dayChanged {
+                dayChangeNotice = .completionRejected
+            }
+            return false
+        }
+
+        absorb(completed.state)
+        lastReward = completed.reward
+        persist()
+        return true
     }
 
     /// Swap today's challenge for another one (spec §2.3).
+    ///
+    /// Returns the new challenge, or nil when there was nothing to swap to,
+    /// today is already done, or the day had changed (nothing is rerolled or
+    /// counted as skipped then).
     @discardableResult
     func reroll(category: ChallengeCategory? = nil) -> Challenge? {
-        let next = ChallengeSelector.shared.select(
-            library: ChallengeSeed.shared.all,
-            interests: interests,
-            completions: completions,
-            level: profile.level,
+        if refreshDay() { return nil }
+        guard let resolution = DailyChallengeRules.shared.reroll(
+            state: currentState(),
             today: today,
-            restrictTo: category,
-            excludeChallengeId: todayChallenge.id,
-            random: KotlinRandom.Default.shared
-        )
-        guard let next else { return nil }
+            currentChallengeId: todayChallenge.id,
+            category: category,
+            random: KotlinRandom.Default.shared,
+            library: ChallengeSeed.shared.all
+        ) else { return nil }
 
-        skippedCount += 1
-        todayChallenge = next
-        dailyChallengeDate = today
+        absorb(resolution.state)
+        todayChallenge = resolution.challenge
         persist()
-        return next
+        return resolution.challenge
+    }
+
+    /// Makes a library `challenge` today's challenge; counts as one swap. Returns
+    /// false when nothing changed: the day changed, today is done, or it already
+    /// is today's pick.
+    @discardableResult
+    func adopt(_ challenge: Challenge) -> Bool {
+        if refreshDay() { return false }
+        guard let resolution = DailyChallengeRules.shared.adopt(
+            state: currentState(),
+            challenge: challenge,
+            today: today
+        ) else { return false }
+
+        absorb(resolution.state)
+        todayChallenge = resolution.challenge
+        persist()
+        return true
     }
 
     func toggleInterest(_ category: ChallengeCategory) {
@@ -205,6 +258,8 @@ final class OddlyAppState {
 
     func completeOnboarding() {
         hasCompletedOnboarding = true
+        // A day change during onboarding is not news: Home was never shown.
+        dayChangeNotice = nil
         // Today's challenge was picked while the app loaded, before onboarding
         // had asked what the user cares about. Give them one that matches.
         if let realigned = OddlyRepository.companion.realignToInterests(
@@ -220,6 +275,10 @@ final class OddlyAppState {
 
     func clearReward() {
         lastReward = nil
+    }
+
+    func clearDayChangeNotice() {
+        dayChangeNotice = nil
     }
 
     /// Wipes local data (spec §S15). Used by the Reset action in Settings.
@@ -247,6 +306,15 @@ final class OddlyAppState {
             skippedCount: Int32(skippedCount),
             hasCompletedOnboarding: hasCompletedOnboarding
         )
+    }
+
+    /// Takes back the parts of `state` a shared rule may have changed. Interests
+    /// and settings are only ever edited here, so they are left alone.
+    private func absorb(_ state: PersistedState) {
+        completions = state.completions
+        profile = state.profile
+        skippedCount = Int(state.skippedCount)
+        dailyChallengeDate = state.dailyChallenge?.date
     }
 
     private func persist() {
