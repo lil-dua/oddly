@@ -22,6 +22,17 @@ extension LocalDate {
         LocalDate.companion.fromEpochDays(epochDays: Int32(days))
     }
 
+    /// The calendar day [date] falls on in [calendar]'s time zone. Built from
+    /// components rather than epoch seconds, so it is the user's local day.
+    static func from(_ date: Date, calendar: Calendar) -> LocalDate {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return LocalDate(
+            year: Int32(parts.year ?? 1970),
+            monthNumber: Int32(parts.month ?? 1),
+            dayOfMonth: Int32(parts.day ?? 1)
+        )
+    }
+
     /// First day of the month containing this date.
     var startOfMonth: LocalDate {
         LocalDate(year: year, monthNumber: monthNumber, dayOfMonth: 1)

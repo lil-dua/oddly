@@ -51,10 +51,11 @@ struct OddlyRootView: View {
             }
         }
         .oddlyStrings(state.settings.language)
-        // The schedule is derived state: whenever the reminder settings change,
-        // the pending notifications are rebuilt rather than patched.
-        .task(id: ReminderSettingsKey(state.settings)) {
-            await ReminderScheduler.reschedule(settings: state.settings)
+        // The schedule is derived state of the settings, the local day and whether
+        // today is done: any of them changing rebuilds the pending notifications
+        // rather than patching them. A new day also refills the 14-day window.
+        .task(id: ReminderScheduleKey(state)) {
+            await ReminderScheduler.reschedule(settings: state.settings, completions: state.completions)
         }
         // Coming back to the foreground is the common way to meet a new day.
         .onChange(of: scenePhase) { _, phase in
@@ -77,23 +78,29 @@ struct OddlyRootView: View {
     }
 }
 
-/// The parts of `AppSettings` the notification schedule depends on.
+/// What the notification schedule depends on: the reminder settings, the local
+/// day and whether today is done.
 ///
 /// `AppSettings` is a Kotlin class without Swift `Hashable`, and `task(id:)`
 /// needs a value it can compare — this narrows it to exactly what matters.
-private struct ReminderSettingsKey: Equatable {
+private struct ReminderScheduleKey: Equatable {
     let enabled: Bool
     let hour: Int32
     let minute: Int32
     let language: String
     let sound: Bool
+    let today: Int
+    let completedToday: Bool
 
-    init(_ settings: AppSettings) {
+    init(_ state: OddlyAppState) {
+        let settings = state.settings
         enabled = settings.reminderEnabled
         hour = settings.reminderTime.hour
         minute = settings.reminderTime.minute
         language = settings.language.tag
         sound = settings.soundEnabled
+        today = state.today.epochDays
+        completedToday = state.completedToday
     }
 }
 
@@ -133,7 +140,7 @@ private struct OnboardingFlow: View {
                             }
                             Task {
                                 await ReminderScheduler.requestAuthorization()
-                                await ReminderScheduler.reschedule(settings: state.settings)
+                                await ReminderScheduler.reschedule(settings: state.settings, completions: state.completions)
                             }
                             onFinish()
                         },

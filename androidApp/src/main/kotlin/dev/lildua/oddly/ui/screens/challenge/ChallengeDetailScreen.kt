@@ -50,6 +50,8 @@ import dev.lildua.oddly.ui.theme.color
 fun ChallengeDetailScreen(
     challenge: LocalizedChallenge,
     availability: ChallengeAvailability,
+    /** False when swaps ran out; hides the swap actions and says why. */
+    canSwap: Boolean,
     onBack: () -> Unit,
     onComplete: () -> Unit,
     onAdopt: () -> Unit,
@@ -178,8 +180,8 @@ fun ChallengeDetailScreen(
             Spacer(Modifier.height(28.dp))
 
             Column(Modifier.padding(horizontal = 24.dp)) {
-                if (availability == ChallengeAvailability.DONE_THIS_TODAY) {
-                    Row(
+                when (availability) {
+                    ChallengeAvailability.DONE_THIS_TODAY -> Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(percent = 50))
@@ -201,38 +203,61 @@ fun ChallengeDetailScreen(
                             color = OddlyColors.Success,
                         )
                     }
-                } else if (availability == ChallengeAvailability.DAY_ALREADY_DONE) {
-                    // Neutral rather than green: this is not a win for *this* challenge.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(palette.surfaceElevated)
-                            .padding(vertical = 16.dp, horizontal = 20.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = strings.todayDoneComeBackTomorrow,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = palette.textSecondary,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                } else if (availability == ChallengeAvailability.NOT_TODAYS) {
-                    GradientButton(text = strings.setAsTodaysChallenge, onClick = onAdopt)
-                } else {
-                    GradientButton(text = strings.begin, onClick = onComplete)
 
-                    Spacer(Modifier.height(12.dp))
+                    ChallengeAvailability.DAY_ALREADY_DONE ->
+                        NeutralNotice(strings.todayDoneComeBackTomorrow)
 
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        TextAction(strings.seeAnotherChallenge, onAnother)
+                    ChallengeAvailability.NOT_TODAYS ->
+                        if (canSwap) {
+                            GradientButton(text = strings.setAsTodaysChallenge, onClick = onAdopt)
+                        } else {
+                            NeutralNotice(strings.noSwapsLeftAdopt)
+                        }
+
+                    ChallengeAvailability.CAN_COMPLETE -> {
+                        GradientButton(text = strings.begin, onClick = onComplete)
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            if (canSwap) {
+                                TextAction(strings.seeAnotherChallenge, onAnother)
+                            } else {
+                                Text(
+                                    text = strings.noSwapsLeftToday,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = palette.textTertiary,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+/** Neutral rather than green: this is not a win for *this* challenge. */
+@Composable
+private fun NeutralNotice(text: String) {
+    val palette = OddlyTheme.palette
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(palette.surfaceElevated)
+            .padding(vertical = 16.dp, horizontal = 20.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textSecondary,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

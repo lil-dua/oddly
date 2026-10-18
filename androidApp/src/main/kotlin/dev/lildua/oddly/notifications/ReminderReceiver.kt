@@ -13,11 +13,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import dev.lildua.oddly.MainActivity
 import dev.lildua.oddly.R
-import dev.lildua.oddly.core.text.ReminderSeed
+import dev.lildua.oddly.core.time.Today
+import dev.lildua.oddly.data.local.OddlyRepository
+import dev.lildua.oddly.data.local.SharedPreferencesStore
 import dev.lildua.oddly.domain.model.AppLanguage
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
+import dev.lildua.oddly.domain.usecase.ReminderPlanner
 
 /**
  * Posts the daily reminder when the alarm fires.
@@ -26,7 +26,10 @@ import kotlinx.datetime.todayIn
  * day (spec §S16). The language rides along in the intent because the receiver
  * may run in a fresh process with no app state to read.
  *
- * The alarm is one-shot, so this also arms tomorrow's before returning.
+ * The alarm is one-shot, so this also arms tomorrow's before returning. That
+ * happens before the "already done today" check, which only skips the post.
+ * Completions are read straight from the repository (the app may not be
+ * running); [ReminderPlanner] decides whether to stay silent and what to say.
  */
 class ReminderReceiver : BroadcastReceiver() {
 
@@ -41,8 +44,14 @@ class ReminderReceiver : BroadcastReceiver() {
             .firstOrNull { it.tag == intent.getStringExtra(ReminderScheduler.EXTRA_LANGUAGE) }
             ?: AppLanguage.VIETNAMESE
 
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        val content = ReminderSeed.content(today.toEpochDays(), language)
+        val completions = OddlyRepository(SharedPreferencesStore(context)).load()
+            ?.completions.orEmpty()
+        val content = ReminderPlanner.content(
+            completions = completions,
+            fireDate = Today.local(),
+            language = language,
+            isLastScheduled = false,
+        ) ?: return
 
         ReminderScheduler.ensureChannel(context)
 
@@ -64,7 +73,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .build()
 
-        context.getSystemService<NotificationManager>()?.notify(NOTIFICATION_ID, notification)
+        context.getSystemService<NotificationManager>()?.notify(ReminderScheduler.NOTIFICATION_ID, notification)
     }
 
     private fun canPostNotifications(context: Context): Boolean =
@@ -73,9 +82,4 @@ class ReminderReceiver : BroadcastReceiver() {
                 context,
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
-
-    private companion object {
-        // Fixed, so a new reminder replaces yesterday's rather than stacking.
-        const val NOTIFICATION_ID = 1
-    }
 }

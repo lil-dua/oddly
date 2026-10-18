@@ -64,6 +64,9 @@ interface Strings {
     val todayDoneComeBackTomorrow: String
     val browseLibrary: String
     val wantAnotherChallengeDoneBody: String
+    val noSwapsLeftToday: String
+    val noSwapsLeftBody: String
+    val noSwapsLeftAdopt: String
 
     // --- Complete (S07) ---
     val done: String
@@ -180,9 +183,16 @@ interface Strings {
     fun levelWithXp(level: Int, current: Int, total: Int): String
     fun deltaVsPrevious(delta: Int): String
     fun keptStreakFor(count: Int): String
+    fun swapsLeftToday(count: Int): String
 
     /** The text that travels with the shared image, link included. */
     fun shareCaption(count: Int): String
+
+    // --- Daily reminder copy ---
+    fun reminderStreakTitle(days: Int): String
+    val reminderStreakBody: String
+    val reminderLapsedTitle: String
+    val reminderLapsedBody: String
 
     // --- Day change banner on Home ---
     val newDayNotice: String
@@ -245,6 +255,9 @@ object VietnameseStrings : Strings {
     override val todayDoneComeBackTomorrow = "Bạn đã xong thử thách hôm nay. Hẹn mai nhé!"
     override val browseLibrary = "Khám phá thư viện"
     override val wantAnotherChallengeDoneBody = "Hẹn mai nhé"
+    override val noSwapsLeftToday = "Bạn đã dùng hết lượt đổi hôm nay"
+    override val noSwapsLeftBody = "Thử thách này là của bạn hôm nay — thử xem nhé!"
+    override val noSwapsLeftAdopt = "Hôm nay bạn đã hết lượt đổi. Mai hãy chọn thử thách này nhé!"
 
     override val done = "Xong"
     override val celebrationTitle = "Tuyệt vời!"
@@ -358,9 +371,16 @@ object VietnameseStrings : Strings {
         "Level $level · $current/$total XP"
     override fun deltaVsPrevious(delta: Int) =
         if (delta >= 0) "+$delta so với kỳ trước" else "$delta so với kỳ trước"
+    override fun swapsLeftToday(count: Int) = "Còn $count lượt đổi hôm nay"
     override fun keptStreakFor(count: Int) = "và duy trì chuỗi ngày\n$count ngày liên tiếp!"
     override fun shareCaption(count: Int) =
         "Tôi đã hoàn thành $count thử thách cùng ${Brand.NAME}. Thử xem: ${Brand.SHORT_LINK}"
+
+    // --- Daily reminder copy ---
+    override fun reminderStreakTitle(days: Int) = "Chuỗi $days ngày đang chờ bạn"
+    override val reminderStreakBody = "Làm thử thách hôm nay để chuỗi không bị đứt nhé."
+    override val reminderLapsedTitle = "Lâu rồi không gặp"
+    override val reminderLapsedBody = "Mở app khi bạn sẵn sàng. Sau hôm nay, lời nhắc sẽ tạm dừng."
 
     override val newDayNotice = "Đã sang ngày mới — đây là thử thách hôm nay."
     override val dayChangedCompletionNotice =
@@ -416,6 +436,9 @@ object EnglishStrings : Strings {
     override val todayDoneComeBackTomorrow = "Today's challenge is done. See you tomorrow!"
     override val browseLibrary = "Browse the library"
     override val wantAnotherChallengeDoneBody = "See you tomorrow"
+    override val noSwapsLeftToday = "You've used all of today's swaps"
+    override val noSwapsLeftBody = "This one's yours for today. Give it a go!"
+    override val noSwapsLeftAdopt = "No swaps left today. Come back tomorrow to pick this one."
 
     override val done = "Done"
     override val celebrationTitle = "Brilliant!"
@@ -531,6 +554,8 @@ object EnglishStrings : Strings {
         "Level $level · $current/$total XP"
     override fun deltaVsPrevious(delta: Int) =
         if (delta >= 0) "+$delta vs. previous period" else "$delta vs. previous period"
+    override fun swapsLeftToday(count: Int) =
+        if (count == 1) "1 swap left today" else "$count swaps left today"
     override fun keptStreakFor(count: Int) =
         if (count == 1) "and kept a streak going\nfor 1 day!" else "and kept a streak going\nfor $count days!"
     override fun shareCaption(count: Int) =
@@ -539,6 +564,12 @@ object EnglishStrings : Strings {
         } else {
             "I've completed $count challenges with ${Brand.NAME}. Try it: ${Brand.SHORT_LINK}"
         }
+
+    // --- Daily reminder copy ---
+    override fun reminderStreakTitle(days: Int) = "Your $days-day streak is on the line"
+    override val reminderStreakBody = "Do today's challenge to keep it going."
+    override val reminderLapsedTitle = "It's been a while"
+    override val reminderLapsedBody = "Open the app whenever you're ready. Reminders pause after today."
 
     override val newDayNotice = "It's a new day — here's today's challenge."
     override val dayChangedCompletionNotice =

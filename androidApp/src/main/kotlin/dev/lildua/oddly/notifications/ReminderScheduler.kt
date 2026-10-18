@@ -31,6 +31,9 @@ object ReminderScheduler {
     const val CHANNEL_ID = "daily_reminder"
     const val EXTRA_LANGUAGE = "language_tag"
 
+    // Fixed, so a new reminder replaces yesterday's rather than stacking.
+    const val NOTIFICATION_ID = 1
+
     private const val REQUEST_CODE = 1001
 
     /** How late the reminder may land. Wide enough for the system to batch. */
@@ -62,6 +65,11 @@ object ReminderScheduler {
     fun rescheduleFromStore(context: Context) {
         val saved = ReminderStore.load(context) ?: return
         schedule(context, saved.time, saved.language)
+    }
+
+    /** Removes an already-shown reminder, e.g. once the day's challenge is done. */
+    fun dismissDelivered(context: Context) {
+        context.getSystemService<NotificationManager>()?.cancel(NOTIFICATION_ID)
     }
 
     fun ensureChannel(context: Context) {

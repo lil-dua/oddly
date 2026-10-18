@@ -67,10 +67,21 @@ class OddlyRepository(private val store: KeyValueStore) {
 
     private fun decode(raw: String): PersistedState? = runCatching {
         val state = json.decodeFromString(PersistedState.serializer(), raw)
-        // Nothing to migrate yet; a future version branches here rather than
-        // silently loading a document it cannot interpret.
-        if (state.version > PersistedState.CURRENT_VERSION) null else state
+        // Refuse rather than silently load a document from a newer release.
+        if (state.version > PersistedState.CURRENT_VERSION) null else migrate(state)
     }.getOrNull()
+
+    /**
+     * Brings an older document up to [PersistedState.CURRENT_VERSION], one
+     * version at a time. Fields added since get their defaults on decode, so
+     * a step only has to fix up values that need more than a default.
+     */
+    private fun migrate(state: PersistedState): PersistedState {
+        var s = state
+        // v2 added DailyChallenge.swapsUsed; an old pick is treated as unused.
+        if (s.version < 2) s = s.copy(version = 2)
+        return s
+    }
 
     companion object {
         private const val KEY_STATE = "oddly.state.v1"

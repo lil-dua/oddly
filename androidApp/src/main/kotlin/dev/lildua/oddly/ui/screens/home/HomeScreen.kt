@@ -179,7 +179,7 @@ fun HomeScreen(
         Spacer(Modifier.height(16.dp))
 
         // Explore another challenge
-        // Dimmed and inert once today is done: swapping is closed until tomorrow.
+        // Dimmed and inert once today is done or swaps ran out: closed until tomorrow.
         OddlyCard(
             modifier = if (state.canReroll) Modifier else Modifier.alpha(0.45f),
             onClick = if (state.canReroll) onAnotherChallenge else null,
@@ -194,7 +194,11 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = if (state.canReroll) strings.wantAnotherChallengeBody else strings.wantAnotherChallengeDoneBody,
+                            text = when {
+                                state.completedToday -> strings.wantAnotherChallengeDoneBody
+                                state.swapsLeft == 0 -> strings.noSwapsLeftBody
+                                else -> strings.swapsLeftToday(state.swapsLeft)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.textTertiary,
                         )

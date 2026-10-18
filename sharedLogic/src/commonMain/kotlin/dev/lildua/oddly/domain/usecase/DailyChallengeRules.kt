@@ -80,13 +80,32 @@ object DailyChallengeRules {
         )
     }
 
+    /** Swaps allowed per day, shared by [reroll] and [adopt]. */
+    const val MAX_SWAPS_PER_DAY: Int = 3
+
+    /**
+     * Swaps still available on [today]: 0 once the day is done, otherwise
+     * [MAX_SWAPS_PER_DAY] minus those used on today's pick (a pick from another
+     * day, or none, means a fresh set).
+     */
+    fun swapsLeft(state: PersistedState, today: LocalDate): Int {
+        if (isDayDone(state.completions, today)) return 0
+        return (MAX_SWAPS_PER_DAY - swapsUsedOn(state, today)).coerceAtLeast(0)
+    }
+
+    private fun swapsUsedOn(state: PersistedState, today: LocalDate): Int =
+        state.dailyChallenge?.takeIf { it.date == today }?.swapsUsed ?: 0
+
     /**
      * Swaps today's challenge for another one (spec §2.3), optionally from
-     * [category] only, and counts the one set aside as skipped.
+     * [category] only.
+     *
+     * Swaps are capped at [MAX_SWAPS_PER_DAY] so "one challenge a day" keeps
+     * its meaning, and only the first swap of the day counts as skipped, so a
+     * few tries do not drag the completion rate down.
      *
      * Returns null — and the caller changes nothing — when today is already
-     * done (the day is closed to swaps) or the library has no other challenge
-     * to offer.
+     * done, no swaps are left, or the library has no other challenge to offer.
      */
     fun reroll(
         state: PersistedState,
@@ -96,7 +115,7 @@ object DailyChallengeRules {
         random: Random = Random.Default,
         library: List<Challenge> = ChallengeSeed.all,
     ): DailyChallengeResolution? {
-        if (isDayDone(state.completions, today)) return null
+        if (swapsLeft(state, today) == 0) return null
         val next = ChallengeSelector.select(
             library = library,
             interests = state.profile.interests,
@@ -107,36 +126,41 @@ object DailyChallengeRules {
             excludeChallengeId = currentChallengeId,
             random = random,
         ) ?: return null
+        val used = swapsUsedOn(state, today)
 
         return DailyChallengeResolution(
             challenge = next,
             state = state.copy(
-                dailyChallenge = DailyChallenge(date = today, challengeId = next.id),
-                skippedCount = state.skippedCount + 1,
+                dailyChallenge = DailyChallenge(date = today, challengeId = next.id, swapsUsed = used + 1),
+                skippedCount = state.skippedCount + if (used == 0) 1 else 0,
             ),
         )
     }
 
     /**
-     * Makes [challenge] (picked from the library) today's challenge. Counts as a
-     * swap like [reroll], so the completion rate reflects setting aside the
-     * pre-selected challenge.
+     * Makes [challenge] (picked from the library) today's challenge. Uses one of
+     * the same [MAX_SWAPS_PER_DAY] as [reroll], otherwise the library would be a
+     * way around the cap, and is skipped-counted by the same first-swap rule.
      *
-     * Returns null — and the caller changes nothing — when today is already done
-     * or [challenge] already is today's pick (nothing was set aside).
+     * Returns null — and the caller changes nothing — when today is already done,
+     * no swaps are left, or [challenge] already is today's pick (nothing was
+     * set aside).
      */
     fun adopt(
         state: PersistedState,
         challenge: Challenge,
         today: LocalDate,
     ): DailyChallengeResolution? {
-        val pick = DailyChallenge(date = today, challengeId = challenge.id)
-        if (isDayDone(state.completions, today) || state.dailyChallenge == pick) return null
+        if (swapsLeft(state, today) == 0) return null
+        // Compared by id and day, not as a whole: swapsUsed differs on a re-adopt.
+        val current = state.dailyChallenge
+        if (current != null && current.date == today && current.challengeId == challenge.id) return null
+        val used = swapsUsedOn(state, today)
         return DailyChallengeResolution(
             challenge = challenge,
             state = state.copy(
-                dailyChallenge = pick,
-                skippedCount = state.skippedCount + 1,
+                dailyChallenge = DailyChallenge(date = today, challengeId = challenge.id, swapsUsed = used + 1),
+                skippedCount = state.skippedCount + if (used == 0) 1 else 0,
             ),
         )
     }

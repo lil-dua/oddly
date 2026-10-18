@@ -16,7 +16,13 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class PersistedState(
-    /** Bumped whenever the shape changes, so a migration can branch on it. */
+    /**
+     * Bumped whenever the shape changes, so a migration can branch on it.
+     *
+     * Rules for changing the shape: only add fields, and give each a default;
+     * never rename or remove one. Every bump gets a migrate step in
+     * [OddlyRepository] and a frozen fixture of the previous version in tests.
+     */
     val version: Int = CURRENT_VERSION,
     val profile: UserProfile,
     val settings: AppSettings,
@@ -29,6 +35,6 @@ data class PersistedState(
     val hasCompletedOnboarding: Boolean = false,
 ) {
     companion object {
-        const val CURRENT_VERSION: Int = 1
+        const val CURRENT_VERSION: Int = 2
     }
 }

@@ -45,6 +45,9 @@ final class OddlyAppState {
     private let repository: OddlyRepository
     private var dailyChallengeDate: LocalDate?
 
+    /// Swaps used on today's pick; see `swapsLeft`.
+    private var swapsUsed: Int
+
     init() {
         let repository = OddlyRepository(store: UserDefaultsStore())
         let today = Today.shared.local()
@@ -72,6 +75,7 @@ final class OddlyAppState {
         self.skippedCount = Int(resolution.state.skippedCount)
         self.hasCompletedOnboarding = resolution.state.hasCompletedOnboarding
         self.dailyChallengeDate = resolution.state.dailyChallenge?.date
+        self.swapsUsed = Int(resolution.state.dailyChallenge?.swapsUsed ?? 0)
     }
 
     // MARK: - Derived state
@@ -88,8 +92,14 @@ final class OddlyAppState {
         DailyChallengeRules.shared.isDayDone(completions: completions, today: today)
     }
 
-    /// False once today is done: no more swapping. Also the condition for `adopt`.
-    var canReroll: Bool { !completedToday }
+    /// Swaps left today; 0 once today is done (see `DailyChallengeRules.swapsLeft`).
+    var swapsLeft: Int {
+        Int(DailyChallengeRules.shared.swapsLeft(state: currentState(), today: today))
+    }
+
+    /// False once today is done or the swaps ran out: no more swapping. Also the
+    /// condition for `adopt`.
+    var canReroll: Bool { swapsLeft > 0 }
 
     var totalCompleted: Int { completions.count }
 
@@ -269,6 +279,7 @@ final class OddlyAppState {
         ) {
             todayChallenge = realigned.challenge
             dailyChallengeDate = today
+            swapsUsed = Int(realigned.state.dailyChallenge?.swapsUsed ?? 0)
         }
         persist()
     }
@@ -286,6 +297,7 @@ final class OddlyAppState {
         completions.removeAll()
         profile = profile.with(level: 1, xpInLevel: 0)
         skippedCount = 0
+        swapsUsed = 0
         lastReward = nil
         persist()
     }
@@ -295,7 +307,7 @@ final class OddlyAppState {
 
     private func currentState() -> PersistedState {
         let daily = dailyChallengeDate.map {
-            DailyChallenge(date: $0, challengeId: todayChallenge.id, status: .pending)
+            DailyChallenge(date: $0, challengeId: todayChallenge.id, status: .pending, swapsUsed: Int32(swapsUsed))
         }
         return PersistedState(
             version: PersistedState.companion.CURRENT_VERSION,
@@ -315,6 +327,7 @@ final class OddlyAppState {
         profile = state.profile
         skippedCount = Int(state.skippedCount)
         dailyChallengeDate = state.dailyChallenge?.date
+        swapsUsed = Int(state.dailyChallenge?.swapsUsed ?? 0)
     }
 
     private func persist() {

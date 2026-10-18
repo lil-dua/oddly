@@ -167,7 +167,7 @@ class DailyChallengeRulesTest {
         assertNotNull(resolution)
         assertEquals("other", resolution.challenge.id)
         assertEquals(3, resolution.state.skippedCount)
-        assertEquals(DailyChallenge(date = TODAY, challengeId = "other"), resolution.state.dailyChallenge)
+        assertEquals(DailyChallenge(date = TODAY, challengeId = "other", swapsUsed = 1), resolution.state.dailyChallenge)
         // Swapping is not completing: nothing else about the state moves.
         assertEquals(start.completions, resolution.state.completions)
         assertEquals(start.profile, resolution.state.profile)
@@ -435,7 +435,7 @@ class DailyChallengeRulesTest {
 
         assertEquals(other, resolution.challenge)
         assertEquals(3, resolution.state.skippedCount)
-        assertEquals(DailyChallenge(TODAY, other.id), resolution.state.dailyChallenge)
+        assertEquals(DailyChallenge(TODAY, other.id, swapsUsed = 1), resolution.state.dailyChallenge)
         // Adopting is not completing: completions and profile stay put.
         assertEquals(start.completions, resolution.state.completions)
         assertEquals(start.profile, resolution.state.profile)
@@ -561,5 +561,130 @@ class DailyChallengeRulesTest {
             CompletionOutcome.Rejected(CompletionRejection.DAY_ALREADY_DONE),
             DailyChallengeRules.complete(legacy, other, at(12, 0)),
         )
+    }
+
+    // MARK: - Swap limit
+
+    private val swapLibrary = listOf(todays, other, challenge("third"), challenge("fourth"), challenge("fifth"))
+
+    private fun withSwaps(used: Int, date: kotlinx.datetime.LocalDate = TODAY) = state().copy(
+        dailyChallenge = DailyChallenge(date = date, challengeId = todays.id, swapsUsed = used),
+    )
+
+    private fun swap(from: PersistedState, seed: Int = 1) = DailyChallengeRules.reroll(
+        from, TODAY, from.dailyChallenge!!.challengeId, random = Random(seed), library = swapLibrary,
+    )
+
+    @Test
+    fun `swaps left starts at the daily maximum`() {
+        assertEquals(3, DailyChallengeRules.MAX_SWAPS_PER_DAY)
+        assertEquals(3, DailyChallengeRules.swapsLeft(withSwaps(0), TODAY))
+        assertEquals(3, DailyChallengeRules.swapsLeft(state().copy(dailyChallenge = null), TODAY))
+        assertEquals(3, DailyChallengeRules.swapsLeft(withSwaps(3, daysAgo(1)), TODAY))
+    }
+
+    @Test
+    fun `swaps left counts down with each swap used`() {
+        assertEquals(2, DailyChallengeRules.swapsLeft(withSwaps(1), TODAY))
+        assertEquals(1, DailyChallengeRules.swapsLeft(withSwaps(2), TODAY))
+        assertEquals(0, DailyChallengeRules.swapsLeft(withSwaps(3), TODAY))
+        assertEquals(0, DailyChallengeRules.swapsLeft(withSwaps(9), TODAY))
+    }
+
+    @Test
+    fun `each reroll uses one swap`() {
+        var current = state()
+        for (expected in 1..3) {
+            current = assertNotNull(swap(current, expected)).state
+            assertEquals(expected, current.dailyChallenge?.swapsUsed)
+        }
+    }
+
+    @Test
+    fun `a fourth reroll is refused`() {
+        val exhausted = withSwaps(3)
+
+        assertNull(swap(exhausted))
+        assertNull(DailyChallengeRules.reroll(exhausted, TODAY, todays.id, Category.FINANCE, Random(1), swapLibrary))
+    }
+
+    @Test
+    fun `adopt is refused once swaps run out`() {
+        assertNull(DailyChallengeRules.adopt(withSwaps(3), other, TODAY))
+    }
+
+    @Test
+    fun `reroll and adopt share the same swaps`() {
+        val first = assertNotNull(swap(state(), 1)).state
+        val second = assertNotNull(swap(first, 2)).state
+        val third = assertNotNull(DailyChallengeRules.adopt(second, challenge("picked"), TODAY)).state
+
+        assertEquals(3, third.dailyChallenge?.swapsUsed)
+        assertNull(swap(third))
+        assertNull(DailyChallengeRules.adopt(third, challenge("another"), TODAY))
+    }
+
+    @Test
+    fun `only the first swap of the day counts as skipped`() {
+        val start = state().copy(skippedCount = 2)
+        var current = start
+        for (i in 1..3) current = assertNotNull(swap(current, i)).state
+
+        assertEquals(3, current.skippedCount)
+    }
+
+    @Test
+    fun `an adopt after a reroll does not count another skip`() {
+        val rerolled = assertNotNull(swap(state().copy(skippedCount = 0))).state
+        val adopted = assertNotNull(DailyChallengeRules.adopt(rerolled, challenge("picked"), TODAY)).state
+
+        assertEquals(1, adopted.skippedCount)
+        assertEquals(2, adopted.dailyChallenge?.swapsUsed)
+    }
+
+    @Test
+    fun `a refused swap leaves the skipped count alone`() {
+        val exhausted = withSwaps(3).copy(skippedCount = 4)
+
+        assertNull(swap(exhausted))
+        assertEquals(4, exhausted.skippedCount)
+    }
+
+    @Test
+    fun `a pick from another day gives a fresh set of swaps`() {
+        val yesterday = withSwaps(3, daysAgo(1)).copy(skippedCount = 1)
+
+        val resolution = assertNotNull(swap(yesterday))
+
+        assertEquals(1, resolution.state.dailyChallenge?.swapsUsed)
+        assertEquals(TODAY, resolution.state.dailyChallenge?.date)
+        assertEquals(2, resolution.state.skippedCount)
+    }
+
+    @Test
+    fun `adopting with a stale pick from yesterday starts a fresh count`() {
+        val resolution = assertNotNull(DailyChallengeRules.adopt(withSwaps(3, daysAgo(1)), other, TODAY))
+
+        assertEquals(1, resolution.state.dailyChallenge?.swapsUsed)
+    }
+
+    @Test
+    fun `no swaps are left once today is done`() {
+        assertEquals(0, DailyChallengeRules.swapsLeft(done(), TODAY))
+        assertNull(DailyChallengeRules.adopt(done(), other, TODAY))
+    }
+
+    @Test
+    fun `adopting the current pick with swaps used is still a no-op`() {
+        assertNull(DailyChallengeRules.adopt(withSwaps(2), todays, TODAY))
+    }
+
+    @Test
+    fun `swaps used do not change how today's pick completes`() {
+        val completed = assertIs<CompletionOutcome.Completed>(
+            DailyChallengeRules.complete(withSwaps(2), todays, at(9, 0)),
+        )
+
+        assertEquals(0, DailyChallengeRules.swapsLeft(completed.state, TODAY))
     }
 }

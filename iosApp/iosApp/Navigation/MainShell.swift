@@ -136,6 +136,7 @@ struct MainShell: View {
                 // One scoring completion a day, for today's pick only; library
                 // entries must be adopted first.
                 availability: state.availability(challenge.id),
+                canSwap: state.canReroll,
                 onBack: pop,
                 onComplete: {
                     // Refused (e.g. midnight passed): no reward screen; the
@@ -152,6 +153,7 @@ struct MainShell: View {
 
         case .anotherChallenge:
             AnotherChallengeScreen(
+                swapsLeft: state.swapsLeft,
                 onBack: pop,
                 onSurpriseMe: {
                     guard state.canReroll else { goHome(); return }

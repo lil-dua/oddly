@@ -8,6 +8,7 @@ import dev.lildua.oddly.domain.model.AppLanguage
 import dev.lildua.oddly.domain.model.Category
 import dev.lildua.oddly.domain.model.DailyChallenge
 import dev.lildua.oddly.domain.model.ThemeMode
+import dev.lildua.oddly.domain.usecase.DailyChallengeRules
 import kotlinx.datetime.LocalTime
 import kotlin.random.Random
 import kotlin.test.Test
@@ -136,6 +137,93 @@ class OddlyRepositoryTest {
 
         assertNull(repository.importJson(halfADocument))
         assertEquals(original, repository.load())
+    }
+
+    /** Pins [V1_DOCUMENT] to what the code reads today; the fixture itself never changes. */
+    @Test
+    fun `a version 1 document loads with every field intact`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V1_DOCUMENT)
+
+        val loaded = assertNotNull(OddlyRepository(store).load())
+
+        assertEquals("local-user", loaded.profile.id)
+        assertEquals(setOf(Category.HEALTH, Category.FINANCE), loaded.profile.interests)
+        assertEquals(3, loaded.profile.level)
+        assertEquals(40, loaded.profile.xpInLevel)
+        assertEquals(ThemeMode.LIGHT, loaded.settings.themeMode)
+        assertEquals(AppLanguage.ENGLISH, loaded.settings.language)
+        assertEquals(false, loaded.settings.reminderEnabled)
+        assertEquals(LocalTime(21, 15), loaded.settings.reminderTime)
+        assertEquals(3, loaded.completions.size)
+        assertEquals(LocalTime(8, 30), loaded.completions.first().completedAt)
+        assertEquals("health_stairs", loaded.dailyChallenge?.challengeId)
+        assertEquals(TODAY, loaded.dailyChallenge?.date)
+        assertEquals(5, loaded.skippedCount)
+        assertTrue(loaded.hasCompletedOnboarding)
+    }
+
+    @Test
+    fun `a version 1 document loads as the current version`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V1_DOCUMENT)
+
+        val loaded = assertNotNull(OddlyRepository(store).load())
+
+        assertEquals(PersistedState.CURRENT_VERSION, loaded.version)
+        assertEquals(2, loaded.version)
+        assertEquals(0, loaded.dailyChallenge?.swapsUsed)
+        assertEquals(5, loaded.skippedCount)
+        assertEquals(3, loaded.completions.size)
+        assertTrue(loaded.hasCompletedOnboarding)
+    }
+
+    @Test
+    fun `a version 1 document can be imported`() {
+        val repository = repository()
+
+        val imported = assertNotNull(repository.importJson(V1_DOCUMENT))
+
+        assertEquals(2, imported.version)
+        assertEquals(0, imported.dailyChallenge?.swapsUsed)
+        assertEquals("health_stairs", imported.dailyChallenge?.challengeId)
+        assertEquals(imported, repository.load())
+    }
+
+    @Test
+    fun `a migrated document is saved as the current version`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V1_DOCUMENT)
+        val repository = OddlyRepository(store)
+
+        repository.save(assertNotNull(repository.load()))
+
+        val raw = assertNotNull(store.read("oddly.state.v1"))
+        assertTrue(raw.contains("\"version\": 2"), raw)
+        assertTrue(raw.contains("\"swapsUsed\""), raw)
+        assertEquals(2, assertNotNull(repository.load()).version)
+    }
+
+    @Test
+    fun `swaps used survive the round trip`() {
+        val repository = repository()
+        val saved = OddlyRepository.freshState(TODAY).copy(
+            dailyChallenge = DailyChallenge(date = TODAY, challengeId = "health_stairs", swapsUsed = 2),
+        )
+
+        repository.save(saved)
+
+        assertEquals(2, repository.load()?.dailyChallenge?.swapsUsed)
+        assertEquals(saved, repository.importJson(repository.exportJson()))
+    }
+
+    @Test
+    fun `a version 3 document is still refused`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V1_DOCUMENT.replace("\"version\": 1", "\"version\": 3"))
+
+        assertNull(OddlyRepository(store).load())
+        assertNull(repository().importJson(V1_DOCUMENT.replace("\"version\": 1", "\"version\": 3")))
     }
 
     /**
@@ -320,6 +408,20 @@ class OddlyRepositoryTest {
         assertEquals(resolution.challenge.id, resolution.state.dailyChallenge?.challengeId)
         assertEquals(state.completions, resolution.state.completions)
         assertEquals(state.profile, resolution.state.profile)
+        assertEquals(4, resolution.state.skippedCount)
+    }
+
+    @Test
+    fun `rollover to a new day resets swaps used`() {
+        val state = stateWithPick(daysAgo(1), ChallengeSeed.all[5].id).copy(
+            dailyChallenge = DailyChallenge(daysAgo(1), ChallengeSeed.all[5].id, swapsUsed = 3),
+            skippedCount = 4,
+        )
+
+        val resolution = assertNotNull(OddlyRepository.rollover(state, TODAY, Random(1)))
+
+        assertEquals(0, resolution.state.dailyChallenge?.swapsUsed)
+        assertEquals(3, DailyChallengeRules.swapsLeft(resolution.state, TODAY))
         assertEquals(4, resolution.state.skippedCount)
     }
 

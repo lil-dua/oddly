@@ -119,15 +119,21 @@ struct HomeScreen: View {
         }
     }
 
+    private var exploreBody: String {
+        if state.completedToday { return strings.wantAnotherChallengeDoneBody }
+        if state.swapsLeft == 0 { return strings.noSwapsLeftBody }
+        return strings.swapsLeftToday(count: Int32(state.swapsLeft))
+    }
+
     private var exploreCard: some View {
-        // Dimmed and inert once today is done: swapping is closed until tomorrow.
+        // Dimmed and inert once today is done or swaps ran out: closed until tomorrow.
         OddlyCard(action: state.canReroll ? onAnotherChallenge : nil) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(strings.wantAnotherChallenge)
                         .font(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
-                    Text(state.canReroll ? strings.wantAnotherChallengeBody : strings.wantAnotherChallengeDoneBody)
+                    Text(exploreBody)
                         .font(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                 }

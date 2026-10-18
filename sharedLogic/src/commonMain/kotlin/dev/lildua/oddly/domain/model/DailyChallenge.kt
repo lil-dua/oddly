@@ -16,4 +16,9 @@ data class DailyChallenge(
     val date: LocalDate,
     val challengeId: String,
     val status: DailyChallengeStatus = DailyChallengeStatus.PENDING,
+    /**
+     * Swaps made today (rerolls and adopts from the library). Lives on the
+     * day's pick so a new day, which gets a new pick, starts again at 0.
+     */
+    val swapsUsed: Int = 0,
 )

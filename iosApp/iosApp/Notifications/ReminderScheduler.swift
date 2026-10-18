@@ -10,6 +10,11 @@ import SharedLogic
 /// scheduled instead, each with its own day's copy, and topped back up every
 /// time the app launches or the settings change.
 ///
+/// Each request is decided by `ReminderPlanner` (shared with Android): a day
+/// that is already done gets none, a streak of 3+ gets streak copy, and the last
+/// request of the window says "it's been a while" since reminders then pause.
+/// Day indexes and identifiers use the user's *local* day, not UTC.
+///
 /// iOS keeps pending requests across launches and reboots, so unlike Android
 /// there is nothing to re-arm on boot.
 enum ReminderScheduler {
@@ -40,9 +45,10 @@ enum ReminderScheduler {
         return status == .authorized || status == .provisional || status == .ephemeral
     }
 
-    /// Rewrites the whole schedule rather than patching it: the settings are
-    /// the source of truth, and a stale request is worse than a rebuilt one.
-    static func reschedule(settings: AppSettings) async {
+    /// Rewrites the whole schedule rather than patching it: the settings and
+    /// completions are the source of truth, and a stale request is worse than a
+    /// rebuilt one.
+    static func reschedule(settings: AppSettings, completions: [ChallengeCompletion]) async {
         cancelAll()
 
         guard settings.reminderEnabled, await isAuthorized() else { return }
@@ -51,7 +57,18 @@ enum ReminderScheduler {
         let calendar = Calendar.current
         let now = Date()
 
+        // A reminder already shown today is stale once today is done.
+        let todayLocal = LocalDate.from(now, calendar: calendar)
+        if DailyChallengeRules.shared.isDayDone(completions: completions, today: todayLocal) {
+            center.removeDeliveredNotifications(
+                withIdentifiers: [identifierPrefix + String(todayLocal.toEpochDays())]
+            )
+        }
+
         for offset in 0..<horizonInDays {
+            // A newer run owns the schedule now; do not re-add what it cleared.
+            if Task.isCancelled { return }
+
             guard
                 let day = calendar.date(byAdding: .day, value: offset, to: now),
                 let fireDate = calendar.date(
@@ -63,8 +80,13 @@ enum ReminderScheduler {
                 fireDate > now
             else { continue }
 
-            let dayIndex = Int32(floor(fireDate.timeIntervalSince1970 / 86_400))
-            let copy = ReminderSeed.shared.content(dayIndex: dayIndex, language: settings.language)
+            let fireDay = LocalDate.from(fireDate, calendar: calendar)
+            guard let copy = ReminderPlanner.shared.content(
+                completions: completions,
+                fireDate: fireDay,
+                language: settings.language,
+                isLastScheduled: offset == horizonInDays - 1
+            ) else { continue }
 
             let content = UNMutableNotificationContent()
             content.title = copy.title
@@ -73,10 +95,11 @@ enum ReminderScheduler {
 
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
             let request = UNNotificationRequest(
-                identifier: identifierPrefix + String(dayIndex),
+                identifier: identifierPrefix + String(fireDay.toEpochDays()),
                 content: content,
                 trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             )
+            if Task.isCancelled { return }
             try? await center.add(request)
         }
     }

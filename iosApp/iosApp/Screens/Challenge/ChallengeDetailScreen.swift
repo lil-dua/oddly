@@ -9,10 +9,24 @@ struct ChallengeDetailScreen: View {
 
     let challenge: LocalizedChallenge
     let availability: ChallengeAvailability
+    /// False when swaps ran out; hides the swap actions and says why.
+    let canSwap: Bool
     let onBack: () -> Void
     let onComplete: () -> Void
     let onAdopt: () -> Void
     let onAnother: () -> Void
+
+    /// Neutral rather than green: not a win for *this* challenge.
+    private func neutralNotice(_ text: String) -> some View {
+        Text(text)
+            .font(OddlyFont.labelLarge)
+            .foregroundStyle(palette.textSecondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
+            .background(palette.surfaceElevated, in: RoundedRectangle(cornerRadius: 24))
+    }
 
     var body: some View {
         let accent = challenge.category.color
@@ -102,9 +116,20 @@ struct ChallengeDetailScreen: View {
                         switch availability {
                         case .canComplete:
                             GradientButton(strings.begin, action: onComplete)
-                            TextAction(strings.seeAnotherChallenge, action: onAnother)
+                            if canSwap {
+                                TextAction(strings.seeAnotherChallenge, action: onAnother)
+                            } else {
+                                Text(strings.noSwapsLeftToday)
+                                    .font(OddlyFont.bodySmall)
+                                    .foregroundStyle(palette.textTertiary)
+                                    .multilineTextAlignment(.center)
+                            }
                         case .notTodays:
-                            GradientButton(strings.setAsTodaysChallenge, action: onAdopt)
+                            if canSwap {
+                                GradientButton(strings.setAsTodaysChallenge, action: onAdopt)
+                            } else {
+                                neutralNotice(strings.noSwapsLeftAdopt)
+                            }
                         case .doneThisToday:
                             HStack(spacing: 8) {
                                 OddlyIconView(.check, size: 18, tint: OddlyColors.success, lineWidth: 2)
@@ -116,15 +141,7 @@ struct ChallengeDetailScreen: View {
                             .padding(.vertical, 16)
                             .background(OddlyColors.success.opacity(0.14), in: Capsule())
                         default:
-                            // Neutral rather than green: not a win for *this* challenge.
-                            Text(strings.todayDoneComeBackTomorrow)
-                                .font(OddlyFont.labelLarge)
-                                .foregroundStyle(palette.textSecondary)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .padding(.horizontal, 20)
-                                .background(palette.surfaceElevated, in: RoundedRectangle(cornerRadius: 24))
+                            neutralNotice(strings.todayDoneComeBackTomorrow)
                         }
                     }
                     .padding(.top, 28)

@@ -6,6 +6,7 @@ struct AnotherChallengeScreen: View {
     @Environment(\.palette) private var palette
     @Environment(\.strings) private var strings
 
+    let swapsLeft: Int
     let onBack: () -> Void
     let onSurpriseMe: () -> Void
     let onChooseCategory: () -> Void
@@ -56,6 +57,12 @@ struct AnotherChallengeScreen: View {
                 .foregroundStyle(palette.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, 28)
+
+            Text(strings.swapsLeftToday(count: Int32(swapsLeft)))
+                .font(OddlyFont.bodySmall)
+                .foregroundStyle(palette.textTertiary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
 
             Spacer(minLength: 0)
 

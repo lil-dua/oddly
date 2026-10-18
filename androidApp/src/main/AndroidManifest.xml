@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Daily reminder (spec §S16). POST_NOTIFICATIONS is requested at runtime
-         on API 33+; BOOT_COMPLETED lets the alarm survive a restart. -->
+         on API 33+; BOOT_COMPLETED lets the alarm survive a restart;
+         TIME_SET / TIMEZONE_CHANGED re-arm it for the new local time. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -36,6 +37,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
 

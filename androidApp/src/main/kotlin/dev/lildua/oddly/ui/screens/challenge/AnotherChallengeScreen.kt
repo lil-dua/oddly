@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun AnotherChallengeScreen(
+    swapsLeft: Int,
     onBack: () -> Unit,
     onSurpriseMe: () -> Unit,
     onChooseCategory: () -> Unit,
@@ -120,6 +121,15 @@ fun AnotherChallengeScreen(
                     text = strings.anotherChallengeBody,
                     style = MaterialTheme.typography.bodyLarge,
                     color = palette.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = strings.swapsLeftToday(swapsLeft),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textTertiary,
                     textAlign = TextAlign.Center,
                 )
 

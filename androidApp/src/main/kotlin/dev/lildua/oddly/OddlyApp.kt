@@ -88,6 +88,11 @@ fun OddlyApp() {
         }
     }
 
+    // A reminder already in the tray is stale once today's challenge is done.
+    LaunchedEffect(state.completedToday) {
+        if (state.completedToday) ReminderScheduler.dismissDelivered(context)
+    }
+
     // Coming back from the background is the common way to meet a new day.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { state.refreshDay() }
 
@@ -241,6 +246,7 @@ fun OddlyApp() {
                                     // One scoring completion a day, for today's pick only;
                                     // library entries must be adopted first.
                                     availability = state.availability(challenge.id),
+                                    canSwap = state.canReroll,
                                     onBack = { navigator.pop() },
                                     onComplete = {
                                         // Refused (e.g. midnight passed): no reward screen;
@@ -282,6 +288,7 @@ fun OddlyApp() {
                             }
 
                             Destination.AnotherChallenge -> AnotherChallengeScreen(
+                                swapsLeft = state.swapsLeft,
                                 onBack = { navigator.pop() },
                                 onSurpriseMe = {
                                     // Reachable via the back stack after completing.

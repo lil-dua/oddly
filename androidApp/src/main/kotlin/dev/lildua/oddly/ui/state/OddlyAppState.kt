@@ -98,6 +98,12 @@ class OddlyAppState(
 
     private var dailyChallengeDate: LocalDate? = initial.dailyChallenge?.date
 
+    /**
+     * Swaps used on today's pick. Observable (unlike [dailyChallengeDate]) so
+     * [swapsLeft] recomposes the screens that show it.
+     */
+    private var swapsUsed: Int by mutableStateOf(initial.dailyChallenge?.swapsUsed ?: 0)
+
     // Reseeded on a day change so rerolls differ from day to day.
     private var random = Random(initialToday.toEpochDays())
 
@@ -116,10 +122,14 @@ class OddlyAppState(
     val completedToday: Boolean
         get() = DailyChallengeRules.isDayDone(_completions, today)
 
+    /** Swaps left today; 0 once today is done (see [DailyChallengeRules.swapsLeft]). */
+    val swapsLeft: Int get() = DailyChallengeRules.swapsLeft(currentState(), today)
+
     /**
-     * False once today is done: no more swapping. Also the condition for [adopt].
+     * False once today is done or the swaps ran out: no more swapping. Also the
+     * condition for [adopt].
      */
-    val canReroll: Boolean get() = !completedToday
+    val canReroll: Boolean get() = swapsLeft > 0
 
     val totalCompleted: Int get() = _completions.size
 
@@ -269,6 +279,7 @@ class OddlyAppState(
         OddlyRepository.realignToInterests(currentState(), today, random)?.let { realigned ->
             todayChallenge = realigned.challenge
             dailyChallengeDate = today
+            swapsUsed = realigned.state.dailyChallenge?.swapsUsed ?: 0
         }
         persist()
     }
@@ -286,6 +297,7 @@ class OddlyAppState(
         _completions.clear()
         profile = profile.copy(level = 1, xpInLevel = 0)
         skippedCount = 0
+        swapsUsed = 0
         lastReward = null
         persist()
     }
@@ -298,7 +310,7 @@ class OddlyAppState(
         settings = settings,
         completions = _completions.toList(),
         dailyChallenge = dailyChallengeDate?.let {
-            DailyChallenge(date = it, challengeId = todayChallenge.id)
+            DailyChallenge(date = it, challengeId = todayChallenge.id, swapsUsed = swapsUsed)
         },
         skippedCount = skippedCount,
         hasCompletedOnboarding = hasCompletedOnboarding,
@@ -314,6 +326,7 @@ class OddlyAppState(
         profile = state.profile
         skippedCount = state.skippedCount
         dailyChallengeDate = state.dailyChallenge?.date
+        swapsUsed = state.dailyChallenge?.swapsUsed ?: 0
     }
 
     private fun persist() {
