@@ -124,6 +124,10 @@ interface Strings {
 
     // --- Quotes (S14) ---
     val quotesTitle: String
+    val quotesFilterAll: String
+    val quotesFilterFavorites: String
+    val quotesFavoritesEmptyTitle: String
+    val quotesFavoritesEmptyBody: String
 
     // --- Settings (S15) ---
     val settingsTitle: String
@@ -137,6 +141,12 @@ interface Strings {
     val soundAndHaptics: String
     val exportData: String
     val exportFailed: String
+    val importData: String
+    val importConfirmTitle: String
+    fun importConfirmBody(completed: Int, level: Int): String
+    val importReplace: String
+    val importFailed: String
+    val importSucceeded: String
     val about: String
     val eraseAllData: String
     val eraseAllDataConfirm: String
@@ -145,8 +155,9 @@ interface Strings {
     val cancel: String
     val close: String
     val save: String
-    val settingsFooter: String
-    val aboutBody: String
+    /** [version] is supplied by the platform from the build (never hardcoded here). */
+    fun settingsFooter(version: String): String
+    fun aboutBody(version: String): String
 
     // --- Share card (S18) ---
     val shareCardTitle: String
@@ -308,6 +319,10 @@ object VietnameseStrings : Strings {
     override val streakNoPenalty = "Mất chuỗi ngày không làm bạn mất XP hay cấp độ."
 
     override val quotesTitle = "Cảm hứng mỗi ngày"
+    override val quotesFilterAll = "Tất cả"
+    override val quotesFilterFavorites = "Đã thích"
+    override val quotesFavoritesEmptyTitle = "Chưa có câu nào được lưu"
+    override val quotesFavoritesEmptyBody = "Chạm vào trái tim để lưu những câu bạn muốn đọc lại."
 
     override val settingsTitle = "Cài đặt"
     override val sectionAppearance = "Giao diện"
@@ -321,6 +336,17 @@ object VietnameseStrings : Strings {
     override val exportData = "Xuất dữ liệu (JSON)"
     override val exportFailed =
         "Không tạo được tệp sao lưu. Hãy kiểm tra dung lượng trống rồi thử lại."
+    override val importData = "Nhập dữ liệu (JSON)"
+    override val importConfirmTitle = "Thay thế dữ liệu hiện tại?"
+    override fun importConfirmBody(completed: Int, level: Int) =
+        "Bản sao lưu này có $completed thử thách đã hoàn thành, cấp $level. " +
+            "Toàn bộ lịch sử, streak, cấp độ và cài đặt trên máy này sẽ được thay bằng bản sao lưu. " +
+            "Không thể hoàn tác."
+    override val importReplace = "Thay thế"
+    override val importFailed =
+        "Không nhập được tệp này. Tệp có thể bị hỏng, không phải bản sao lưu của 1% HUMAN, " +
+            "hoặc được tạo từ phiên bản mới hơn. Dữ liệu của bạn chưa bị thay đổi."
+    override val importSucceeded = "Đã khôi phục dữ liệu từ bản sao lưu."
     override val about = "Giới thiệu"
     override val eraseAllData = "Xóa tất cả dữ liệu"
     override val eraseAllDataConfirm = "Xóa tất cả dữ liệu?"
@@ -330,9 +356,9 @@ object VietnameseStrings : Strings {
     override val cancel = "Hủy"
     override val close = "Đóng"
     override val save = "Lưu"
-    override val settingsFooter =
-        "1% HUMAN · phiên bản 1.0\nDữ liệu của bạn được lưu an toàn trên thiết bị."
-    override val aboutBody = "Phiên bản 1.0\n\n" +
+    override fun settingsFooter(version: String) =
+        "1% HUMAN · phiên bản $version\nDữ liệu của bạn được lưu an toàn trên thiết bị."
+    override fun aboutBody(version: String) = "Phiên bản $version\n\n" +
         "Mỗi ngày một điều nhỏ. Một phiên bản tốt hơn.\n\n" +
         "Ứng dụng hoạt động hoàn toàn offline. Không tài khoản, " +
         "không thu thập vị trí, không gửi dữ liệu lên máy chủ."
@@ -489,6 +515,10 @@ object EnglishStrings : Strings {
     override val streakNoPenalty = "Losing a streak never costs you XP or levels."
 
     override val quotesTitle = "Daily inspiration"
+    override val quotesFilterAll = "All"
+    override val quotesFilterFavorites = "Favorites"
+    override val quotesFavoritesEmptyTitle = "No favorites yet"
+    override val quotesFavoritesEmptyBody = "Tap the heart to keep the quotes you want to come back to."
 
     override val settingsTitle = "Settings"
     override val sectionAppearance = "Appearance"
@@ -502,6 +532,18 @@ object EnglishStrings : Strings {
     override val exportData = "Export data (JSON)"
     override val exportFailed =
         "Couldn't create the backup file. Check your free storage and try again."
+    override val importData = "Import data (JSON)"
+    override val importConfirmTitle = "Replace your current data?"
+    override fun importConfirmBody(completed: Int, level: Int): String {
+        val challenges = if (completed == 1) "1 completed challenge" else "$completed completed challenges"
+        return "This backup has $challenges, level $level. Your history, streak, level and " +
+            "settings on this device will be replaced by it. This can't be undone."
+    }
+    override val importReplace = "Replace"
+    override val importFailed =
+        "Couldn't import this file. It may be damaged, not a 1% HUMAN backup, or made by a " +
+            "newer version. Your data hasn't been changed."
+    override val importSucceeded = "Your data has been restored from the backup."
     override val about = "About"
     override val eraseAllData = "Erase all data"
     override val eraseAllDataConfirm = "Erase all data?"
@@ -511,9 +553,9 @@ object EnglishStrings : Strings {
     override val cancel = "Cancel"
     override val close = "Close"
     override val save = "Save"
-    override val settingsFooter =
-        "1% HUMAN · version 1.0\nYour data is stored safely on this device."
-    override val aboutBody = "Version 1.0\n\n" +
+    override fun settingsFooter(version: String) =
+        "1% HUMAN · version $version\nYour data is stored safely on this device."
+    override fun aboutBody(version: String) = "Version $version\n\n" +
         "One small thing a day. A slightly better version of you.\n\n" +
         "The app works entirely offline. No account, " +
         "no location tracking, nothing sent to a server."

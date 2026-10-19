@@ -43,6 +43,7 @@ enum class OddlyIcon {
     Heart,
     Globe,
     Download,
+    Upload,
     Trash,
     Info,
     Palette,
@@ -220,6 +221,12 @@ private fun DrawScope.drawOddlyIcon(icon: OddlyIcon, s: Float, tint: Color, stro
         OddlyIcon.Download -> {
             line(0.5f, 0.18f, 0.5f, 0.6f)
             poly(0.32f to 0.44f, 0.5f to 0.62f, 0.68f to 0.44f)
+            line(0.22f, 0.78f, 0.78f, 0.78f)
+        }
+
+        OddlyIcon.Upload -> {
+            line(0.5f, 0.62f, 0.5f, 0.2f)
+            poly(0.32f to 0.36f, 0.5f to 0.18f, 0.68f to 0.36f)
             line(0.22f, 0.78f, 0.78f, 0.78f)
         }
 

@@ -51,13 +51,15 @@ internal object ShareImageExport {
     }.getOrNull()
 
     /**
-     * Composites the captured card onto the app background.
+     * Composites the captured card onto the card's own background.
      *
      * A captured layer keeps whatever translucency the composition had, and the
      * card's rounded corners are transparent. Shared as-is the image renders
      * against whatever the receiving app puts behind it — white, in most chat
      * apps — which washes the whole card out. Flattening first makes what the
-     * recipient sees identical to what the sender previewed.
+     * recipient sees identical to what the sender previewed. The card is dark
+     * in every app theme, so [OddlyColors.Background] is the card's colour, not
+     * the app's.
      */
     private fun flatten(source: Bitmap): Bitmap {
         // `toImageBitmap()` can hand back a hardware-backed bitmap, which a

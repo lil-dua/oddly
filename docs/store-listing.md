@@ -14,7 +14,8 @@ Placeholders in `[SQUARE BRACKETS]` are the only things that still need filling 
 | --- | --- |
 | Android application ID | `dev.lildua.oddly` |
 | iOS bundle identifier | `dev.lildua.oddly` |
-| Version | 1.0 (Android `versionCode` 1, iOS `CURRENT_PROJECT_VERSION` 1) |
+| Version | See `iosApp/Configuration/Version.xcconfig` (currently `1.0`, build `1`) |
+| Minimum OS | Android 7.0 (API 24), iOS 17.0 |
 | Default / primary language | Vietnamese (`vi-VN`) |
 | Additional language | English (`en-US`) |
 | Devices | Phone only. iOS ships as iPhone-only; the layout is not designed for iPad. |
@@ -70,7 +71,7 @@ LỜI NHẮC ĐÚNG GIỜ CỦA BẠN
 Đặt giờ nhắc theo nhịp sống của bạn, không phải giờ mặc định của ai khác. Tắt bất cứ lúc nào.
 
 HOÀN TOÀN OFFLINE
-Không tài khoản. Không đăng nhập. Không máy chủ. Ứng dụng thậm chí không xin quyền truy cập Internet. Mọi thứ bạn làm đều nằm trên máy bạn, và bạn có thể xuất ra tệp JSON hoặc xóa sạch bất cứ lúc nào.
+Không tài khoản. Không đăng nhập. Không máy chủ. Ứng dụng thậm chí không xin quyền truy cập Internet. Mọi thứ bạn làm đều nằm trên máy bạn, và bạn có thể xuất ra tệp JSON, nhập lại khi đổi máy, hoặc xóa sạch bất cứ lúc nào.
 
 MIỄN PHÍ, KHÔNG QUẢNG CÁO
 Không quảng cáo, không mua trong ứng dụng, không thu thập dữ liệu để bán.
@@ -110,7 +111,7 @@ A REMINDER AT YOUR HOUR
 Set the reminder to your own rhythm, not somebody's default. Turn it off any time.
 
 COMPLETELY OFFLINE
-No account. No sign-in. No server. The app doesn't even ask for Internet access. Everything stays on your device, and you can export it as JSON or erase all of it whenever you like.
+No account. No sign-in. No server. The app doesn't even ask for Internet access. Everything stays on your device, and you can export it as JSON, import it again on a new phone, or erase all of it whenever you like.
 
 FREE, NO ADS
 No ads, no in-app purchases, no data harvested to sell.
@@ -242,7 +243,8 @@ reminder at the time set in Settings. Declining it does not block any
 feature.
 
 "Export data (JSON)" in Settings writes the local save file and opens the
-system share sheet. Nothing is uploaded anywhere.
+system share sheet. Nothing is uploaded anywhere. "Import data (JSON)" only
+reads the one file the user picks, on the device; it adds no permission.
 ```
 
 ### Screenshots — 6.9" iPhone, 1290 × 2796 or 1320 × 2868
@@ -302,7 +304,9 @@ willing to publish — a store listing's contact email is visible to everyone.
 
 ---
 
-## 6. Release notes for 1.0
+## 6. Release notes
+
+### 1.0
 
 **vi**
 
@@ -312,6 +316,7 @@ Phiên bản đầu tiên của 1% HUMAN.
 • Một thử thách mới mỗi ngày, sáu lĩnh vực của cuộc sống
 • Chuỗi ngày, cấp độ và lịch hành trình
 • Ảnh chia sẻ thành tích
+• Xuất và nhập dữ liệu (JSON) để sao lưu
 • Lời nhắc hằng ngày vào giờ bạn chọn
 • Tiếng Việt và English
 • Hoàn toàn offline — không tài khoản, không quảng cáo
@@ -325,6 +330,7 @@ The first release of 1% HUMAN.
 • A new challenge every day across six areas of life
 • Streaks, levels and a calendar of your journey
 • Shareable achievement cards
+• Export and import your data (JSON) as a backup
 • A daily reminder at the hour you choose
 • Vietnamese and English
 • Completely offline — no account, no ads

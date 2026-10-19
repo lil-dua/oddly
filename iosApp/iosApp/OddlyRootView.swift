@@ -79,7 +79,7 @@ struct OddlyRootView: View {
 }
 
 /// What the notification schedule depends on: the reminder settings, the local
-/// day and whether today is done.
+/// day, whether today is done and how many completions there are.
 ///
 /// `AppSettings` is a Kotlin class without Swift `Hashable`, and `task(id:)`
 /// needs a value it can compare — this narrows it to exactly what matters.
@@ -91,6 +91,8 @@ private struct ReminderScheduleKey: Equatable {
     let sound: Bool
     let today: Int
     let completedToday: Bool
+    /// An import on the same day can change the streak the reminder copy quotes.
+    let completionCount: Int
 
     init(_ state: OddlyAppState) {
         let settings = state.settings
@@ -101,6 +103,7 @@ private struct ReminderScheduleKey: Equatable {
         sound = settings.soundEnabled
         today = state.today.epochDays
         completedToday = state.completedToday
+        completionCount = state.completions.count
     }
 }
 
@@ -110,6 +113,7 @@ private struct OnboardingFlow: View {
     let onFinish: () -> Void
 
     @State private var path: [OnboardingStep] = []
+    @State private var feedback = FeedbackTrigger()
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -123,7 +127,10 @@ private struct OnboardingFlow: View {
                 case .chooseInterest:
                     ChooseInterestScreen(
                         selected: state.interests,
-                        onToggle: { state.toggleInterest($0) },
+                        onToggle: {
+                            state.toggleInterest($0)
+                            feedback.fire(FeedbackRules.shared.selection(settings: state.settings))
+                        },
                         onContinue: { path.append(.notificationPermission) }
                     )
                     .toolbar(.hidden, for: .navigationBar)
@@ -154,5 +161,6 @@ private struct OnboardingFlow: View {
             }
             .enableSwipeBack()
         }
+        .oddlyFeedback(feedback)
     }
 }

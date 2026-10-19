@@ -30,6 +30,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LifecycleStartEffect
 import dev.lildua.oddly.core.text.Strings
+import dev.lildua.oddly.domain.usecase.FeedbackRules
 import dev.lildua.oddly.notifications.ReminderScheduler
 import dev.lildua.oddly.notifications.rememberNotificationPermission
 import dev.lildua.oddly.data.seed.ChallengeSeed
@@ -51,15 +52,16 @@ import dev.lildua.oddly.ui.screens.journey.StreakScreen
 import dev.lildua.oddly.ui.screens.onboarding.ChooseInterestScreen
 import dev.lildua.oddly.ui.screens.onboarding.NotificationPermissionScreen
 import dev.lildua.oddly.ui.screens.onboarding.OnboardingScreen
-import dev.lildua.oddly.ui.screens.onboarding.SplashScreen
 import dev.lildua.oddly.ui.screens.quotes.QuotesScreen
 import dev.lildua.oddly.ui.screens.settings.SettingsScreen
 import dev.lildua.oddly.ui.screens.share.ShareCardScreen
 import dev.lildua.oddly.ui.screens.statistics.StatisticsScreen
+import dev.lildua.oddly.ui.feedback.rememberOddlyFeedback
 import dev.lildua.oddly.ui.state.rememberOddlyAppState
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
+import dev.lildua.oddly.ui.theme.SystemBarsEffect
 
 /**
  * Root composable for the Android app.
@@ -71,6 +73,7 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
 @Composable
 fun OddlyApp() {
     val state = rememberOddlyAppState()
+    val feedback = rememberOddlyFeedback()
     val context = LocalContext.current
     val notifications = rememberNotificationPermission()
 
@@ -117,7 +120,14 @@ fun OddlyApp() {
 
     CompositionLocalProvider(LocalStrings provides Strings.of(state.settings.language)) {
         OddlyTheme(themeMode = state.settings.themeMode) {
-            val navigator = rememberNavigator(Destination.Splash)
+            SystemBarsEffect(isDark = OddlyTheme.palette.isDark)
+
+            // Spec §S01: onboarding is a first-launch event, not something a
+            // returning user walks through every morning. The system splash
+            // covers the load, so the app opens straight onto its first screen.
+            val navigator = rememberNavigator(
+                if (state.hasCompletedOnboarding) TabDestination.HOME else Destination.Onboarding,
+            )
             val current = navigator.current
 
             // A new day sends everyone back to Home: the screens above it were
@@ -127,8 +137,7 @@ fun OddlyApp() {
                 if (state.today == shownDay) return@LaunchedEffect
                 shownDay = state.today
                 val destination = navigator.current
-                val inOnboarding = destination == Destination.Splash ||
-                    destination == Destination.Onboarding ||
+                val inOnboarding = destination == Destination.Onboarding ||
                     destination == Destination.ChooseInterest ||
                     destination == Destination.NotificationPermission
                 if (!inOnboarding) navigator.resetTo(TabDestination.HOME)
@@ -156,24 +165,6 @@ fun OddlyApp() {
 
                             // --- Onboarding ---
 
-                            Destination.Splash -> SplashScreen(
-                                onFinished = {
-                                    // A day change during Splash is not news:
-                                    // Home was never shown.
-                                    state.clearDayChangeNotice()
-                                    // Spec §S01: onboarding is a first-launch
-                                    // event, not something a returning user
-                                    // walks through every morning.
-                                    navigator.resetTo(
-                                        if (state.hasCompletedOnboarding) {
-                                            TabDestination.HOME
-                                        } else {
-                                            Destination.Onboarding
-                                        },
-                                    )
-                                },
-                            )
-
                             Destination.Onboarding -> OnboardingScreen(
                                 onStart = { navigator.push(Destination.ChooseInterest) },
                                 onSkip = {
@@ -184,7 +175,10 @@ fun OddlyApp() {
 
                             Destination.ChooseInterest -> ChooseInterestScreen(
                                 selected = state.interests,
-                                onToggle = state::toggleInterest,
+                                onToggle = {
+                                    state.toggleInterest(it)
+                                    feedback.play(FeedbackRules.selection(state.settings))
+                                },
                                 onContinue = { navigator.push(Destination.NotificationPermission) },
                             )
 
@@ -252,6 +246,9 @@ fun OddlyApp() {
                                         // Refused (e.g. midnight passed): no reward screen;
                                         // the day-change reset above takes over.
                                         if (state.complete(challenge)) {
+                                            // Here, not in the reward screen's effect: that screen is
+                                            // rebuilt on Back from ShareCard and would replay it.
+                                            feedback.play(FeedbackRules.reward(state.lastReward, state.settings))
                                             navigator.push(Destination.ChallengeComplete(challenge.id))
                                         }
                                     },
@@ -317,6 +314,7 @@ fun OddlyApp() {
                                     val day = state.today
                                     state.reroll(category)
                                     if (state.today != day) return@ChooseCategoryScreen
+                                    feedback.play(FeedbackRules.selection(state.settings))
                                     navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                 },
                             )

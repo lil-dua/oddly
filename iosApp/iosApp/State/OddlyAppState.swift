@@ -36,6 +36,9 @@ final class OddlyAppState {
 
     private(set) var hasCompletedOnboarding: Bool
 
+    /// Ids of hearted quotes; edited only through `toggleFavorite` and `resetAllData`.
+    private(set) var favoriteQuoteIds: Set<String>
+
     /// XP and Humanity gained by the most recent completion, for the reward screen.
     private(set) var lastReward: Reward?
 
@@ -74,6 +77,7 @@ final class OddlyAppState {
         self.todayChallenge = resolution.challenge
         self.skippedCount = Int(resolution.state.skippedCount)
         self.hasCompletedOnboarding = resolution.state.hasCompletedOnboarding
+        self.favoriteQuoteIds = resolution.state.favoriteQuoteIds
         self.dailyChallengeDate = resolution.state.dailyChallenge?.date
         self.swapsUsed = Int(resolution.state.dailyChallenge?.swapsUsed ?? 0)
     }
@@ -115,6 +119,13 @@ final class OddlyAppState {
     var quoteOfTheDay: Quote {
         QuoteSeed.shared.forDayIndex(dayIndex: today.toEpochDays())
     }
+
+    /// Hearted quotes in seed order (see `QuoteFavorites.favorites`).
+    var favoriteQuotes: [Quote] {
+        QuoteFavorites.shared.favorites(ids: favoriteQuoteIds, library: QuoteSeed.shared.all)
+    }
+
+    func isFavorite(_ quoteId: String) -> Bool { favoriteQuoteIds.contains(quoteId) }
 
     // MARK: - Lookups
 
@@ -256,6 +267,15 @@ final class OddlyAppState {
         return true
     }
 
+    func toggleFavorite(_ quoteId: String) {
+        favoriteQuoteIds = QuoteFavorites.shared.toggle(
+            state: currentState(),
+            quoteId: quoteId,
+            library: QuoteSeed.shared.all
+        ).favoriteQuoteIds
+        persist()
+    }
+
     func toggleInterest(_ category: ChallengeCategory) {
         if interests.contains(category) {
             interests.remove(category)
@@ -298,12 +318,48 @@ final class OddlyAppState {
         profile = profile.with(level: 1, xpInLevel: 0)
         skippedCount = 0
         swapsUsed = 0
+        favoriteQuoteIds = []
         lastReward = nil
         persist()
     }
 
     /// The saved document, for the export row in Settings (spec §S22).
     func exportJson() -> String { repository.exportJson() }
+
+    /// Decodes a picked file without touching anything, for the confirm alert.
+    func readBackup(_ raw: String) -> PersistedState? { repository.readBackup(raw: raw) }
+
+    /// Replaces everything on the device with the backup in `raw`; false and
+    /// nothing changed if it is not a readable backup.
+    ///
+    /// `absorb` is not enough: it deliberately skips settings, interests,
+    /// favorites and onboarding, but a restore must replace those too. Every
+    /// field of `PersistedState` is loaded below. `settings` goes last because
+    /// its `didSet` persists: assigned earlier it would write a half-old,
+    /// half-restored state.
+    @discardableResult
+    func importBackup(_ raw: String) -> Bool {
+        guard let imported = repository.importJson(raw: raw) else { return false }
+        let date = Today.shared.local()
+        let resolution = OddlyRepository.companion.restoreFromBackup(
+            imported: imported,
+            today: date,
+            random: KotlinRandom.Default.shared
+        )
+        let state = resolution.state
+
+        today = date
+        absorb(state)
+        interests = state.profile.interests
+        hasCompletedOnboarding = state.hasCompletedOnboarding
+        favoriteQuoteIds = state.favoriteQuoteIds
+        todayChallenge = resolution.challenge
+        lastReward = nil
+        dayChangeNotice = nil
+        settings = state.settings
+        persist()
+        return true
+    }
 
     private func currentState() -> PersistedState {
         let daily = dailyChallengeDate.map {
@@ -316,12 +372,14 @@ final class OddlyAppState {
             completions: completions,
             dailyChallenge: daily,
             skippedCount: Int32(skippedCount),
-            hasCompletedOnboarding: hasCompletedOnboarding
+            hasCompletedOnboarding: hasCompletedOnboarding,
+            // Left out, every persist() would write an empty set and wipe the favorites.
+            favoriteQuoteIds: favoriteQuoteIds
         )
     }
 
-    /// Takes back the parts of `state` a shared rule may have changed. Interests
-    /// and settings are only ever edited here, so they are left alone.
+    /// Takes back the parts of `state` a shared rule may have changed. Interests,
+    /// settings and favorites are only ever edited here, so they are left alone.
     private func absorb(_ state: PersistedState) {
         completions = state.completions
         profile = state.profile

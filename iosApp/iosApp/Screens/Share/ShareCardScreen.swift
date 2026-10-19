@@ -64,7 +64,10 @@ struct ShareCardScreen: View {
                         }
                     }
 
+                    // The card is dark art, so it reads the dark palette even
+                    // when the rest of the screen is in the light theme.
                     ShareCardPreview(state: state, challenge: challenge, ratio: layout.ratio)
+                        .environment(\.palette, .dark)
                         .padding(.top, 20)
 
                     // The system share sheet is also where "Save Image" lives on
@@ -141,14 +144,16 @@ struct ShareCardScreen: View {
     private func renderCard() {
         let width: CGFloat = 360
         // The card's rounded corners are transparent and its fill is layered,
-        // so it is composited onto the app background before capture — without
-        // that the receiving app's backdrop shows through and washes it out.
+        // so it is composited onto the card's own background (always dark)
+        // before capture — without that the receiving app's backdrop shows
+        // through and washes it out. The dark palette is pinned for the same
+        // reason: the card art is dark whatever theme the app is in.
         let card = ZStack {
             OddlyColors.background
             ShareCardPreview(state: state, challenge: challenge, ratio: layout.ratio)
         }
         .frame(width: width, height: width / layout.ratio)
-        .environment(\.palette, palette)
+        .environment(\.palette, .dark)
 
         let renderer = ImageRenderer(content: card)
         renderer.scale = 3

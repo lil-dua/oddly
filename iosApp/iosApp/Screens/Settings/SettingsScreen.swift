@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 import SharedLogic
 
 /// S15 — configuration and local-data controls. Reset is confirmation-gated per
@@ -18,7 +19,21 @@ struct SettingsScreen: View {
     @State private var showResetDialog = false
     @State private var exportFailed = false
     @State private var showAboutDialog = false
+    @State private var showImporter = false
+    @State private var pendingImport: PendingImport?
+    @State private var showImportConfirm = false
+    @State private var importNotice: ImportNotice?
     @State private var sheet: SettingsSheet?
+    @State private var feedback = FeedbackTrigger()
+
+    /// A decoded file waiting for the user to confirm replacing their data.
+    private struct PendingImport {
+        let raw: String
+        let completed: Int
+        let level: Int
+    }
+
+    private enum ImportNotice { case failed, succeeded }
 
     private enum SettingsSheet: String, Identifiable {
         case theme, language, reminderTime
@@ -83,8 +98,11 @@ struct SettingsScreen: View {
                     SettingsRow(icon: .volume, title: strings.soundAndHaptics, showChevron: false) {
                         OddlyToggle(isOn: Binding(
                             get: { state.settings.soundEnabled },
+                            // One switch for in-app sound/haptics and the reminder's sound
+                            // (ReminderScheduler reads soundEnabled).
                             set: {
                                 state.settings = state.settings.with(soundEnabled: $0, hapticsEnabled: $0)
+                                if $0 { feedback.fire(FeedbackRules.shared.preview(settings: state.settings)) }
                             }
                         ))
                     }
@@ -119,6 +137,11 @@ struct SettingsScreen: View {
 
                 SettingsGroup {
                     SettingsRow(icon: .download, title: strings.exportData, action: { exportBackup() })
+                    SettingsRow(icon: .upload, title: strings.importData, action: {
+                        importNotice = nil
+                        exportFailed = false
+                        showImporter = true
+                    })
                     SettingsRow(icon: .info, title: strings.about, action: { showAboutDialog = true })
                 }
 
@@ -135,6 +158,20 @@ struct SettingsScreen: View {
                         .padding(.top, 10)
                 }
 
+                if let notice = importNotice {
+                    let color = notice == .succeeded ? OddlyColors.success : OddlyColors.warning
+                    Text(notice == .succeeded ? strings.importSucceeded : strings.importFailed)
+                        .font(OddlyFont.bodySmall)
+                        .foregroundStyle(color)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(
+                            color.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .padding(.top, 10)
+                }
+
                 SettingsGroup {
                     SettingsRow(
                         icon: .trash,
@@ -146,7 +183,7 @@ struct SettingsScreen: View {
                 }
                 .padding(.top, 20)
 
-                Text(strings.settingsFooter)
+                Text(strings.settingsFooter(version: AppVersion.marketing))
                     .font(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .multilineTextAlignment(.center)
@@ -158,11 +195,31 @@ struct SettingsScreen: View {
         }
         .background(palette.background)
         .statusBarScrim(palette.background)
+        .oddlyFeedback(feedback)
         .task { notificationsAllowed = await ReminderScheduler.isAuthorized() }
         .sheet(item: $sheet) { which in
             sheetContent(for: which)
                 .oddlyPalette(palette)
                 .environment(\.strings, strings)
+        }
+        .fileImporter(
+            isPresented: $showImporter,
+            allowedContentTypes: [.json, .plainText]
+        ) { result in
+            handleImportPick(result)
+        }
+        .alert(strings.importConfirmTitle, isPresented: $showImportConfirm) {
+            Button(strings.cancel, role: .cancel) { pendingImport = nil }
+            Button(strings.importReplace, role: .destructive) {
+                if let pending = pendingImport {
+                    importNotice = state.importBackup(pending.raw) ? .succeeded : .failed
+                }
+                pendingImport = nil
+            }
+        } message: {
+            if let pending = pendingImport {
+                Text(strings.importConfirmBody(completed: Int32(pending.completed), level: Int32(pending.level)))
+            }
         }
         .alert(strings.eraseAllDataConfirm, isPresented: $showResetDialog) {
             Button(strings.cancel, role: .cancel) {}
@@ -173,7 +230,7 @@ struct SettingsScreen: View {
         .alert("1% HUMAN", isPresented: $showAboutDialog) {
             Button(strings.close, role: .cancel) {}
         } message: {
-            Text(strings.aboutBody)
+            Text(strings.aboutBody(version: AppVersion.marketing))
         }
     }
 
@@ -220,6 +277,7 @@ struct SettingsScreen: View {
     /// (spec §S22). The exported file is exactly what the app reads back on
     /// launch, so there is no separate backup format to keep in step.
     private func exportBackup() {
+        importNotice = nil
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("one-percent-human-backup.json")
         do {
@@ -230,6 +288,43 @@ struct SettingsScreen: View {
         }
         exportFailed = false
         present(activityItems: [url])
+    }
+
+    /// Reads and decodes the picked file, then asks before replacing anything.
+    /// Cancelling the picker is a `.failure`, but not one worth reporting.
+    private func handleImportPick(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else { return }
+        guard
+            let raw = readBackupText(at: url),
+            let decoded = state.readBackup(raw)
+        else {
+            importNotice = .failed
+            return
+        }
+        pendingImport = PendingImport(
+            raw: raw,
+            completed: decoded.completions.count,
+            level: Int(decoded.profile.level)
+        )
+        // An alert raised while the picker is still dismissing is dropped, so
+        // wait a beat for the sheet to finish closing.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            showImportConfirm = true
+        }
+    }
+
+    private func readBackupText(at url: URL) -> String? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let limit = Int(OddlyRepository.companion.MAX_BACKUP_BYTES)
+        if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > limit {
+            return nil
+        }
+        // Some file providers report no size, so also cap the bytes actually read.
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: limit + 1), data.count <= limit else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     /// UIKit's share sheet: `ShareLink` needs its item at construction, and this

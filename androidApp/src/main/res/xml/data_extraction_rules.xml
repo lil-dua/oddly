@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+. Only the two preference files hold app data: "oddly" (the saved
+     document) and "reminder" (the alarm mirror). Once an <include> exists
+     everything else, such as the export cache, is left out automatically. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="oddly.xml" />
+        <include domain="sharedpref" path="reminder.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="oddly.xml" />
+        <include domain="sharedpref" path="reminder.xml" />
+    </device-transfer>
+</data-extraction-rules>

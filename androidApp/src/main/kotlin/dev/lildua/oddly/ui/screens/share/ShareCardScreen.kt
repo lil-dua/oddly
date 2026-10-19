@@ -213,7 +213,9 @@ private fun SharePreview(
     challenge: LocalizedChallenge?,
     ratio: Float,
 ) {
-    val palette = OddlyTheme.palette
+    // The card is dark art in every theme (and is exported as an image), so its
+    // text uses the dark palette rather than whatever the app is showing.
+    val palette = OddlyTheme.darkPalette
     val strings = LocalStrings.current
 
     Box(

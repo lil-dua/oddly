@@ -11,7 +11,6 @@ import dev.lildua.oddly.core.text.Strings
 sealed interface Destination {
 
     // --- Onboarding ---
-    data object Splash : Destination
     data object Onboarding : Destination
     data object ChooseInterest : Destination
     data object NotificationPermission : Destination

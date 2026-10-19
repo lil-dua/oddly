@@ -112,11 +112,7 @@ fun OddlyTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit,
 ) {
-    val dark = when (themeMode) {
-        ThemeMode.DARK -> true
-        ThemeMode.LIGHT -> false
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-    }
+    val dark = themeMode.isDark(systemIsDark = isSystemInDarkTheme())
 
     CompositionLocalProvider(LocalOddlyPalette provides if (dark) DarkPalette else LightPalette) {
         MaterialTheme(
@@ -132,4 +128,7 @@ fun OddlyTheme(
 object OddlyTheme {
     val palette: OddlyPalette
         @Composable get() = LocalOddlyPalette.current
+
+    /** For surfaces that are dark art in every theme, such as the share card. */
+    val darkPalette: OddlyPalette get() = DarkPalette
 }

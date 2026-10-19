@@ -24,6 +24,7 @@ enum OddlyIcon {
     case heart
     case globe
     case download
+    case upload
     case trash
     case info
     case palette
@@ -230,6 +231,11 @@ struct OddlyIconView: View {
         case .download:
             line(0.5, 0.18, 0.5, 0.6)
             poly([(0.32, 0.44), (0.5, 0.62), (0.68, 0.44)])
+            line(0.22, 0.78, 0.78, 0.78)
+
+        case .upload:
+            line(0.5, 0.62, 0.5, 0.2)
+            poly([(0.32, 0.36), (0.5, 0.18), (0.68, 0.36)])
             line(0.22, 0.78, 0.78, 0.78)
 
         case .trash:

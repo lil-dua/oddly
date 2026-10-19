@@ -1,0 +1,11 @@
+// Single source of truth for the app version on BOTH platforms.
+//
+// Readers: Xcode via `#include` in Config.xcconfig (-> CFBundleShortVersionString /
+// CFBundleVersion), and androidApp/build.gradle.kts, which parses this file for
+// versionName / versionCode. Keep it to plain KEY=VALUE lines; comments use `//` only.
+//
+// CURRENT_PROJECT_VERSION is the build number: it must increase on every upload to
+// App Store Connect / Play Console, even for the same MARKETING_VERSION. It is shared by
+// both stores. Use `tools/bump-version.sh [x.y]` instead of editing by hand.
+MARKETING_VERSION=1.0
+CURRENT_PROJECT_VERSION=1

@@ -65,6 +65,12 @@ class OddlyRepository(private val store: KeyValueStore) {
         return imported
     }
 
+    /**
+     * Decodes (and migrates) a document without saving it, so the UI can check
+     * a picked file and summarise it before asking the user to overwrite data.
+     */
+    fun readBackup(raw: String): PersistedState? = decode(raw)
+
     private fun decode(raw: String): PersistedState? = runCatching {
         val state = json.decodeFromString(PersistedState.serializer(), raw)
         // Refuse rather than silently load a document from a newer release.
@@ -80,11 +86,35 @@ class OddlyRepository(private val store: KeyValueStore) {
         var s = state
         // v2 added DailyChallenge.swapsUsed; an old pick is treated as unused.
         if (s.version < 2) s = s.copy(version = 2)
+        // v3 added favoriteQuoteIds; older documents have none.
+        if (s.version < 3) s = s.copy(version = 3)
         return s
     }
 
     companion object {
         private const val KEY_STATE = "oddly.state.v1"
+
+        /**
+         * Largest backup the app will read. Years of daily completions stay
+         * well under 1 MB, so 5 MB only turns away a wrong file (a video, a
+         * PDF) before it is loaded whole into memory.
+         */
+        const val MAX_BACKUP_BYTES: Int = 5 * 1024 * 1024
+
+        /**
+         * Settles an imported document for [today]. The pick is kept only if
+         * it is from today and still in the library (with its swaps used);
+         * otherwise a new one is chosen with swaps reset, so an old backup
+         * cannot plant the pick of a day that has passed. Onboarding is forced
+         * done: import is only reachable from Settings, so a file saved
+         * mid-onboarding must not drop the user back into it.
+         */
+        fun restoreFromBackup(
+            imported: PersistedState,
+            today: LocalDate,
+            random: Random = Random.Default,
+        ): DailyChallengeResolution =
+            resolveDailyChallenge(imported.copy(hasCompletedOnboarding = true), today, random)
 
         /** The starting point for a brand-new install: level 1, nothing done. */
         fun freshState(

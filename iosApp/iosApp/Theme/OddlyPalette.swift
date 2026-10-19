@@ -66,12 +66,7 @@ extension EnvironmentValues {
 extension View {
     /// Installs the palette matching [mode] and pins the system chrome to it.
     func oddlyTheme(_ mode: ThemeMode, systemIsDark: Bool) -> some View {
-        let dark: Bool
-        switch mode {
-        case ThemeMode.light: dark = false
-        case ThemeMode.system: dark = systemIsDark
-        default: dark = true
-        }
+        let dark = mode.isDark(systemIsDark: systemIsDark)
         return self.oddlyPalette(dark ? .dark : .light)
     }
 

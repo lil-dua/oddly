@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and below: same two preference files as data_extraction_rules.xml. -->
+<full-backup-content>
+    <include domain="sharedpref" path="oddly.xml" />
+    <include domain="sharedpref" path="reminder.xml" />
+</full-backup-content>

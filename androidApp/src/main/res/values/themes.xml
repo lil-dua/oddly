@@ -1,14 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        Launch theme. The window background matches OddlyColors.Background so
-        cold start shows the app's deep space backdrop rather than a white
-        flash before Compose takes over.
+        Theme after the splash (postSplashScreenTheme) and the application theme.
+        The window background matches OddlyColors.Background so there is no white
+        flash between the splash dismissing and the first Compose frame. System
+        bars are reset to the app's theme by SystemBarsEffect.
     -->
     <style name="Theme.Oddly" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/oddly_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!--
+        Splash shown by core-splashscreen on every API level. Always dark, even
+        for the Light theme: the user's theme is not read yet at this point.
+    -->
+    <style name="Theme.Oddly.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/oddly_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Oddly</item>
     </style>
 </resources>

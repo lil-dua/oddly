@@ -8,6 +8,17 @@ enum class ThemeMode(val title: LocalizedText) {
     SYSTEM(LocalizedText(vi = "Hệ thống", en = "System")),
     LIGHT(LocalizedText(vi = "Sáng", en = "Light")),
     DARK(LocalizedText(vi = "Tối", en = "Dark")),
+    ;
+
+    /**
+     * Whether the UI should be dark. Lives here so Android and iOS resolve
+     * [SYSTEM] identically instead of each keeping its own `when`/`switch`.
+     */
+    fun isDark(systemIsDark: Boolean): Boolean = when (this) {
+        LIGHT -> false
+        DARK -> true
+        SYSTEM -> systemIsDark
+    }
 }
 
 /**

@@ -44,8 +44,8 @@ class ReminderReceiver : BroadcastReceiver() {
             .firstOrNull { it.tag == intent.getStringExtra(ReminderScheduler.EXTRA_LANGUAGE) }
             ?: AppLanguage.VIETNAMESE
 
-        val completions = OddlyRepository(SharedPreferencesStore(context)).load()
-            ?.completions.orEmpty()
+        val saved = OddlyRepository(SharedPreferencesStore(context)).load()
+        val completions = saved?.completions.orEmpty()
         val content = ReminderPlanner.content(
             completions = completions,
             fireDate = Today.local(),
@@ -71,6 +71,8 @@ class ReminderReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(open)
             .setAutoCancel(true)
+            // Same toggle as iOS's content.sound: off means the notification still shows, silently.
+            .setSilent(!(saved?.settings?.soundEnabled ?: true))
             .build()
 
         context.getSystemService<NotificationManager>()?.notify(ReminderScheduler.NOTIFICATION_ID, notification)

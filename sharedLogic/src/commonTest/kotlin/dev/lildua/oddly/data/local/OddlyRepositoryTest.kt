@@ -5,10 +5,12 @@ import dev.lildua.oddly.completionsOn
 import dev.lildua.oddly.daysAgo
 import dev.lildua.oddly.data.seed.ChallengeSeed
 import dev.lildua.oddly.domain.model.AppLanguage
+import dev.lildua.oddly.domain.model.AppSettings
 import dev.lildua.oddly.domain.model.Category
 import dev.lildua.oddly.domain.model.DailyChallenge
 import dev.lildua.oddly.domain.model.ThemeMode
 import dev.lildua.oddly.domain.usecase.DailyChallengeRules
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.random.Random
 import kotlin.test.Test
@@ -139,6 +141,33 @@ class OddlyRepositoryTest {
         assertEquals(original, repository.load())
     }
 
+    /** Pins [V2_DOCUMENT] to what the code reads today; the fixture itself never changes. */
+    @Test
+    fun `a version 2 document loads with every field intact`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V2_DOCUMENT)
+
+        val loaded = assertNotNull(OddlyRepository(store).load())
+
+        assertEquals("local-user", loaded.profile.id)
+        assertEquals(setOf(Category.SELF_GROWTH, Category.CREATIVITY), loaded.profile.interests)
+        assertEquals(4, loaded.profile.level)
+        assertEquals(15, loaded.profile.xpInLevel)
+        assertEquals(ThemeMode.SYSTEM, loaded.settings.themeMode)
+        assertEquals(AppLanguage.VIETNAMESE, loaded.settings.language)
+        assertEquals(true, loaded.settings.reminderEnabled)
+        assertEquals(LocalTime(7, 30), loaded.settings.reminderTime)
+        assertEquals(3, loaded.completions.size)
+        assertEquals("Drew a cat", loaded.completions[0].note)
+        assertNull(loaded.completions[1].note)
+        assertEquals(listOf(daysAgo(3), daysAgo(2), daysAgo(1)), loaded.completions.map { it.date })
+        assertEquals("create_new_playlist", loaded.dailyChallenge?.challengeId)
+        assertEquals(TODAY, loaded.dailyChallenge?.date)
+        assertEquals(2, loaded.dailyChallenge?.swapsUsed)
+        assertEquals(4, loaded.skippedCount)
+        assertTrue(loaded.hasCompletedOnboarding)
+    }
+
     /** Pins [V1_DOCUMENT] to what the code reads today; the fixture itself never changes. */
     @Test
     fun `a version 1 document loads with every field intact`() {
@@ -171,7 +200,6 @@ class OddlyRepositoryTest {
         val loaded = assertNotNull(OddlyRepository(store).load())
 
         assertEquals(PersistedState.CURRENT_VERSION, loaded.version)
-        assertEquals(2, loaded.version)
         assertEquals(0, loaded.dailyChallenge?.swapsUsed)
         assertEquals(5, loaded.skippedCount)
         assertEquals(3, loaded.completions.size)
@@ -184,7 +212,7 @@ class OddlyRepositoryTest {
 
         val imported = assertNotNull(repository.importJson(V1_DOCUMENT))
 
-        assertEquals(2, imported.version)
+        assertEquals(PersistedState.CURRENT_VERSION, imported.version)
         assertEquals(0, imported.dailyChallenge?.swapsUsed)
         assertEquals("health_stairs", imported.dailyChallenge?.challengeId)
         assertEquals(imported, repository.load())
@@ -199,9 +227,9 @@ class OddlyRepositoryTest {
         repository.save(assertNotNull(repository.load()))
 
         val raw = assertNotNull(store.read("oddly.state.v1"))
-        assertTrue(raw.contains("\"version\": 2"), raw)
+        assertTrue(raw.contains("\"version\": 3"), raw)
         assertTrue(raw.contains("\"swapsUsed\""), raw)
-        assertEquals(2, assertNotNull(repository.load()).version)
+        assertEquals(3, assertNotNull(repository.load()).version)
     }
 
     @Test
@@ -218,12 +246,98 @@ class OddlyRepositoryTest {
     }
 
     @Test
-    fun `a version 3 document is still refused`() {
+    fun `a version 2 document loads as the current version`() {
         val store = InMemoryKeyValueStore()
-        store.write("oddly.state.v1", V1_DOCUMENT.replace("\"version\": 1", "\"version\": 3"))
+        store.write("oddly.state.v1", V2_DOCUMENT)
+
+        val loaded = assertNotNull(OddlyRepository(store).load())
+
+        assertEquals(PersistedState.CURRENT_VERSION, loaded.version)
+        assertEquals(3, loaded.version)
+        assertTrue(loaded.favoriteQuoteIds.isEmpty())
+        assertEquals(2, loaded.dailyChallenge?.swapsUsed)
+        assertEquals(3, loaded.completions.size)
+    }
+
+    @Test
+    fun `a version 2 document can be imported`() {
+        val repository = repository()
+
+        val imported = assertNotNull(repository.importJson(V2_DOCUMENT))
+
+        assertEquals(PersistedState.CURRENT_VERSION, imported.version)
+        assertTrue(imported.favoriteQuoteIds.isEmpty())
+        assertEquals(2, imported.dailyChallenge?.swapsUsed)
+        assertEquals(imported, repository.load())
+    }
+
+    @Test
+    fun `a version 1 document migrates with no favorites`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V1_DOCUMENT)
+
+        val loaded = assertNotNull(OddlyRepository(store).load())
+
+        assertTrue(loaded.favoriteQuoteIds.isEmpty())
+        assertEquals(0, loaded.dailyChallenge?.swapsUsed)
+        assertEquals(PersistedState.CURRENT_VERSION, loaded.version)
+    }
+
+    @Test
+    fun `a migrated version 2 document is saved as the current version`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V2_DOCUMENT)
+        val repository = OddlyRepository(store)
+
+        repository.save(assertNotNull(repository.load()))
+
+        val raw = assertNotNull(store.read("oddly.state.v1"))
+        assertTrue(raw.contains("\"version\": 3"), raw)
+        assertTrue(raw.contains("\"favoriteQuoteIds\""), raw)
+        assertEquals(2, assertNotNull(repository.load()).dailyChallenge?.swapsUsed)
+    }
+
+    @Test
+    fun `favorite quotes survive the round trip`() {
+        val repository = repository()
+        val saved = OddlyRepository.freshState(TODAY).copy(
+            favoriteQuoteIds = setOf("q_ziglar_start", "q_tree_time"),
+        )
+
+        repository.save(saved)
+
+        assertEquals(saved, repository.load())
+        assertEquals(saved, repository.importJson(repository.exportJson()))
+        assertTrue(repository.exportJson().contains("q_tree_time"))
+    }
+
+    @Test
+    fun `favorites with ids missing from the seed survive the round trip`() {
+        val repository = repository()
+        val saved = OddlyRepository.freshState(TODAY).copy(favoriteQuoteIds = setOf("q_gone_from_seed"))
+
+        repository.save(saved)
+
+        assertEquals(setOf("q_gone_from_seed"), repository.load()?.favoriteQuoteIds)
+    }
+
+    @Test
+    fun `clearing the repository forgets favorites`() {
+        val repository = repository()
+        repository.save(OddlyRepository.freshState(TODAY).copy(favoriteQuoteIds = setOf("q_tree_time")))
+
+        repository.clear()
+
+        assertNull(repository.load())
+    }
+
+    @Test
+    fun `a version 4 document is still refused`() {
+        val store = InMemoryKeyValueStore()
+        store.write("oddly.state.v1", V1_DOCUMENT.replace("\"version\": 1", "\"version\": 4"))
 
         assertNull(OddlyRepository(store).load())
-        assertNull(repository().importJson(V1_DOCUMENT.replace("\"version\": 1", "\"version\": 3")))
+        assertNull(repository().importJson(V1_DOCUMENT.replace("\"version\": 1", "\"version\": 4")))
     }
 
     /**
@@ -470,5 +584,225 @@ class OddlyRepositoryTest {
 
         assertNotNull(resolution)
         assertEquals(TODAY, resolution.state.dailyChallenge?.date)
+    }
+
+    // MARK: - Reading and restoring a backup
+
+    private val backupSource = OddlyRepository.freshState(daysAgo(30), setOf(Category.HEALTH, Category.CREATIVITY)).copy(
+        profile = OddlyRepository.freshState(daysAgo(30), setOf(Category.HEALTH, Category.CREATIVITY)).profile.copy(
+            level = 4,
+            xpInLevel = 25,
+        ),
+        settings = AppSettings(
+            themeMode = ThemeMode.LIGHT,
+            reminderEnabled = false,
+            reminderTime = LocalTime(7, 30),
+            language = AppLanguage.ENGLISH,
+            soundEnabled = false,
+            hapticsEnabled = false,
+        ),
+        completions = completionsOn(1, 2, 3, 4, 5),
+        skippedCount = 7,
+        hasCompletedOnboarding = true,
+        favoriteQuoteIds = setOf("q1", "q2"),
+    )
+
+    private fun exportOf(state: PersistedState): String {
+        val source = repository()
+        source.save(state)
+        return source.exportJson()
+    }
+
+    @Test
+    fun `reading a backup does not write to the store`() {
+        val store = InMemoryKeyValueStore()
+        val repository = OddlyRepository(store)
+        val current = OddlyRepository.freshState(TODAY).copy(skippedCount = 1)
+        repository.save(current)
+
+        val read = repository.readBackup(exportOf(backupSource))
+
+        assertEquals(backupSource, read)
+        assertEquals(current, repository.load())
+    }
+
+    @Test
+    fun `reading a backup into an empty store leaves it empty`() {
+        val repository = repository()
+
+        assertNotNull(repository.readBackup(exportOf(backupSource)))
+
+        assertNull(repository.load())
+    }
+
+    @Test
+    fun `reading nonsense returns null`() {
+        assertNull(repository().readBackup("not json at all"))
+        assertNull(repository().readBackup(""))
+        assertNull(repository().readBackup("{}"))
+    }
+
+    @Test
+    fun `reading a truncated backup returns null`() {
+        val text = exportOf(backupSource)
+
+        assertNull(repository().readBackup(text.take(text.length / 2)))
+    }
+
+    @Test
+    fun `reading a backup from a newer version returns null`() {
+        val text = V2_DOCUMENT.replace("\"version\": 2", "\"version\": ${PersistedState.CURRENT_VERSION + 1}")
+
+        assertNull(repository().readBackup(text))
+    }
+
+    @Test
+    fun `reading a version 1 backup migrates it`() {
+        val read = assertNotNull(repository().readBackup(V1_DOCUMENT))
+
+        assertEquals(PersistedState.CURRENT_VERSION, read.version)
+        assertTrue(read.favoriteQuoteIds.isEmpty())
+        assertEquals(3, read.completions.size)
+    }
+
+    @Test
+    fun `reading a version 2 backup migrates it`() {
+        val read = assertNotNull(repository().readBackup(V2_DOCUMENT))
+
+        assertEquals(PersistedState.CURRENT_VERSION, read.version)
+        assertTrue(read.favoriteQuoteIds.isEmpty())
+        assertEquals(2, read.dailyChallenge?.swapsUsed)
+    }
+
+    @Test
+    fun `reading a version 1 backup writes nothing`() {
+        val store = InMemoryKeyValueStore()
+
+        OddlyRepository(store).readBackup(V1_DOCUMENT)
+
+        assertNull(store.read("oddly.state.v1"))
+    }
+
+    @Test
+    fun `the backup size limit is five megabytes`() {
+        assertEquals(5 * 1024 * 1024, OddlyRepository.MAX_BACKUP_BYTES)
+    }
+
+    @Test
+    fun `restoring a backup from an earlier day picks today's challenge`() {
+        val old = backupSource.copy(
+            dailyChallenge = DailyChallenge(date = daysAgo(3), challengeId = "health_stairs", swapsUsed = 2),
+        )
+
+        val restored = OddlyRepository.restoreFromBackup(old, TODAY, Random(1)).state
+
+        assertEquals(TODAY, restored.dailyChallenge?.date)
+        assertEquals(0, restored.dailyChallenge?.swapsUsed)
+        assertNotNull(ChallengeSeed.byId(assertNotNull(restored.dailyChallenge).challengeId))
+        assertEquals(old.copy(dailyChallenge = restored.dailyChallenge), restored)
+    }
+
+    @Test
+    fun `restoring a backup from a future day also picks today's challenge`() {
+        val future = backupSource.copy(
+            dailyChallenge = DailyChallenge(date = daysAgo(-5), challengeId = "health_stairs", swapsUsed = 1),
+        )
+
+        val restored = OddlyRepository.restoreFromBackup(future, TODAY, Random(1)).state
+
+        assertEquals(TODAY, restored.dailyChallenge?.date)
+        assertEquals(0, restored.dailyChallenge?.swapsUsed)
+    }
+
+    @Test
+    fun `restoring a backup with no pick picks one for today`() {
+        val restored = OddlyRepository.restoreFromBackup(backupSource.copy(dailyChallenge = null), TODAY, Random(1))
+
+        assertEquals(TODAY, restored.state.dailyChallenge?.date)
+        assertEquals(restored.challenge.id, restored.state.dailyChallenge?.challengeId)
+    }
+
+    @Test
+    fun `restoring a backup from today keeps its pick and swaps`() {
+        val pick = ChallengeSeed.all.first().id
+        val sameDay = backupSource.copy(
+            dailyChallenge = DailyChallenge(date = TODAY, challengeId = pick, swapsUsed = 2),
+        )
+
+        val resolution = OddlyRepository.restoreFromBackup(sameDay, TODAY, Random(1))
+
+        assertEquals(pick, resolution.challenge.id)
+        assertEquals(sameDay, resolution.state)
+        assertEquals(2, resolution.state.dailyChallenge?.swapsUsed)
+    }
+
+    @Test
+    fun `restoring marks onboarding as done`() {
+        val midOnboarding = backupSource.copy(hasCompletedOnboarding = false)
+
+        val restored = OddlyRepository.restoreFromBackup(midOnboarding, TODAY, Random(1)).state
+
+        assertTrue(restored.hasCompletedOnboarding)
+    }
+
+    @Test
+    fun `restoring a backup whose pick left the library picks another`() {
+        val stale = backupSource.copy(
+            dailyChallenge = DailyChallenge(date = TODAY, challengeId = "no_such_challenge", swapsUsed = 2),
+        )
+
+        val restored = OddlyRepository.restoreFromBackup(stale, TODAY, Random(1)).state
+
+        assertNotNull(ChallengeSeed.byId(assertNotNull(restored.dailyChallenge).challengeId))
+        assertEquals(TODAY, restored.dailyChallenge.date)
+    }
+
+    @Test
+    fun `restoring keeps favorites settings interests and history`() {
+        val restored = OddlyRepository.restoreFromBackup(backupSource, TODAY, Random(1)).state
+
+        assertEquals(backupSource.favoriteQuoteIds, restored.favoriteQuoteIds)
+        assertEquals(backupSource.settings, restored.settings)
+        assertEquals(backupSource.profile, restored.profile)
+        assertEquals(backupSource.completions, restored.completions)
+        assertEquals(backupSource.skippedCount, restored.skippedCount)
+    }
+
+    @Test
+    fun `importing then restoring keeps favorites and settings`() {
+        val destination = repository()
+        destination.save(OddlyRepository.freshState(TODAY))
+
+        val imported = assertNotNull(destination.importJson(exportOf(backupSource)))
+        val restored = OddlyRepository.restoreFromBackup(imported, TODAY, Random(1)).state
+
+        assertEquals(backupSource.favoriteQuoteIds, restored.favoriteQuoteIds)
+        assertEquals(backupSource.settings, restored.settings)
+        assertEquals(backupSource.profile.interests, restored.profile.interests)
+        assertEquals(backupSource.completions, restored.completions)
+    }
+
+    @Test
+    fun `a failed import leaves the saved state untouched`() {
+        val repository = repository()
+        val current = OddlyRepository.freshState(TODAY).copy(skippedCount = 3)
+        repository.save(current)
+
+        assertNull(repository.importJson("{}"))
+        assertNull(repository.importJson(V2_DOCUMENT.replace("\"version\": 2", "\"version\": 99")))
+
+        assertEquals(current, repository.load())
+    }
+
+    @Test
+    fun `restoring a version 2 backup from an earlier day resets swaps`() {
+        val v2 = assertNotNull(repository().readBackup(V2_DOCUMENT))
+        val later = LocalDate.fromEpochDays(TODAY.toEpochDays() + 4)
+
+        val restored = OddlyRepository.restoreFromBackup(v2, later, Random(1)).state
+
+        assertEquals(later, restored.dailyChallenge?.date)
+        assertEquals(0, restored.dailyChallenge?.swapsUsed)
+        assertEquals(v2.completions, restored.completions)
     }
 }

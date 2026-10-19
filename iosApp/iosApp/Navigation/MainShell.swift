@@ -15,6 +15,7 @@ struct MainShell: View {
 
     @State private var tab: TabDestination = .home
     @State private var path: [Destination] = []
+    @State private var feedback = FeedbackTrigger()
 
     /// The reward celebration: a modal moment, dismissed rather than popped.
     @State private var celebrating: ChallengeRef?
@@ -45,6 +46,7 @@ struct MainShell: View {
                 .enableSwipeBack()
         }
         .background(palette.background)
+        .oddlyFeedback(feedback)
         // A new day sends everyone back to Home: the screens above it were
         // built for yesterday. This shell only exists in the main phase, so
         // Splash and onboarding are never reset.
@@ -142,6 +144,8 @@ struct MainShell: View {
                     // Refused (e.g. midnight passed): no reward screen; the
                     // day-change reset below takes over.
                     if state.complete(challenge) {
+                        // Here, not in the reward screen's .task, so it plays once per completion.
+                        feedback.fire(FeedbackRules.shared.reward(reward: state.lastReward, settings: state.settings))
                         celebrating = ChallengeRef(challenge)
                     }
                 },
@@ -176,6 +180,7 @@ struct MainShell: View {
                     let day = state.today
                     let next = state.reroll(category: category) ?? state.todayChallenge
                     if state.today != day { return }
+                    feedback.fire(FeedbackRules.shared.selection(settings: state.settings))
                     push(.challengeDetail(challengeId: next.id))
                 }
             )

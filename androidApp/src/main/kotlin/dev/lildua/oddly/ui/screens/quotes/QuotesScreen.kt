@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +32,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.data.seed.QuoteSeed
+import dev.lildua.oddly.domain.model.Quote
 import dev.lildua.oddly.ui.components.GradientButton
+import dev.lildua.oddly.ui.components.OddlyChip
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.OddlyTopBar
 import dev.lildua.oddly.ui.components.StarField
@@ -44,7 +47,9 @@ import dev.lildua.oddly.ui.theme.OddlyTheme
 
 /**
  * S14 — one quote a day, from the bundled offline database. Swiping through the
- * archive and favouriting are P1 niceties already wired up here.
+ * archive is a P1 nicety. Hearts live in [OddlyAppState] so they survive leaving
+ * the screen; the Favorites filter is a snapshot taken when the chip is tapped,
+ * so un-hearting a card does not make it vanish under the reader.
  */
 @Composable
 fun QuotesScreen(
@@ -54,13 +59,15 @@ fun QuotesScreen(
 ) {
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
-    val quotes = QuoteSeed.all
-    val todayIndex = remember { ((state.today.toEpochDays() % quotes.size) + quotes.size) % quotes.size }
+    val allQuotes = QuoteSeed.all
+    val todayIndex = remember { ((state.today.toEpochDays() % allQuotes.size) + allQuotes.size) % allQuotes.size }
+    var showFavorites by remember { mutableStateOf(false) }
+    var favoriteSnapshot by remember { mutableStateOf<List<Quote>>(emptyList()) }
     var index by remember { mutableIntStateOf(todayIndex) }
-    val favorites = remember { mutableStateOf(setOf<String>()) }
 
-    val quote = quotes[index].localized()
-    val isFavorite = quote.id in favorites.value
+    val quotes = if (showFavorites) favoriteSnapshot else allQuotes
+    val quote = quotes.getOrNull(index)?.localized()
+    val isFavorite = quote != null && state.isFavorite(quote.id)
 
     Box(
         Modifier
@@ -88,87 +95,109 @@ fun QuotesScreen(
                     color = palette.textPrimary,
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isFavorite) OddlyColors.Pink.copy(alpha = 0.18f)
-                            else palette.surfaceElevated,
-                        )
-                        .clickableNoRipple {
-                            favorites.value = if (isFavorite) {
-                                favorites.value - quote.id
-                            } else {
-                                favorites.value + quote.id
-                            }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OddlyChip(
+                        text = strings.quotesFilterAll,
+                        accent = OddlyColors.Purple,
+                        selected = !showFavorites,
+                        onClick = {
+                            showFavorites = false
+                            index = todayIndex
                         },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    OddlyIcon(
-                        OddlyIcon.Heart,
-                        size = 20.dp,
-                        tint = if (isFavorite) OddlyColors.Pink else palette.textTertiary,
                     )
-                }
-
-                Spacer(Modifier.weight(1f))
-
-                // Quote card
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    OddlyColors.Purple.copy(alpha = 0.16f),
-                                    palette.surfaceElevated,
-                                ),
-                            ),
-                        )
-                        .padding(28.dp),
-                ) {
-                    Text(
-                        text = "“${quote.text}”",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = palette.textPrimary,
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    Text(
-                        text = "– ${quote.author}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.textSecondary,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.End,
+                    OddlyChip(
+                        text = strings.quotesFilterFavorites,
+                        accent = OddlyColors.Pink,
+                        selected = showFavorites,
+                        onClick = {
+                            favoriteSnapshot = state.favoriteQuotes
+                            showFavorites = true
+                            index = 0
+                        },
                     )
                 }
 
                 Spacer(Modifier.height(20.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    NavArrow(OddlyIcon.ChevronLeft) {
-                        index = (index - 1 + quotes.size) % quotes.size
+                if (quote == null) {
+                    Spacer(Modifier.weight(1f))
+                    QuoteCard {
+                        Text(
+                            text = strings.quotesFavoritesEmptyTitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = palette.textPrimary,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = strings.quotesFavoritesEmptyBody,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = palette.textSecondary,
+                        )
                     }
-                    Spacer(Modifier.size(20.dp))
-                    Text(
-                        text = "${index + 1} / ${quotes.size}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.textTertiary,
-                    )
-                    Spacer(Modifier.size(20.dp))
-                    NavArrow(OddlyIcon.ChevronRight) {
-                        index = (index + 1) % quotes.size
+                    Spacer(Modifier.weight(1f))
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isFavorite) OddlyColors.Pink.copy(alpha = 0.18f)
+                                else palette.surfaceElevated,
+                            )
+                            .clickableNoRipple { state.toggleFavorite(quote.id) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        OddlyIcon(
+                            OddlyIcon.Heart,
+                            size = 20.dp,
+                            tint = if (isFavorite) OddlyColors.Pink else palette.textTertiary,
+                        )
                     }
-                }
 
-                Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.weight(1f))
+
+                    QuoteCard {
+                        Text(
+                            text = "“${quote.text}”",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = palette.textPrimary,
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        Text(
+                            text = "– ${quote.author}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = palette.textSecondary,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                        )
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        NavArrow(OddlyIcon.ChevronLeft) {
+                            index = (index - 1 + quotes.size) % quotes.size
+                        }
+                        Spacer(Modifier.size(20.dp))
+                        Text(
+                            text = "${index + 1} / ${quotes.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.textTertiary,
+                        )
+                        Spacer(Modifier.size(20.dp))
+                        NavArrow(OddlyIcon.ChevronRight) {
+                            index = (index + 1) % quotes.size
+                        }
+                    }
+
+                    Spacer(Modifier.weight(1f))
+                }
 
                 GradientButton(text = strings.share, onClick = onShare, leadingIcon = OddlyIcon.Share)
 
@@ -210,6 +239,26 @@ fun QuotesScreen(
             }
         }
     }
+}
+
+@Composable
+private fun QuoteCard(content: @Composable ColumnScope.() -> Unit) {
+    val palette = OddlyTheme.palette
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        OddlyColors.Purple.copy(alpha = 0.16f),
+                        palette.surfaceElevated,
+                    ),
+                ),
+            )
+            .padding(28.dp),
+        content = content,
+    )
 }
 
 @Composable

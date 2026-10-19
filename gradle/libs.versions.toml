@@ -6,6 +6,8 @@ android-targetSdk = "36"
 androidx-activity = "1.13.0"
 androidx-core = "1.19.0"
 androidx-espresso = "3.7.0"
+# 1.2.0: aar-metadata minCompileSdk 35 / AGP >= 8.6, checked against the pinned toolchain.
+androidx-splashscreen = "1.2.0"
 # 2.9.4 is what Compose BOM 2026.06.01 already pulls in; do not bump on its own.
 androidx-lifecycle = "2.9.4"
 androidx-testExt = "1.3.0"
@@ -24,6 +26,7 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidx-splashscreen" }
 androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }

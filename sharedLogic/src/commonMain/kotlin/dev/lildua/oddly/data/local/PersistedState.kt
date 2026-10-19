@@ -33,8 +33,13 @@ data class PersistedState(
     val skippedCount: Int = 0,
     /** Onboarding runs once; after that the splash goes straight to Home. */
     val hasCompletedOnboarding: Boolean = false,
+    /**
+     * Ids from `QuoteSeed` the user hearted. An id that has left the seed is kept
+     * (the quote may come back) and simply skipped when listing.
+     */
+    val favoriteQuoteIds: Set<String> = emptySet(),
 ) {
     companion object {
-        const val CURRENT_VERSION: Int = 2
+        const val CURRENT_VERSION: Int = 3
     }
 }

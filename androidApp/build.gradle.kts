@@ -30,6 +30,9 @@ dependencies {
     // androidx.core (FileProvider, used by the share export) arrives transitively
     // with Compose. It is not declared explicitly because the catalogue's
     // core-ktx 1.19 needs AGP 9.1 / compileSdk 37 — see the toolchain note.
+    // One splash on every API level (installSplashScreen). Version is checked
+    // against the toolchain pin; it must not drag androidx.core up to 1.19.
+    implementation(libs.androidx.core.splashscreen)
     // LifecycleEventEffect / LifecycleStartEffect let the app notice a new day on
     // resume. State stays a plain holder, not a ViewModel.
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -54,6 +57,32 @@ val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exi
     Properties().apply { it.inputStream().use(::load) }
 }
 
+/**
+ * Version comes from the iOS xcconfig so both platforms share one number. `providers.fileContents`
+ * makes the file a configuration-cache input, so editing it invalidates the cache.
+ */
+val versionFilePath = "iosApp/Configuration/Version.xcconfig"
+val versionValues: Map<String, String> = providers
+    .fileContents(rootProject.layout.projectDirectory.file(versionFilePath))
+    .asText.get()
+    .lineSequence()
+    .map { it.substringBefore("//").trim() }
+    .filter { it.isNotEmpty() && !it.startsWith("#") && '=' in it }
+    .associate { it.substringBefore('=').trim() to it.substringAfter('=').trim() }
+
+fun requireVersionKey(key: String): String =
+    versionValues[key] ?: error("$versionFilePath: missing key $key")
+
+val appVersionName: String = requireVersionKey("MARKETING_VERSION").also {
+    require(Regex("""\d+(\.\d+){1,2}""").matches(it)) {
+        "$versionFilePath: MARKETING_VERSION='$it' must look like 1.0 or 1.0.1"
+    }
+}
+val appVersionCode: Int = requireVersionKey("CURRENT_PROJECT_VERSION").let {
+    it.toIntOrNull()?.takeIf { n -> n in 1..2_100_000_000 }
+        ?: error("$versionFilePath: CURRENT_PROJECT_VERSION='$it' must be an integer in 1..2100000000")
+}
+
 android {
     namespace = "dev.lildua.oddly"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -62,8 +91,8 @@ android {
         applicationId = "dev.lildua.oddly"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     packaging {
@@ -101,5 +130,7 @@ android {
     }
     buildFeatures {
         compose = true
+        // BuildConfig.VERSION_NAME feeds the Settings footer / About text.
+        buildConfig = true
     }
 }

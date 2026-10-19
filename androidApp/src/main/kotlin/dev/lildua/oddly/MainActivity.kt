@@ -8,11 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // The app is dark-first, so pin the system bars to light icons on a
-        // transparent background instead of letting them follow the system.
+        // Must precede super.onCreate. Dark bars match the dark splash and window
+        // background; once Compose is up, SystemBarsEffect re-applies them to
+        // follow the theme the user picked.
+        installSplashScreen()
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),

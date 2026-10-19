@@ -11,7 +11,5 @@ PRODUCT_NAME=Oddly
 // install side by side, and it would ship a bundle id nobody registered.
 PRODUCT_BUNDLE_IDENTIFIER=dev.lildua.oddly
 
-// CURRENT_PROJECT_VERSION is the build number — it must increase with every
-// upload to App Store Connect, even for the same MARKETING_VERSION.
-CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=1.0
+// MARKETING_VERSION and CURRENT_PROJECT_VERSION live in one shared file (Android reads it too).
+#include "Version.xcconfig"

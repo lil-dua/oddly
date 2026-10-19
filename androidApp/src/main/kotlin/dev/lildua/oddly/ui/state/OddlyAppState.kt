@@ -19,6 +19,7 @@ import dev.lildua.oddly.domain.model.Challenge
 import dev.lildua.oddly.domain.model.ChallengeCompletion
 import dev.lildua.oddly.domain.model.DailyChallenge
 import dev.lildua.oddly.domain.model.DayChangeNotice
+import dev.lildua.oddly.domain.model.Quote
 import dev.lildua.oddly.domain.model.Reward
 import dev.lildua.oddly.domain.model.StreakInfo
 import dev.lildua.oddly.domain.model.UserProfile
@@ -27,6 +28,7 @@ import dev.lildua.oddly.domain.usecase.CompletionOutcome
 import dev.lildua.oddly.domain.usecase.CompletionRejection
 import dev.lildua.oddly.domain.usecase.DailyChallengeRules
 import dev.lildua.oddly.domain.usecase.DayActivity
+import dev.lildua.oddly.domain.usecase.QuoteFavorites
 import dev.lildua.oddly.domain.usecase.StreakCalculator
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -92,6 +94,10 @@ class OddlyAppState(
     var hasCompletedOnboarding: Boolean by mutableStateOf(initial.hasCompletedOnboarding)
         private set
 
+    /** Ids of hearted quotes; edited only through [toggleFavorite] and [resetAllData]. */
+    var favoriteQuoteIds: Set<String> by mutableStateOf(initial.favoriteQuoteIds)
+        private set
+
     /** XP and Humanity gained by the most recent completion, for the reward screen. */
     var lastReward: Reward? by mutableStateOf(null)
         private set
@@ -144,6 +150,11 @@ class OddlyAppState(
             .mapNotNull { ChallengeSeed.byId(it.challengeId)?.category }
             .distinct()
             .size
+
+    /** Hearted quotes in seed order (see [QuoteFavorites.favorites]). */
+    val favoriteQuotes: List<Quote> get() = QuoteFavorites.favorites(favoriteQuoteIds)
+
+    fun isFavorite(quoteId: String): Boolean = quoteId in favoriteQuoteIds
 
     fun completionsOn(date: LocalDate): List<ChallengeCompletion> =
         _completions.filter { it.date == date }.sortedByDescending { it.completedAt }
@@ -270,6 +281,11 @@ class OddlyAppState(
         persist()
     }
 
+    fun toggleFavorite(quoteId: String) {
+        favoriteQuoteIds = QuoteFavorites.toggle(currentState(), quoteId).favoriteQuoteIds
+        persist()
+    }
+
     fun completeOnboarding() {
         hasCompletedOnboarding = true
         // A day change during onboarding is not news: Home was never shown.
@@ -298,12 +314,47 @@ class OddlyAppState(
         profile = profile.copy(level = 1, xpInLevel = 0)
         skippedCount = 0
         swapsUsed = 0
+        favoriteQuoteIds = emptySet()
         lastReward = null
         persist()
     }
 
     /** The saved document, for the export row in Settings (spec §S22). */
     fun exportJson(): String = repository.exportJson()
+
+    /** Decodes a picked file without touching anything, for the confirm dialog. */
+    fun readBackup(raw: String): PersistedState? = repository.readBackup(raw)
+
+    /**
+     * Replaces everything on the device with the backup in [raw]; false and
+     * nothing changed if it is not a readable backup.
+     *
+     * [absorb] is not enough here: it deliberately skips settings, interests,
+     * favorites and onboarding (they are edited elsewhere), but a restore has to
+     * replace those too. Every field of [PersistedState] is loaded below, and
+     * [_settings] is assigned directly so the setter's persist() does not write
+     * a half-restored state.
+     */
+    fun importBackup(raw: String): Boolean {
+        val imported = repository.importJson(raw) ?: return false
+        val date = clock().date
+        val nextRandom = Random(date.toEpochDays())
+        val resolution = OddlyRepository.restoreFromBackup(imported, date, nextRandom)
+        val state = resolution.state
+
+        random = nextRandom
+        today = date
+        absorb(state)
+        _settings = state.settings
+        interests = state.profile.interests
+        hasCompletedOnboarding = state.hasCompletedOnboarding
+        favoriteQuoteIds = state.favoriteQuoteIds
+        todayChallenge = resolution.challenge
+        lastReward = null
+        dayChangeNotice = null
+        persist()
+        return true
+    }
 
     private fun currentState() = PersistedState(
         profile = profile.copy(interests = interests),
@@ -314,11 +365,13 @@ class OddlyAppState(
         },
         skippedCount = skippedCount,
         hasCompletedOnboarding = hasCompletedOnboarding,
+        // Left out, every persist() would write an empty set and wipe the favorites.
+        favoriteQuoteIds = favoriteQuoteIds,
     )
 
     /**
-     * Takes back the parts of [state] a shared rule may have changed. Interests
-     * and settings are only ever edited here, so they are left alone.
+     * Takes back the parts of [state] a shared rule may have changed. Interests,
+     * settings and favorites are only ever edited here, so they are left alone.
      */
     private fun absorb(state: PersistedState) {
         _completions.clear()

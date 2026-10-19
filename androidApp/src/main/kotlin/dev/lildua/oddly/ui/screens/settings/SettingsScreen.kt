@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,10 +43,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.BuildConfig
 import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.core.time.DateFormat
+import dev.lildua.oddly.data.local.PersistedState
 import dev.lildua.oddly.domain.model.AppLanguage
 import dev.lildua.oddly.domain.model.ThemeMode
+import dev.lildua.oddly.domain.usecase.FeedbackRules
+import dev.lildua.oddly.ui.feedback.rememberOddlyFeedback
 import dev.lildua.oddly.notifications.rememberNotificationPermission
 import dev.lildua.oddly.ui.components.Astronaut
 import dev.lildua.oddly.ui.components.GradientProgressBar
@@ -55,7 +62,10 @@ import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyTheme
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
+
+private enum class ImportNotice { FAILED, SUCCEEDED }
 
 /**
  * S15 — configuration and local-data controls. Reset is confirmation-gated per
@@ -72,9 +82,30 @@ fun SettingsScreen(state: OddlyAppState) {
     val settings = state.settings
     val notifications = rememberNotificationPermission()
     val context = LocalContext.current
+    val feedback = rememberOddlyFeedback()
 
     var showResetDialog by remember { mutableStateOf(false) }
     var exportFailed by remember { mutableStateOf(false) }
+    // Raw text plus its decoded form, kept until the user confirms or cancels.
+    var pendingImport by remember { mutableStateOf<Pair<String, PersistedState>?>(null) }
+    var importNotice by remember { mutableStateOf<ImportNotice?>(null) }
+    val scope = rememberCoroutineScope()
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        // Null means the picker was dismissed: nothing to report.
+        if (uri != null) {
+            scope.launch {
+                val raw = DataImport.readText(context, uri)
+                val decoded = raw?.let { state.readBackup(it) }
+                if (raw == null || decoded == null) {
+                    importNotice = ImportNotice.FAILED
+                } else {
+                    pendingImport = raw to decoded
+                }
+            }
+        }
+    }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
@@ -193,8 +224,11 @@ fun SettingsScreen(state: OddlyAppState) {
                 trailing = {
                     Switch(
                         checked = settings.soundEnabled,
+                        // One switch for in-app sound/haptics and the reminder's sound
+                        // (ReminderReceiver reads soundEnabled).
                         onCheckedChange = {
                             state.settings = settings.copy(soundEnabled = it, hapticsEnabled = it)
+                            if (it) feedback.play(FeedbackRules.preview(state.settings))
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
@@ -242,8 +276,19 @@ fun SettingsScreen(state: OddlyAppState) {
                 icon = OddlyIcon.Download,
                 title = strings.exportData,
                 onClick = {
+                    importNotice = null
+                    exportFailed = false
                     val intent = DataExport.chooserIntent(context, state.exportJson())
                     if (intent == null) exportFailed = true else context.startActivity(intent)
+                },
+            )
+            SettingsRow(
+                icon = OddlyIcon.Upload,
+                title = strings.importData,
+                onClick = {
+                    importNotice = null
+                    exportFailed = false
+                    importLauncher.launch(DataImport.MIME_TYPES)
                 },
             )
             SettingsRow(
@@ -267,6 +312,21 @@ fun SettingsScreen(state: OddlyAppState) {
             )
         }
 
+        importNotice?.let { notice ->
+            val color = if (notice == ImportNotice.SUCCEEDED) OddlyColors.Success else OddlyColors.Warning
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = if (notice == ImportNotice.SUCCEEDED) strings.importSucceeded else strings.importFailed,
+                style = MaterialTheme.typography.bodySmall,
+                color = color,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(color.copy(alpha = 0.12f))
+                    .padding(14.dp),
+            )
+        }
+
         Spacer(Modifier.height(20.dp))
 
         SettingsGroup {
@@ -282,7 +342,7 @@ fun SettingsScreen(state: OddlyAppState) {
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = strings.settingsFooter,
+            text = strings.settingsFooter(BuildConfig.VERSION_NAME),
             style = MaterialTheme.typography.bodySmall,
             color = palette.textTertiary,
             modifier = Modifier.fillMaxWidth(),
@@ -329,6 +389,41 @@ fun SettingsScreen(state: OddlyAppState) {
                 showTimePicker = false
             },
             onDismiss = { showTimePicker = false },
+        )
+    }
+
+    pendingImport?.let { (raw, decoded) ->
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            containerColor = palette.surfaceElevated,
+            title = {
+                Text(
+                    strings.importConfirmTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = palette.textPrimary,
+                )
+            },
+            text = {
+                Text(
+                    strings.importConfirmBody(decoded.completions.size, decoded.profile.level),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    importNotice =
+                        if (state.importBackup(raw)) ImportNotice.SUCCEEDED else ImportNotice.FAILED
+                    pendingImport = null
+                }) {
+                    Text(strings.importReplace, color = OddlyColors.Danger)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingImport = null }) {
+                    Text(strings.cancel, color = palette.textSecondary)
+                }
+            },
         )
     }
 
@@ -379,7 +474,7 @@ fun SettingsScreen(state: OddlyAppState) {
             },
             text = {
                 Text(
-                    strings.aboutBody,
+                    strings.aboutBody(BuildConfig.VERSION_NAME),
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary,
                 )

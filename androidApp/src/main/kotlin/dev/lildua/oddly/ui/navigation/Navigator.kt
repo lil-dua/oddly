@@ -46,5 +46,5 @@ class Navigator(start: Destination) {
 }
 
 @Composable
-fun rememberNavigator(start: Destination = Destination.Splash): Navigator =
+fun rememberNavigator(start: Destination): Navigator =
     remember { Navigator(start) }
