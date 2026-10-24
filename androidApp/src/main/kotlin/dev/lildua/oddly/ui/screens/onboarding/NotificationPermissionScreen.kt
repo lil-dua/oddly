@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.onboarding
 
+import androidx.compose.foundation.layout.PaddingValues
+import dev.lildua.oddly.ui.components.FillHeightScrollColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -32,7 +36,11 @@ import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
-import dev.lildua.oddly.ui.components.clickableNoRipple
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.Role
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.selectableNoRipple
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
@@ -58,11 +66,11 @@ fun NotificationPermissionScreen(
     ) {
         StarField(Modifier.fillMaxSize(), starCount = 50, seed = 17)
 
-        Column(
+        FillHeightScrollColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(48.dp))
@@ -88,6 +96,7 @@ fun NotificationPermissionScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.a11yHeading(),
             )
 
             Spacer(Modifier.height(12.dp))
@@ -110,7 +119,7 @@ fun NotificationPermissionScreen(
             Spacer(Modifier.height(12.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().selectableGroup(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 times.forEach { time ->
@@ -118,6 +127,7 @@ fun NotificationPermissionScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .minimumInteractiveComponentSize()
                             .clip(RoundedCornerShape(14.dp))
                             .background(
                                 if (active) OddlyColors.Purple.copy(alpha = 0.18f)
@@ -128,7 +138,7 @@ fun NotificationPermissionScreen(
                                 if (active) OddlyColors.Purple else Color.Transparent,
                                 RoundedCornerShape(14.dp),
                             )
-                            .clickableNoRipple { selectedTime = time }
+                            .selectableNoRipple(active, Role.RadioButton) { selectedTime = time }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -147,7 +157,7 @@ fun NotificationPermissionScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            TextAction(strings.later, onSkip)
+            TextAction(strings.later, onSkip, modifier = Modifier.testTag(UiTestTags.PERMISSION_LATER))
         }
     }
 }

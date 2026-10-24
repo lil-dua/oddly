@@ -19,7 +19,7 @@ struct ChallengeDetailScreen: View {
     /// Neutral rather than green: not a win for *this* challenge.
     private func neutralNotice(_ text: String) -> some View {
         Text(text)
-            .font(OddlyFont.labelLarge)
+            .oddlyFont(OddlyFont.labelLarge)
             .foregroundStyle(palette.textSecondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -43,7 +43,10 @@ struct ChallengeDetailScreen: View {
                         GlowOrb(color: accent, alpha: 0.35)
                             .frame(width: 150, height: 150)
                         Text(challenge.category.emoji)
-                            .font(OddlyFont.displaySmall)
+                            .accessibilityHidden(true)
+                            .oddlyFont(OddlyFont.displaySmall)
+                            // Fixed 76pt tile.
+                            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                             .frame(width: 76, height: 76)
                             .background(
                                 accent.opacity(0.16),
@@ -56,9 +59,10 @@ struct ChallengeDetailScreen: View {
                     }
 
                     Text(challenge.title)
-                        .font(OddlyFont.headlineMedium)
+                        .oddlyFont(OddlyFont.headlineMedium)
                         .foregroundStyle(palette.textPrimary)
                         .multilineTextAlignment(.center)
+                        .accessibilityHeading()
                         .padding(.top, 20)
                         .padding(.horizontal, 24)
 
@@ -72,7 +76,7 @@ struct ChallengeDetailScreen: View {
                     VStack(spacing: 16) {
                         InfoBlock(label: strings.whyItMatters) {
                             Text(challenge.whyItMatters)
-                                .font(OddlyFont.bodyMedium)
+                                .oddlyFont(OddlyFont.bodyMedium)
                                 .foregroundStyle(palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -83,10 +87,11 @@ struct ChallengeDetailScreen: View {
                                 ForEach(Array(challenge.howToDoIt.enumerated()), id: \.offset) { _, step in
                                     HStack(alignment: .top, spacing: 10) {
                                         Text("✦")
-                                            .font(OddlyFont.bodyMedium)
+                                            .accessibilityHidden(true)
+                                            .oddlyFont(OddlyFont.bodyMedium)
                                             .foregroundStyle(accent)
                                         Text(step)
-                                            .font(OddlyFont.bodyMedium)
+                                            .oddlyFont(OddlyFont.bodyMedium)
                                             .foregroundStyle(palette.textSecondary)
                                             .fixedSize(horizontal: false, vertical: true)
                                     }
@@ -98,11 +103,11 @@ struct ChallengeDetailScreen: View {
                         InfoBlock(label: strings.reward) {
                             HStack {
                                 Text("+\(challenge.humanityPercent)% Humanity")
-                                    .font(OddlyFont.titleMedium)
-                                    .foregroundStyle(OddlyColors.success)
+                                    .oddlyFont(OddlyFont.titleMedium)
+                                    .foregroundStyle(palette.success)
                                 Spacer()
                                 Text("+\(challenge.rewardXp) XP")
-                                    .font(OddlyFont.titleMedium)
+                                    .oddlyFont(OddlyFont.titleMedium)
                                     .foregroundStyle(OddlyColors.purple)
                             }
                         }
@@ -116,32 +121,36 @@ struct ChallengeDetailScreen: View {
                         switch availability {
                         case .canComplete:
                             GradientButton(strings.begin, action: onComplete)
+                                .accessibilityIdentifier(UiTestTags.shared.DETAIL_BEGIN)
                             if canSwap {
                                 TextAction(strings.seeAnotherChallenge, action: onAnother)
                             } else {
                                 Text(strings.noSwapsLeftToday)
-                                    .font(OddlyFont.bodySmall)
+                                    .oddlyFont(OddlyFont.bodySmall)
                                     .foregroundStyle(palette.textTertiary)
                                     .multilineTextAlignment(.center)
                             }
                         case .notTodays:
                             if canSwap {
                                 GradientButton(strings.setAsTodaysChallenge, action: onAdopt)
+                                    .accessibilityIdentifier(UiTestTags.shared.DETAIL_ADOPT)
                             } else {
                                 neutralNotice(strings.noSwapsLeftAdopt)
                             }
                         case .doneThisToday:
                             HStack(spacing: 8) {
-                                OddlyIconView(.check, size: 18, tint: OddlyColors.success, lineWidth: 2)
+                                OddlyIconView(.check, size: 18, tint: palette.success, lineWidth: 2)
                                 Text(strings.alreadyCompletedThis)
-                                    .font(OddlyFont.labelLarge)
-                                    .foregroundStyle(OddlyColors.success)
+                                    .oddlyFont(OddlyFont.labelLarge)
+                                    .foregroundStyle(palette.success)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(OddlyColors.success.opacity(0.14), in: Capsule())
+                            .accessibilityIdentifier(UiTestTags.shared.DETAIL_ALREADY_DONE)
                         default:
                             neutralNotice(strings.todayDoneComeBackTomorrow)
+                                .accessibilityIdentifier(UiTestTags.shared.DETAIL_DAY_DONE)
                         }
                     }
                     .padding(.top, 28)

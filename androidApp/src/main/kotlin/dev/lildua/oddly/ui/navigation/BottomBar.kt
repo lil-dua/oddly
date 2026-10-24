@@ -1,5 +1,6 @@
 package dev.lildua.oddly.ui.navigation
 
+import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +20,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.ui.components.OddlyIcon
-import dev.lildua.oddly.ui.components.clickableNoRipple
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import dev.lildua.oddly.ui.components.selectableNoRipple
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyTheme
@@ -36,6 +41,14 @@ private val TabDestination.icon: OddlyIcon
         TabDestination.SETTINGS -> OddlyIcon.Settings
     }
 
+// Only the tabs the UI tests drive have an id.
+private val TabDestination.testTag: String?
+    get() = when (this) {
+        TabDestination.HOME -> UiTestTags.TAB_HOME
+        TabDestination.JOURNEY -> UiTestTags.TAB_JOURNEY
+        else -> null
+    }
+
 /**
  * Four-destination bottom navigation (spec §5). Everything deeper is a child
  * route, so this bar never grows.
@@ -46,6 +59,16 @@ fun OddlyBottomBar(
     onSelect: (TabDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // System tab bars stop growing with the font size; four labels plus icons only fit up to ~1.3x.
+    CappedFontScale(1.3f) { BottomBarContent(selected, onSelect, modifier) }
+}
+
+@Composable
+private fun BottomBarContent(
+    selected: TabDestination?,
+    onSelect: (TabDestination) -> Unit,
+    modifier: Modifier,
+) {
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
 
@@ -54,6 +77,7 @@ fun OddlyBottomBar(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding()
+            .selectableGroup()
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
@@ -68,8 +92,9 @@ fun OddlyBottomBar(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
+                    .then(tab.testTag?.let { Modifier.testTag(it) } ?: Modifier)
                     .clip(RoundedCornerShape(14.dp))
-                    .clickableNoRipple { onSelect(tab) }
+                    .selectableNoRipple(active, Role.Tab) { onSelect(tab) }
                     .padding(horizontal = 14.dp, vertical = 6.dp),
             ) {
                 Box(

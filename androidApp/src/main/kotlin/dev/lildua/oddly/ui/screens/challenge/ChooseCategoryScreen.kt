@@ -1,5 +1,9 @@
 package dev.lildua.oddly.ui.screens.challenge
 
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import dev.lildua.oddly.ui.components.isLargeFontScale
+import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.data.seed.ChallengeSeed
 import dev.lildua.oddly.domain.model.Category
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
 import dev.lildua.oddly.ui.components.OddlyTopBar
 import dev.lildua.oddly.ui.components.SecondaryButton
 import dev.lildua.oddly.ui.components.StarField
@@ -78,16 +84,20 @@ fun ChooseCategoryScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().a11yHeading(),
                 )
 
                 Spacer(Modifier.height(28.dp))
 
                 // Two-column grid, laid out manually so the whole page scrolls
                 // as one surface instead of nesting a scrollable grid.
+                val largeText = isLargeFontScale()
                 Category.entries.chunked(2).forEach { rowCategories ->
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        // Large text: tiles size to content, so the pair needs a shared height.
+                        modifier = Modifier.fillMaxWidth().then(
+                            if (largeText) Modifier.height(IntrinsicSize.Min) else Modifier,
+                        ),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         rowCategories.forEach { category ->
@@ -96,7 +106,9 @@ fun ChooseCategoryScreen(
                                 completedCount = completedPerCategory[category] ?: 0,
                                 totalCount = ChallengeSeed.byCategory(category).size,
                                 onClick = { onPick(category) },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).then(
+                                    if (largeText) Modifier.fillMaxHeight() else Modifier,
+                                ),
                             )
                         }
                         // Keep the last row aligned if the count is odd.
@@ -126,18 +138,23 @@ private fun CategoryTile(
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
     val accent = category.color
+    // Square at normal sizes; at large font scale the name and count no longer fit, so grow with content.
+    val square = !isLargeFontScale()
 
     Column(
         modifier = modifier
-            .aspectRatio(1f)
+            .then(if (square) Modifier.aspectRatio(1f) else Modifier)
             .clip(RoundedCornerShape(20.dp))
             .background(OddlyGradients.categoryWash(accent))
             .border(1.dp, accent.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
-            .clickableNoRipple(onClick)
+            .clickableNoRipple(onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(category.emoji, style = MaterialTheme.typography.displaySmall)
+        // Capped so the emoji keeps its place in the tile corner.
+        CappedFontScale(1.5f) {
+            Text(category.emoji, style = MaterialTheme.typography.displaySmall, modifier = Modifier.a11yHidden())
+        }
 
         Column {
             Text(

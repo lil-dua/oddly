@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -53,7 +55,8 @@ fun GradientButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            // `height` is a minimum so a wrapped label at large font scale is never clipped.
+            .heightIn(min = height)
             .scale(scale)
             .alpha(if (enabled) 1f else 0.4f)
             .background(brush, RoundedCornerShape(percent = 50))
@@ -61,11 +64,13 @@ fun GradientButton(
                 interactionSource = interaction,
                 indication = null,
                 enabled = enabled,
+                role = Role.Button,
                 onClick = onClick,
             ),
         contentAlignment = Alignment.Center,
     ) {
         Row(
+            modifier = Modifier.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -100,7 +105,8 @@ fun SecondaryButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            // `height` is a minimum so a wrapped label at large font scale is never clipped.
+            .heightIn(min = height)
             .scale(scale)
             .border(
                 BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -110,11 +116,13 @@ fun SecondaryButton(
             .clickable(
                 interactionSource = interaction,
                 indication = null,
+                role = Role.Button,
                 onClick = onClick,
             ),
         contentAlignment = Alignment.Center,
     ) {
         Row(
+            modifier = Modifier.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -141,9 +149,11 @@ fun TextAction(
         style = MaterialTheme.typography.labelMedium,
         color = color,
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                role = Role.Button,
                 onClick = onClick,
             )
             .padding(vertical = 8.dp, horizontal = 4.dp),

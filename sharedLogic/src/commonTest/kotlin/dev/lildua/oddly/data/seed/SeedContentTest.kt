@@ -1,6 +1,7 @@
 package dev.lildua.oddly.data.seed
 
 import dev.lildua.oddly.domain.model.Category
+import dev.lildua.oddly.domain.model.Difficulty
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -80,15 +81,32 @@ class SeedContentTest {
     }
 
     /**
-     * Rerolling inside a category, and choosing that category as an interest,
-     * both need somewhere to land — the cooldown alone can exhaust a thin
-     * category within a month.
+     * A user whose interests narrow the pool to one category must not see a
+     * repeat inside a month. ChallengeSelector's COOLDOWN_DAYS is 30 and a
+     * challenge done today still counts, so 31 distinct ones are needed. The
+     * constant is private there, hence the literal here.
      */
     @Test
-    fun `every category has enough challenges to reroll within`() {
+    fun `every category outlasts the cooldown`() {
         for (category in Category.entries) {
             val count = ChallengeSeed.all.count { it.category == category }
-            assertTrue(count >= 5, "${category.id} has only $count challenges")
+            assertTrue(count >= 31, "${category.id} has only $count challenges (needs 31 to outlast the cooldown)")
+        }
+    }
+
+    /** Difficulty drives XP and who sees what, so a mislabelled one is a real bug. */
+    @Test
+    fun `minutes match the difficulty`() {
+        for (c in ChallengeSeed.all) {
+            val limit = when (c.difficulty) {
+                Difficulty.EASY -> 30
+                Difficulty.MEDIUM -> 60
+                Difficulty.HARD -> continue
+            }
+            assertTrue(
+                c.estimatedMinutes <= limit,
+                "${c.id}: ${c.estimatedMinutes} minutes is too long for ${c.difficulty} (max $limit)",
+            )
         }
     }
 
@@ -183,6 +201,75 @@ class SeedContentTest {
                 .mapValues { (_, list) -> list.map { it.id } }
 
             assertTrue(duplicates.isEmpty(), "duplicate $language titles: $duplicates")
+        }
+    }
+
+    @Test
+    fun `every difficulty has twelve challenges in every category`() {
+        for (category in Category.entries) {
+            for (difficulty in Difficulty.entries) {
+                val count = ChallengeSeed.byCategory(category).count { it.difficulty == difficulty }
+                assertTrue(count >= 12, "$category has only $count $difficulty challenges")
+            }
+        }
+    }
+
+    @Test
+    fun `challenge texts fit their slots`() {
+        // Titles are cut at two lines in the list and the share card has a fixed box.
+        for (c in ChallengeSeed.all) {
+            val fields = buildList {
+                add(Triple("title", c.title, 60))
+                add(Triple("shortDescription", c.shortDescription, 90))
+                add(Triple("whyItMatters", c.whyItMatters, 200))
+                c.howToDoIt.forEachIndexed { i, step -> add(Triple("step ${i + 1}", step, 120)) }
+            }
+            for ((name, text, limit) in fields) {
+                assertTrue(text.vi.length <= limit, "${c.id} $name vi is ${text.vi.length} chars (max $limit)")
+                assertTrue(text.en.length <= limit, "${c.id} $name en is ${text.en.length} chars (max $limit)")
+            }
+        }
+    }
+
+    @Test
+    fun `challenge descriptions are not duplicated`() {
+        for (language in listOf("vi", "en")) {
+            val duplicates = ChallengeSeed.all
+                .groupBy { (if (language == "vi") it.shortDescription.vi else it.shortDescription.en).trim().lowercase() }
+                .filterValues { it.size > 1 }
+                .mapValues { (_, list) -> list.map { it.id } }
+
+            assertTrue(duplicates.isEmpty(), "duplicate $language descriptions: $duplicates")
+        }
+    }
+
+    @Test
+    fun `challenges have between two and four steps`() {
+        for (c in ChallengeSeed.all) {
+            assertTrue(c.howToDoIt.size in 2..4, "${c.id} has ${c.howToDoIt.size} steps")
+        }
+    }
+
+    @Test
+    fun `challenge text has no stray whitespace`() {
+        for (c in ChallengeSeed.all) {
+            val texts = listOf(c.title, c.shortDescription, c.whyItMatters) + c.howToDoIt
+            for (text in texts) {
+                for (value in listOf(text.vi, text.en)) {
+                    assertTrue(value == value.trim() && !value.contains("  "), "${c.id}: stray whitespace in \"$value\"")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `published challenges stay ahead of new ones in their category`() {
+        // New content goes at the end of each list; the order is what keeps
+        // position-based lookups (and anyone reading the diff) stable.
+        for (category in Category.entries) {
+            val published = PUBLISHED_CHALLENGE_CATEGORIES.filterValues { it == category }.keys.toList()
+            val actual = ChallengeSeed.byCategory(category).take(published.size).map { it.id }
+            assertEquals(published, actual, "$category: published challenges are no longer first")
         }
     }
 

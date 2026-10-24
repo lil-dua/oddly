@@ -22,8 +22,9 @@ struct StatisticsScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text(strings.statisticsTitle)
-                    .font(OddlyFont.headlineMedium)
+                    .oddlyFont(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
+                    .accessibilityHeading()
                     .padding(.top, 20)
                     .padding(.bottom, 4)
 
@@ -43,13 +44,13 @@ struct StatisticsScreen: View {
 
                         HStack(alignment: .bottom, spacing: 12) {
                             Text("\(summary.totalCompleted)")
-                                .font(OddlyFont.displaySmall)
+                                .oddlyFont(OddlyFont.displaySmall)
                                 .foregroundStyle(palette.textPrimary)
                             if range != StatsRange.all {
                                 let delta = summary.deltaVsPreviousPeriod
                                 Text(strings.deltaVsPrevious(delta: delta))
-                                    .font(OddlyFont.bodySmall)
-                                    .foregroundStyle(delta >= 0 ? OddlyColors.success : palette.textTertiary)
+                                    .oddlyFont(OddlyFont.bodySmall)
+                                    .foregroundStyle(delta >= 0 ? palette.success : palette.textTertiary)
                                     .padding(.bottom, 6)
                             }
                         }
@@ -63,12 +64,14 @@ struct StatisticsScreen: View {
                         StatTile(
                             value: summary.mostActiveCategory?.emoji ?? "–",
                             label: summary.mostActiveCategory?.title.of(strings) ?? strings.noData,
-                            accent: summary.mostActiveCategory?.color ?? palette.textTertiary
+                            accent: summary.mostActiveCategory?.color ?? palette.textTertiary,
+                            // The emoji alone reads as its Unicode name; say what the tile means instead.
+                            valueDescription: strings.a11yMostActiveCategory
                         )
                         StatTile(
                             value: "\(state.completionRatePercent)%",
                             label: strings.completionRate,
-                            accent: OddlyColors.success
+                            accent: palette.success
                         )
                     }
 
@@ -76,7 +79,7 @@ struct StatisticsScreen: View {
                         SectionLabel(strings.categoryBreakdown)
                         if summary.distribution.isEmpty {
                             Text(strings.noChallengesInRange)
-                                .font(OddlyFont.bodyMedium)
+                                .oddlyFont(OddlyFont.bodyMedium)
                                 .foregroundStyle(palette.textTertiary)
                                 .padding(.top, 14)
                         } else {
@@ -109,7 +112,7 @@ private struct RangeTabs: View {
                     onSelect(entry)
                 } label: {
                     Text(entry.title.of(strings))
-                        .font(OddlyFont.labelMedium)
+                        .oddlyFont(OddlyFont.labelMedium)
                         .foregroundStyle(active ? OddlyColors.purple : palette.textTertiary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
@@ -117,8 +120,10 @@ private struct RangeTabs: View {
                             active ? OddlyColors.purple.opacity(0.22) : .clear,
                             in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                         )
+                        .minimumTapTarget()
                 }
                 .buttonStyle(PressableStyle())
+                .accessibilitySelected(active)
             }
         }
         .padding(4)
@@ -134,6 +139,7 @@ private struct RangeTabs: View {
 /// shape stays readable whatever the absolute counts are.
 private struct BarChart: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let bars: [DayBar]
 
@@ -146,7 +152,7 @@ private struct BarChart: View {
 
                 VStack(spacing: 0) {
                     Text(bar.count > 0 ? "\(bar.count)" : " ")
-                        .font(OddlyFont.labelSmall)
+                        .oddlyFont(OddlyFont.labelSmall)
                         .tracking(0.5)
                         .foregroundStyle(palette.textTertiary)
 
@@ -170,7 +176,7 @@ private struct BarChart: View {
                     .padding(.top, 6)
 
                     Text(bar.label)
-                        .font(OddlyFont.labelSmall)
+                        .oddlyFont(OddlyFont.labelSmall)
                         .tracking(0.5)
                         .foregroundStyle(bar.isToday ? palette.textPrimary : palette.textTertiary)
                         .lineLimit(1)
@@ -180,7 +186,12 @@ private struct BarChart: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        // Fixed 140pt chart with axis labels inside; cap so the bars are not squeezed out.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .frame(height: 140)
         .animation(.easeOut(duration: 0.5), value: bars.map { Int($0.count) })
+        // Seven columns read as one summary; separate "3", "T2", "-5" stops mean nothing.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AccessibilityText.shared.chart(bars: bars, strings: strings))
     }
 }

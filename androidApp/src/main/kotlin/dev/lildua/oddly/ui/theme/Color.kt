@@ -1,6 +1,7 @@
 package dev.lildua.oddly.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import dev.lildua.oddly.core.design.PaletteSpecs
 
 /**
  * Dark-first palette (spec §8). The app is a deep near-black space backdrop with
@@ -8,16 +9,16 @@ import androidx.compose.ui.graphics.Color
  */
 object OddlyColors {
     // Surfaces — near-black with a cool blue cast so the neon reads warm against it.
-    val Background = Color(0xFF07070C)
-    val Surface = Color(0xFF12121B)
-    val SurfaceElevated = Color(0xFF1A1A26)
-    val SurfaceHighest = Color(0xFF23232F)
-    val Outline = Color(0xFF2C2C3A)
+    val Background = Color(PaletteSpecs.dark.background)
+    val Surface = Color(PaletteSpecs.dark.surface)
+    val SurfaceElevated = Color(PaletteSpecs.dark.surfaceElevated)
+    val SurfaceHighest = Color(PaletteSpecs.dark.surfaceHighest)
+    val Outline = Color(PaletteSpecs.dark.outline)
 
     // Text
-    val TextPrimary = Color(0xFFF4F4F7)
-    val TextSecondary = Color(0xFFA0A0B0)
-    val TextTertiary = Color(0xFF6C6C7E)
+    val TextPrimary = Color(PaletteSpecs.dark.textPrimary)
+    val TextSecondary = Color(PaletteSpecs.dark.textSecondary)
+    val TextTertiary = Color(PaletteSpecs.dark.textTertiary)
 
     // Brand gradient stops (the "1%" wordmark and primary CTAs)
     val Pink = Color(0xFFFF7EB3)
@@ -27,18 +28,24 @@ object OddlyColors {
     val Blue = Color(0xFF60A5FA)
 
     // Semantic accents
-    val Flame = Color(0xFFFF7A45)
+    val Flame = Color(PaletteSpecs.dark.flame)
     val FlameBright = Color(0xFFFFB067)
-    val Success = Color(0xFF4ADE80)
-    val Warning = Color(0xFFFBBF24)
-    val Danger = Color(0xFFF87171)
+    val Success = Color(PaletteSpecs.dark.success)
+    val Warning = Color(PaletteSpecs.dark.warning)
+    val Danger = Color(PaletteSpecs.dark.danger)
 
     // Light theme surfaces — the spec lists Light as optional from MVP, so the
     // scheme exists but the app defaults to dark.
-    val LightBackground = Color(0xFFF7F7FB)
-    val LightSurface = Color(0xFFFFFFFF)
-    val LightSurfaceElevated = Color(0xFFF0F0F6)
-    val LightTextPrimary = Color(0xFF14141C)
-    val LightTextSecondary = Color(0xFF5A5A6E)
-    val LightOutline = Color(0xFFE0E0EA)
+    val LightBackground = Color(PaletteSpecs.light.background)
+    val LightSurface = Color(PaletteSpecs.light.surface)
+    val LightSurfaceElevated = Color(PaletteSpecs.light.surfaceElevated)
+    val LightTextPrimary = Color(PaletteSpecs.light.textPrimary)
+    val LightTextSecondary = Color(PaletteSpecs.light.textSecondary)
+    val LightSurfaceHighest = Color(PaletteSpecs.light.surfaceHighest)
+    val LightTextTertiary = Color(PaletteSpecs.light.textTertiary)
+    val LightFlame = Color(PaletteSpecs.light.flame)
+    val LightSuccess = Color(PaletteSpecs.light.success)
+    val LightWarning = Color(PaletteSpecs.light.warning)
+    val LightDanger = Color(PaletteSpecs.light.danger)
+    val LightOutline = Color(PaletteSpecs.light.outline)
 }

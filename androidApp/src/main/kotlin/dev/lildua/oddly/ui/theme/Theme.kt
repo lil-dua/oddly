@@ -59,13 +59,13 @@ private val LightPalette = OddlyPalette(
     isDark = false,
     textPrimary = OddlyColors.LightTextPrimary,
     textSecondary = OddlyColors.LightTextSecondary,
-    textTertiary = OddlyColors.LightTextSecondary.copy(alpha = 0.7f),
+    textTertiary = OddlyColors.LightTextTertiary,
     surfaceElevated = OddlyColors.LightSurfaceElevated,
-    surfaceHighest = Color(0xFFE6E6F0),
-    flame = OddlyColors.Flame,
-    success = Color(0xFF16A34A),
-    warning = Color(0xFFD97706),
-    danger = Color(0xFFDC2626),
+    surfaceHighest = OddlyColors.LightSurfaceHighest,
+    flame = OddlyColors.LightFlame,
+    success = OddlyColors.LightSuccess,
+    warning = OddlyColors.LightWarning,
+    danger = OddlyColors.LightDanger,
 )
 
 val LocalOddlyPalette = staticCompositionLocalOf { DarkPalette }
@@ -104,7 +104,7 @@ private val LightColors = lightColorScheme(
     surfaceVariant = OddlyColors.LightSurfaceElevated,
     onSurfaceVariant = OddlyColors.LightTextSecondary,
     outline = OddlyColors.LightOutline,
-    error = Color(0xFFDC2626),
+    error = OddlyColors.LightDanger,
 )
 
 @Composable

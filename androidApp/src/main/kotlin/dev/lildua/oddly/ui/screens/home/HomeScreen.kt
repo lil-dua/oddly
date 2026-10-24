@@ -17,9 +17,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.core.time.DateFormat
@@ -29,6 +35,8 @@ import dev.lildua.oddly.ui.components.OddlyCard
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.SectionLabel
 import dev.lildua.oddly.ui.components.StatTile
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yLiveRegion
 import dev.lildua.oddly.ui.components.TodayChallengeCard
 import dev.lildua.oddly.ui.components.WeekStrip
 import dev.lildua.oddly.ui.state.OddlyAppState
@@ -56,9 +64,16 @@ fun HomeScreen(
     val streak = state.streak
     val notice = state.dayChangeNotice
 
+    val context = LocalContext.current
+    // Screen-reader users may not reach the banner within 4 s, so it stays until tapped for them.
+    val accessibilityManager = remember(context) {
+        context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+    }
+
     // Self-dismiss; a fresh notice restarts the timer because the key changes.
     LaunchedEffect(notice) {
-        if (notice != null) {
+        // Read when the banner appears, not once per composition: TalkBack may be switched on while Home stays alive.
+        if (notice != null && accessibilityManager?.isTouchExplorationEnabled != true) {
             delay(4000)
             state.clearDayChangeNotice()
         }
@@ -75,7 +90,11 @@ fun HomeScreen(
         Spacer(Modifier.height(20.dp))
 
         if (notice != null) {
-            OddlyCard(onClick = state::clearDayChangeNotice) {
+            OddlyCard(
+                modifier = Modifier.a11yLiveRegion().testTag(UiTestTags.HOME_DAY_BANNER),
+                onClick = state::clearDayChangeNotice,
+                onClickLabel = strings.a11yDismissNotice,
+            ) {
                 Text(
                     text = when (notice) {
                         DayChangeNotice.NEW_DAY -> strings.newDayNotice
@@ -100,6 +119,7 @@ fun HomeScreen(
                     text = strings.homeHeadline,
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.textPrimary,
+                    modifier = Modifier.a11yHeading(),
                 )
             }
         }
@@ -146,6 +166,7 @@ fun HomeScreen(
             )
             StatTile(
                 value = "Lv.${state.profile.level}",
+                valueDescription = strings.a11yLevel(state.profile.level),
                 label = strings.xpProgress(state.profile.xpInLevel, state.profile.xpForNextLevel),
                 accent = OddlyColors.Pink,
                 modifier = Modifier.weight(1f),

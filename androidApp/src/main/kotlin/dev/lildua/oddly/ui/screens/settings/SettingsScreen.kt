@@ -57,7 +57,13 @@ import dev.lildua.oddly.ui.components.GradientProgressBar
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.SectionLabel
 import dev.lildua.oddly.ui.components.SettingsRow
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
+import dev.lildua.oddly.ui.components.a11yLiveRegion
 import dev.lildua.oddly.ui.components.clickableNoRipple
+import dev.lildua.oddly.ui.components.selectableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyColors
@@ -125,6 +131,7 @@ fun SettingsScreen(state: OddlyAppState) {
             text = strings.settingsTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.textPrimary,
+            modifier = Modifier.a11yHeading(),
         )
 
         Spacer(Modifier.height(20.dp))
@@ -197,13 +204,15 @@ fun SettingsScreen(state: OddlyAppState) {
                 icon = OddlyIcon.Bell,
                 title = strings.dailyReminder,
                 showChevron = false,
+                toggled = settings.reminderEnabled,
+                onToggle = { enabled ->
+                    state.settings = settings.copy(reminderEnabled = enabled)
+                    if (enabled) notifications.request()
+                },
                 trailing = {
                     Switch(
                         checked = settings.reminderEnabled,
-                        onCheckedChange = { enabled ->
-                            state.settings = settings.copy(reminderEnabled = enabled)
-                            if (enabled) notifications.request()
-                        },
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                             checkedTrackColor = OddlyColors.Success,
@@ -221,15 +230,17 @@ fun SettingsScreen(state: OddlyAppState) {
                 icon = OddlyIcon.Volume,
                 title = strings.soundAndHaptics,
                 showChevron = false,
+                // One switch for in-app sound/haptics and the reminder's sound
+                // (ReminderReceiver reads soundEnabled).
+                toggled = settings.soundEnabled,
+                onToggle = {
+                    state.settings = settings.copy(soundEnabled = it, hapticsEnabled = it)
+                    if (it) feedback.play(FeedbackRules.preview(state.settings))
+                },
                 trailing = {
                     Switch(
                         checked = settings.soundEnabled,
-                        // One switch for in-app sound/haptics and the reminder's sound
-                        // (ReminderReceiver reads soundEnabled).
-                        onCheckedChange = {
-                            state.settings = settings.copy(soundEnabled = it, hapticsEnabled = it)
-                            if (it) feedback.play(FeedbackRules.preview(state.settings))
-                        },
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                             checkedTrackColor = OddlyColors.Success,
@@ -247,22 +258,23 @@ fun SettingsScreen(state: OddlyAppState) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(OddlyColors.Warning.copy(alpha = 0.12f))
                     .clickableNoRipple { notifications.openSystemSettings() }
+                    .a11yLiveRegion()
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = OddlyColors.Warning)
+                OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = palette.warning)
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = strings.notificationsDisabledNotice,
                     style = MaterialTheme.typography.bodySmall,
-                    color = OddlyColors.Warning,
+                    color = palette.warning,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = strings.openSystemSettings,
                     style = MaterialTheme.typography.labelMedium,
-                    color = OddlyColors.Warning,
+                    color = palette.warning,
                 )
             }
         }
@@ -303,17 +315,18 @@ fun SettingsScreen(state: OddlyAppState) {
             Text(
                 text = strings.exportFailed,
                 style = MaterialTheme.typography.bodySmall,
-                color = OddlyColors.Warning,
+                color = palette.warning,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(OddlyColors.Warning.copy(alpha = 0.12f))
+                    .a11yLiveRegion()
                     .padding(14.dp),
             )
         }
 
         importNotice?.let { notice ->
-            val color = if (notice == ImportNotice.SUCCEEDED) OddlyColors.Success else OddlyColors.Warning
+            val color = if (notice == ImportNotice.SUCCEEDED) palette.success else palette.warning
             Spacer(Modifier.height(10.dp))
             Text(
                 text = if (notice == ImportNotice.SUCCEEDED) strings.importSucceeded else strings.importFailed,
@@ -323,6 +336,7 @@ fun SettingsScreen(state: OddlyAppState) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(color.copy(alpha = 0.12f))
+                    .a11yLiveRegion()
                     .padding(14.dp),
             )
         }
@@ -333,7 +347,7 @@ fun SettingsScreen(state: OddlyAppState) {
             SettingsRow(
                 icon = OddlyIcon.Trash,
                 title = strings.eraseAllData,
-                tint = OddlyColors.Danger,
+                tint = palette.danger,
                 showChevron = false,
                 onClick = { showResetDialog = true },
             )
@@ -416,7 +430,7 @@ fun SettingsScreen(state: OddlyAppState) {
                         if (state.importBackup(raw)) ImportNotice.SUCCEEDED else ImportNotice.FAILED
                     pendingImport = null
                 }) {
-                    Text(strings.importReplace, color = OddlyColors.Danger)
+                    Text(strings.importReplace, color = palette.danger)
                 }
             },
             dismissButton = {
@@ -450,7 +464,7 @@ fun SettingsScreen(state: OddlyAppState) {
                     state.resetAllData()
                     showResetDialog = false
                 }) {
-                    Text(strings.erase, color = OddlyColors.Danger)
+                    Text(strings.erase, color = palette.danger)
                 }
             },
             dismissButton = {
@@ -517,7 +531,10 @@ private fun <T> OptionPickerDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 options.forEach { option ->
                     val isSelected = option == selected
                     Row(
@@ -531,7 +548,7 @@ private fun <T> OptionPickerDialog(
                                     Color.Transparent
                                 },
                             )
-                            .clickableNoRipple { onSelect(option) }
+                            .selectableNoRipple(isSelected, Role.RadioButton) { onSelect(option) }
                             .padding(horizontal = 14.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -544,6 +561,7 @@ private fun <T> OptionPickerDialog(
                         if (isSelected) {
                             Box(
                                 modifier = Modifier
+                                    .a11yHidden()
                                     .size(22.dp)
                                     .clip(CircleShape)
                                     .background(OddlyColors.Purple),

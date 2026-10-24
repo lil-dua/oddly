@@ -39,12 +39,22 @@ import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.core.text.Brand
 import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.domain.model.LocalizedChallenge
+import dev.lildua.oddly.ui.components.FixedFontScale
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.Planet
 import dev.lildua.oddly.ui.components.StarField
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yLiveRegion
 import dev.lildua.oddly.ui.components.clickableNoRipple
+import dev.lildua.oddly.ui.components.selectableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.LocalStrings
@@ -92,7 +102,14 @@ fun ShareCardScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.clickableNoRipple(onBack)) {
+            val closeLabel = strings.close
+            Box(
+                modifier = Modifier
+                    .minimumInteractiveComponentSize()
+                    .clickableNoRipple(onClick = onBack)
+                    .semantics { contentDescription = closeLabel },
+                contentAlignment = Alignment.Center,
+            ) {
                 OddlyIcon(OddlyIcon.Close, size = 22.dp, tint = palette.textSecondary)
             }
             Spacer(Modifier.weight(1f))
@@ -100,25 +117,31 @@ fun ShareCardScreen(
                 text = strings.shareCardTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = palette.textPrimary,
+                modifier = Modifier.a11yHeading(),
             )
             Spacer(Modifier.weight(1f))
-            Spacer(Modifier.padding(11.dp))
+            // Mirrors the 48dp close target so the title stays centred.
+            Spacer(Modifier.width(48.dp))
         }
 
         Column(Modifier.padding(horizontal = 24.dp)) {
             // Layout switcher
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 ShareLayout.entries.forEach { entry ->
                     val active = entry == layout
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .minimumInteractiveComponentSize()
                             .clip(RoundedCornerShape(12.dp))
                             .background(
                                 if (active) OddlyColors.Purple.copy(alpha = 0.2f)
                                 else palette.surfaceElevated,
                             )
-                            .clickableNoRipple { layout = entry }
+                            .selectableNoRipple(active, Role.Tab) { layout = entry }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -134,7 +157,7 @@ fun ShareCardScreen(
             Spacer(Modifier.height(20.dp))
 
             Box(
-                Modifier.drawWithContent {
+                Modifier.semantics(mergeDescendants = true) {}.drawWithContent {
                     cardLayer.record { this@drawWithContent.drawContent() }
                     drawLayer(cardLayer)
                 },
@@ -179,15 +202,16 @@ fun ShareCardScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .background(OddlyColors.Warning.copy(alpha = 0.12f))
+                        .a11yLiveRegion()
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = OddlyColors.Warning)
+                    OddlyIcon(OddlyIcon.Info, size = 18.dp, tint = palette.warning)
                     Spacer(Modifier.height(0.dp))
                     Text(
                         text = "  ${strings.shareExportFailed}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = OddlyColors.Warning,
+                        color = palette.warning,
                     )
                 }
                 Spacer(Modifier.height(16.dp))
@@ -209,6 +233,16 @@ fun ShareCardScreen(
 /** The card itself — this composition is what the image generator will render. */
 @Composable
 private fun SharePreview(
+    state: OddlyAppState,
+    challenge: LocalizedChallenge?,
+    ratio: Float,
+) {
+    // The exported image must look the same on every device, so the card pins font scale at 1.0 (both directions).
+    FixedFontScale(1f) { SharePreviewContent(state, challenge, ratio) }
+}
+
+@Composable
+private fun SharePreviewContent(
     state: OddlyAppState,
     challenge: LocalizedChallenge?,
     ratio: Float,

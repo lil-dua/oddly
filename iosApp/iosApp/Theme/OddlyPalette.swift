@@ -44,11 +44,11 @@ struct OddlyPalette {
         outline: OddlyColors.lightOutline,
         textPrimary: OddlyColors.lightTextPrimary,
         textSecondary: OddlyColors.lightTextSecondary,
-        textTertiary: OddlyColors.lightTextSecondary.opacity(0.7),
-        flame: OddlyColors.flame,
-        success: Color(rgb: 0x16A34A),
-        warning: Color(rgb: 0xD97706),
-        danger: Color(rgb: 0xDC2626)
+        textTertiary: OddlyColors.lightTextTertiary,
+        flame: OddlyColors.lightFlame,
+        success: OddlyColors.lightSuccess,
+        warning: OddlyColors.lightWarning,
+        danger: OddlyColors.lightDanger
     )
 }
 
@@ -77,6 +77,9 @@ extension View {
         self
             .environment(\.palette, palette)
             .preferredColorScheme(palette.isDark ? .dark : .light)
+            // Past AX2 (~1.9x) the card layouts stop fitting; applied here so root and every
+            // sheet/cover (which re-apply the palette) share the same ceiling.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 }
 

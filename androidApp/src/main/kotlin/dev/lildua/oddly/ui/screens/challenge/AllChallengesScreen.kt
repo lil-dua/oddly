@@ -23,10 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.data.seed.ChallengeSeed
 import dev.lildua.oddly.domain.model.Category
 import dev.lildua.oddly.domain.model.Challenge
+import androidx.compose.foundation.selection.selectableGroup
 import dev.lildua.oddly.ui.components.ChallengeRow
 import dev.lildua.oddly.ui.components.EmptyState
 import dev.lildua.oddly.ui.components.OddlyChip
@@ -68,6 +71,7 @@ fun AllChallengesScreen(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
+                .selectableGroup()
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -123,6 +127,7 @@ fun AllChallengesScreen(
                         challenge = challenge.localized(),
                         trailingText = if (state.isCompleted(challenge.id)) "✓" else "+${challenge.humanityPercent}%",
                         onClick = { onSelect(challenge) },
+                        modifier = Modifier.testTag(UiTestTags.libraryRow(challenge.id)),
                     )
                 }
             }

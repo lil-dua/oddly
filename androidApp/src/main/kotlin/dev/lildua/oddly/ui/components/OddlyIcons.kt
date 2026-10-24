@@ -13,6 +13,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.ui.theme.OddlyTheme
@@ -61,8 +65,18 @@ fun OddlyIcon(
     size: Dp = 20.dp,
     tint: Color = OddlyTheme.palette.textPrimary,
     strokeWidth: Dp = 1.75.dp,
+    /** null = decorative (Canvas has no semantics, so it is skipped); otherwise exposed as an image. */
+    contentDescription: String? = null,
 ) {
-    Canvas(modifier = modifier.size(size)) {
+    val semanticsModifier = if (contentDescription != null) {
+        Modifier.semantics {
+            this.contentDescription = contentDescription
+            role = Role.Image
+        }
+    } else {
+        Modifier
+    }
+    Canvas(modifier = modifier.size(size).then(semanticsModifier)) {
         val stroke = Stroke(
             width = strokeWidth.toPx(),
             cap = StrokeCap.Round,

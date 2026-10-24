@@ -1,5 +1,6 @@
 package dev.lildua.oddly.ui.screens.journey
 
+import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import dev.lildua.oddly.ui.components.a11yHidden
+import dev.lildua.oddly.ui.components.toggleableNoRipple
 import dev.lildua.oddly.ui.components.GlowOrb
 import dev.lildua.oddly.ui.components.OddlyCard
 import dev.lildua.oddly.ui.components.OddlyTopBar
@@ -77,17 +82,23 @@ fun StreakScreen(
                         .background(OddlyColors.Flame.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${streak.current}",
-                            style = MaterialTheme.typography.displayLarge,
-                            color = palette.textPrimary,
-                        )
-                        Text(
-                            text = strings.days,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = palette.textSecondary,
-                        )
+                    // The ring is a fixed 190dp; the 56sp number must stay inside it.
+                    CappedFontScale(1.5f) {
+                        Column(
+                            modifier = Modifier.semantics(mergeDescendants = true) {},
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "${streak.current}",
+                                style = MaterialTheme.typography.displayLarge,
+                                color = palette.textPrimary,
+                            )
+                            Text(
+                                text = strings.days,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = palette.textSecondary,
+                            )
+                        }
                     }
                 }
             }
@@ -98,7 +109,7 @@ fun StreakScreen(
                 StatTile(
                     value = "${streak.best}",
                     label = strings.personalBest,
-                    accent = OddlyColors.Warning,
+                    accent = palette.warning,
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
@@ -128,7 +139,7 @@ fun StreakScreen(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("🔥", style = MaterialTheme.typography.headlineSmall)
+                Text("🔥", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.a11yHidden())
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
@@ -152,7 +163,12 @@ fun StreakScreen(
             Spacer(Modifier.height(16.dp))
 
             OddlyCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.toggleableNoRipple(state.settings.reminderEnabled, Role.Switch) {
+                        state.settings = state.settings.copy(reminderEnabled = it)
+                    },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column(Modifier.weight(1f)) {
                         Text(
                             text = strings.reminderLabel,
@@ -168,9 +184,8 @@ fun StreakScreen(
                     }
                     Switch(
                         checked = state.settings.reminderEnabled,
-                        onCheckedChange = {
-                            state.settings = state.settings.copy(reminderEnabled = it)
-                        },
+                        // The row is the toggle target; the Switch only draws state.
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                             checkedTrackColor = OddlyColors.Success,

@@ -29,6 +29,10 @@ struct StarField: View {
     }
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         Canvas { context, size in
             for star in stars {
                 let center = CGPoint(x: star.x * size.width, y: star.y * size.height)
@@ -51,6 +55,10 @@ struct GlowOrb: View {
     var alpha: Double = 0.3
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         GeometryReader { geometry in
             let side = min(geometry.size.width, geometry.size.height)
             Circle()
@@ -69,6 +77,10 @@ struct Astronaut: View {
     @State private var bobbing = false
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         Canvas { context, canvasSize in
             draw(&context, side: min(canvasSize.width, canvasSize.height))
         }
@@ -157,6 +169,10 @@ struct Planet: View {
     var color: Color = OddlyColors.purple
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         Canvas { context, canvasSize in
             let s = min(canvasSize.width, canvasSize.height)
             let center = CGPoint(x: s / 2, y: s / 2)
@@ -206,6 +222,10 @@ struct BrandRing: View {
     @State private var spinning = false
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         ZStack {
             Circle()
                 .strokeBorder(OddlyGradients.brandSweep, lineWidth: lineWidth)
@@ -230,6 +250,10 @@ struct StarryBox<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         ZStack {
             StarField(starCount: starCount, seed: seed)
             content()
@@ -271,6 +295,10 @@ struct Confetti: View {
     }()
 
     var body: some View {
+        drawing.accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var drawing: some View {
         Canvas { context, size in
             guard progress > 0 else { return }
             let origin = CGPoint(x: size.width / 2, y: size.height * 0.38)

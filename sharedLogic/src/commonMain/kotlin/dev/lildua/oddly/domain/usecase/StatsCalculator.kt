@@ -26,6 +26,11 @@ data class DayBar(
     val label: String,
     val count: Int,
     val isToday: Boolean,
+    /** First day the column covers; equals [endDate] for single-day (week) columns. Lets screen readers name the span. */
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    /** True for an empty column lying wholly before the window; kept for layout, skipped by screen readers. */
+    val isPadding: Boolean = false,
 )
 
 data class StatsSummary(
@@ -110,10 +115,13 @@ object StatsCalculator {
         if (range == StatsRange.WEEK) {
             return (6 downTo 0).map { offset ->
                 val epochDay = today.toEpochDays() - offset
+                val date = LocalDate.fromEpochDays(epochDay)
                 DayBar(
-                    label = DateFormat.shortWeekday(LocalDate.fromEpochDays(epochDay), language),
+                    label = DateFormat.shortWeekday(date, language),
                     count = done[epochDay] ?: 0,
                     isToday = offset == 0,
+                    startDate = date,
+                    endDate = date,
                 )
             }
         }
@@ -130,7 +138,13 @@ object StatsCalculator {
             // Clamp so the oldest bucket never reaches past the window and
             // double-counts days the headline total excluded.
             val start = (end - bucketSize + 1).coerceAtLeast(windowStart)
-            val count = if (start > end) 0 else (start..end).sumOf { done[it] ?: 0 }
+            // When bucketSize * 7 > span the oldest bucket lies wholly before the
+            // window (end < windowStart). It stays an empty column (count 0, so the
+            // other counts and "-N" labels are unchanged) but its range is pinned to
+            // windowStart so startDate <= endDate for accessibility text.
+            val empty = end < windowStart
+            val count = if (empty) 0 else (start..end).sumOf { done[it] ?: 0 }
+            val shownEnd = if (empty) start else end
             DayBar(
                 label = if (bucketIndex == 0) {
                     when (language) {
@@ -142,6 +156,9 @@ object StatsCalculator {
                 },
                 count = count,
                 isToday = bucketIndex == 0,
+                startDate = LocalDate.fromEpochDays(start),
+                endDate = LocalDate.fromEpochDays(shownEnd),
+                isPadding = empty,
             )
         }
     }

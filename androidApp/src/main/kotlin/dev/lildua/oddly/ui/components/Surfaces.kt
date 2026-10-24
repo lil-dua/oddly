@@ -25,10 +25,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.material3.minimumInteractiveComponentSize
+import dev.lildua.oddly.core.testing.UiTestTags
+import dev.lildua.oddly.ui.theme.LocalStrings
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -45,6 +52,7 @@ fun OddlyCard(
     borderColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
     contentPadding: Dp = 18.dp,
     onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -63,6 +71,8 @@ fun OddlyCard(
                     Modifier.clickable(
                         interactionSource = interaction,
                         indication = null,
+                        onClickLabel = onClickLabel,
+                        role = Role.Button,
                         onClick = onClick,
                     )
                 } else {
@@ -96,7 +106,7 @@ fun SectionLabel(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         color = color,
-        modifier = modifier,
+        modifier = modifier.a11yHeading(),
     )
 }
 
@@ -144,26 +154,21 @@ fun OddlyTopBar(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (onBack != null) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(palette.surfaceElevated)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onBack,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                OddlyIcon(OddlyIcon.ChevronLeft, size = 20.dp, tint = palette.textPrimary)
-            }
+            IconCircleButton(
+                icon = OddlyIcon.ChevronLeft,
+                contentDescription = LocalStrings.current.back,
+                onClick = onBack,
+                modifier = Modifier.testTag(UiTestTags.NAV_BACK),
+                diameter = 38.dp,
+                iconSize = 20.dp,
+                tint = palette.textPrimary,
+            )
         }
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = palette.textPrimary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).then(if (title.isNotEmpty()) Modifier.a11yHeading() else Modifier),
         )
         trailing?.invoke()
     }
@@ -182,6 +187,8 @@ fun OddlyChip(
     val palette = OddlyTheme.palette
     Row(
         modifier = modifier
+            // Hit area only: must precede clip/background so the drawn pill keeps its size.
+            .then(if (onClick != null) Modifier.minimumInteractiveComponentSize() else Modifier)
             .clip(RoundedCornerShape(percent = 50))
             .background(if (selected) accent.copy(alpha = 0.2f) else palette.surfaceElevated)
             .border(
@@ -190,11 +197,8 @@ fun OddlyChip(
             )
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClick,
-                    )
+                    // Chips are single-choice filters; the hit area grows without resizing the pill.
+                    Modifier.selectableNoRipple(selected, Role.RadioButton, onClick)
                 } else {
                     Modifier
                 },
@@ -204,12 +208,41 @@ fun OddlyChip(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         leadingEmoji?.let {
-            Text(it, style = MaterialTheme.typography.labelMedium)
+            Text(it, style = MaterialTheme.typography.labelMedium, modifier = Modifier.a11yHidden())
         }
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             color = if (selected) accent else palette.textSecondary,
         )
+    }
+}
+
+/**
+ * Round icon-only button. [contentDescription] is mandatory because the Canvas
+ * icon carries no semantics of its own; the hit area is padded to 48dp while the
+ * drawn circle keeps [diameter].
+ */
+@Composable
+fun IconCircleButton(
+    icon: OddlyIcon,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    diameter: Dp = 36.dp,
+    iconSize: Dp = 16.dp,
+    tint: Color = OddlyTheme.palette.textSecondary,
+) {
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .size(diameter)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(OddlyTheme.palette.surfaceElevated)
+            .clickableNoRipple(onClickLabel = null, role = Role.Button, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        OddlyIcon(icon, size = iconSize, tint = tint)
     }
 }

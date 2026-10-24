@@ -46,3 +46,14 @@ enum OnboardingStep: Hashable {
     case chooseInterest
     case notificationPermission
 }
+
+extension TabDestination {
+    /// UI-test id (`UiTestTags`) — only Home and Journey are driven by tests; the others fall back to their raw value.
+    var testId: String {
+        switch self {
+        case .home: return UiTestTags.shared.TAB_HOME
+        case .journey: return UiTestTags.shared.TAB_JOURNEY
+        default: return "tab.\(rawValue)"
+        }
+    }
+}

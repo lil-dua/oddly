@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.domain.usecase.StatsCalculator
@@ -31,7 +33,10 @@ import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.SectionLabel
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.StatTile
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
 import dev.lildua.oddly.ui.components.clickableNoRipple
+import androidx.compose.ui.semantics.semantics
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.LocalStrings
@@ -69,6 +74,7 @@ fun JourneyScreen(
             text = strings.journeyTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.textPrimary,
+            modifier = Modifier.a11yHeading(),
         )
 
         Spacer(Modifier.height(20.dp))
@@ -79,6 +85,7 @@ fun JourneyScreen(
                 subtitle = strings.emptyJourneyBody,
                 actionText = strings.exploreChallenges,
                 onAction = onStartFirstChallenge,
+                modifier = Modifier.testTag(UiTestTags.JOURNEY_EMPTY),
             )
             return@Column
         }
@@ -95,7 +102,12 @@ fun JourneyScreen(
                 modifier = Modifier.padding(18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .semantics(mergeDescendants = true) {}
+                        .testTag(UiTestTags.JOURNEY_LEVEL),
+                ) {
                     SectionLabel(strings.currentLevel)
                     Spacer(Modifier.height(10.dp))
                     Text(
@@ -133,7 +145,7 @@ fun JourneyScreen(
             StatTile(
                 value = "${state.streak.current}",
                 label = strings.consecutiveDays,
-                accent = OddlyColors.Flame,
+                accent = palette.flame,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -150,7 +162,7 @@ fun JourneyScreen(
             StatTile(
                 value = "${state.completionRatePercent}%",
                 label = strings.completionRate,
-                accent = OddlyColors.Success,
+                accent = palette.success,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -162,8 +174,11 @@ fun JourneyScreen(
             SectionLabel(strings.categoryBreakdown)
             Spacer(Modifier.height(14.dp))
             distribution.forEach { slice ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(slice.category.emoji, style = MaterialTheme.typography.bodyMedium)
+                Row(
+                    modifier = Modifier.semantics(mergeDescendants = true) {},
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(slice.category.emoji, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.a11yHidden())
                     Spacer(Modifier.width(10.dp))
                     Text(
                         text = slice.category.title.of(strings.language),
@@ -195,21 +210,26 @@ fun JourneyScreen(
         Spacer(Modifier.height(10.dp))
         NavigationRow(strings.streakRow, OddlyIcon.Flame, onOpenStreak)
         Spacer(Modifier.height(10.dp))
-        NavigationRow(strings.allChallenges, OddlyIcon.Target, onOpenAllChallenges)
+        NavigationRow(
+            strings.allChallenges,
+            OddlyIcon.Target,
+            onOpenAllChallenges,
+            Modifier.testTag(UiTestTags.JOURNEY_ALL_CHALLENGES),
+        )
 
         Spacer(Modifier.height(28.dp))
     }
 }
 
 @Composable
-private fun NavigationRow(title: String, icon: OddlyIcon, onClick: () -> Unit) {
+private fun NavigationRow(title: String, icon: OddlyIcon, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val palette = OddlyTheme.palette
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(palette.surfaceElevated)
-            .clickableNoRipple(onClick)
+            .clickableNoRipple(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

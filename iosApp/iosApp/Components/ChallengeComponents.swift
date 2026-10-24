@@ -22,22 +22,25 @@ struct TodayChallengeCard: View {
                 Spacer()
                 Button(action: onOpen) {
                     OddlyIconView(.chevronRight, size: 18, tint: palette.textTertiary)
+                        .minimumTapTarget()
                 }
                 .buttonStyle(PressableStyle())
+                .accessibilityLabel(strings.a11yOpenChallenge)
             }
 
             HStack(alignment: .top, spacing: 12) {
                 Text(challenge.title)
-                    .font(OddlyFont.headlineMedium)
+                    .oddlyFont(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                CompletionBadge(completed: completed, accent: accent)
+                    .accessibilityIdentifier(UiTestTags.shared.HOME_TODAY_TITLE)
+                CompletionBadge(completed: completed, accent: accent, label: completed ? strings.a11yCompleted : strings.a11yNotCompleted)
             }
             .padding(.top, 16)
 
             Text(challenge.shortDescription)
-                .font(OddlyFont.bodyMedium)
+                .oddlyFont(OddlyFont.bodyMedium)
                 .foregroundStyle(palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 10)
@@ -51,8 +54,10 @@ struct TodayChallengeCard: View {
             Group {
                 if completed {
                     SecondaryButton(strings.homeAlreadyDoneToday, leadingIcon: .check, action: onOpen)
+                        .accessibilityIdentifier(UiTestTags.shared.HOME_TODAY_DONE)
                 } else {
                     GradientButton(strings.homeStartChallenge, action: onStart)
+                        .accessibilityIdentifier(UiTestTags.shared.HOME_TODAY_START)
                 }
             }
             .padding(.top, 20)
@@ -78,6 +83,7 @@ private struct CompletionBadge: View {
 
     let completed: Bool
     let accent: Color
+    let label: String
 
     var body: some View {
         OddlyIconView(
@@ -91,6 +97,10 @@ private struct CompletionBadge: View {
         .overlay(
             Circle().stroke(completed ? OddlyColors.success : accent.opacity(0.5), lineWidth: 1.5)
         )
+        // The check mark is hidden as an icon; the state is what matters.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(.isImage)
     }
 }
 
@@ -100,30 +110,34 @@ struct ChallengeRow: View {
     @Environment(\.palette) private var palette
     @Environment(\.strings) private var strings
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let challenge: LocalizedChallenge
     var trailingText: String?
     var action: (() -> Void)?
 
     var body: some View {
         let accent = challenge.category.color
+        // The title is the main content; only truncate while text is small enough for the rhythm to matter.
+        let largeText = dynamicTypeSize.isAccessibilitySize || dynamicTypeSize > .xxxLarge
         let row = HStack(spacing: 12) {
             CategoryBadge(category: challenge.category)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(challenge.title)
-                    .font(OddlyFont.titleSmall)
+                    .oddlyFont(OddlyFont.titleSmall)
                     .foregroundStyle(palette.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(largeText ? nil : 2)
                     .multilineTextAlignment(.leading)
                 Text("\(challenge.categoryTitle) · \(strings.minutes(count: challenge.estimatedMinutes))")
-                    .font(OddlyFont.bodySmall)
+                    .oddlyFont(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
-                    .lineLimit(1)
+                    .lineLimit(largeText ? nil : 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(trailingText ?? "+\(challenge.humanityPercent)%")
-                .font(OddlyFont.labelMedium)
+                .oddlyFont(OddlyFont.labelMedium)
                 .foregroundStyle(accent)
         }
         .padding(12)
@@ -134,7 +148,8 @@ struct ChallengeRow: View {
             Button(action: action) { row }
                 .buttonStyle(PressableStyle(pressedScale: 0.985))
         } else {
-            row
+            // Title, category and reward read as one sentence instead of three stops.
+            row.accessibilityElement(children: .combine)
         }
     }
 }
@@ -146,7 +161,8 @@ struct CategoryBadge: View {
 
     var body: some View {
         Text(category.emoji)
-            .font(OddlyFont.titleMedium)
+            .oddlyFont(OddlyFont.titleMedium)
+            .accessibilityHidden(true)
             .frame(width: size, height: size)
             .background(
                 category.color.opacity(0.18),
@@ -170,7 +186,7 @@ struct WeekStrip: View {
             ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                 VStack(spacing: 6) {
                     Text(DateFormat.shared.shortWeekday(date: day.date, language: strings.language))
-                        .font(OddlyFont.labelSmall)
+                        .oddlyFont(OddlyFont.labelSmall)
                         .foregroundStyle(day.isToday ? palette.textPrimary : palette.textTertiary)
 
                     ZStack {
@@ -179,7 +195,7 @@ struct WeekStrip: View {
                                   ? AnyShapeStyle(OddlyGradients.flame)
                                   : AnyShapeStyle(palette.surfaceHighest))
                         if day.completed {
-                            Text("🔥").font(OddlyFont.labelMedium)
+                            Text("🔥").oddlyFont(OddlyFont.labelMedium)
                         }
                     }
                     .frame(width: 30, height: 30)
@@ -190,6 +206,11 @@ struct WeekStrip: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        // Fixed 30pt day circles hold an emoji; cap so labels and emoji stay inside them.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        // One sentence for the whole strip; the seven cells have nothing worth focusing separately.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AccessibilityText.shared.weekStrip(days: days, strings: strings))
     }
 }
 
@@ -200,16 +221,18 @@ struct StatTile: View {
     let value: String
     let label: String
     var accent: Color = OddlyColors.purple
+    /// Spoken instead of `value` when the value alone reads badly ("Lv.3", an emoji).
+    var valueDescription: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(value)
-                .font(OddlyFont.headlineMedium)
+                .oddlyFont(OddlyFont.headlineMedium)
                 .foregroundStyle(accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label)
-                .font(OddlyFont.bodySmall)
+                .oddlyFont(OddlyFont.bodySmall)
                 .foregroundStyle(palette.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -217,6 +240,8 @@ struct StatTile: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(palette.surfaceElevated, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(valueDescription.map { "\($0), \(label)" } ?? "\(value), \(label)")
     }
 }
 
@@ -236,16 +261,18 @@ struct EmptyState: View {
                 Astronaut(size: 140)
             }
             .frame(height: 180)
+            .accessibilityHidden(true)
 
             Text(title)
-                .font(OddlyFont.titleLarge)
+                .oddlyFont(OddlyFont.titleLarge)
                 .foregroundStyle(palette.textPrimary)
                 .multilineTextAlignment(.center)
+                .accessibilityHeading()
                 .padding(.top, 12)
 
             if let subtitle {
                 Text(subtitle)
-                    .font(OddlyFont.bodyMedium)
+                    .oddlyFont(OddlyFont.bodyMedium)
                     .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 8)
@@ -271,6 +298,8 @@ struct SettingsRow<Trailing: View>: View {
     var tint: Color?
     var showChevron: Bool = true
     var action: (() -> Void)?
+    /// For switch rows: the title is spoken by the Toggle's own label, so the visible Text is hidden.
+    var hidesTitleFromVoiceOver: Bool = false
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
@@ -280,13 +309,14 @@ struct SettingsRow<Trailing: View>: View {
         let row = HStack(spacing: 0) {
             OddlyIconView(icon, size: 20, tint: iconTint)
             Text(title)
-                .font(OddlyFont.bodyLarge)
+                .oddlyFont(OddlyFont.bodyLarge)
                 .foregroundStyle(tint ?? palette.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 14)
+                .accessibilityHidden(hidesTitleFromVoiceOver)
             if let value {
                 Text(value)
-                    .font(OddlyFont.bodyMedium)
+                    .oddlyFont(OddlyFont.bodyMedium)
                     .foregroundStyle(palette.textTertiary)
                     .padding(.trailing, 8)
             }
@@ -324,7 +354,8 @@ extension SettingsRow where Trailing == EmptyView {
             value: value,
             tint: tint,
             showChevron: showChevron,
-            action: action
+            action: action,
+            hidesTitleFromVoiceOver: false
         ) { EmptyView() }
     }
 }

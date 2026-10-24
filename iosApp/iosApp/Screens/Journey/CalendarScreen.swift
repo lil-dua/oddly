@@ -35,13 +35,17 @@ struct CalendarScreen: View {
                     HStack(spacing: 0) {
                         ForEach(DateFormat.shared.weekdayHeaders(language: strings.language), id: \.self) { label in
                             Text(label)
-                                .font(OddlyFont.labelSmall)
+                                .oddlyFont(OddlyFont.labelSmall)
                                 .tracking(0.5)
                                 .foregroundStyle(palette.textTertiary)
                                 .frame(maxWidth: .infinity)
                         }
                     }
+                    // Cells are fixed-size; cap so two-digit days and weekday labels stay inside them.
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .padding(.top, 20)
+                    // Each day cell already speaks its full weekday, so the header row is redundant.
+                    .accessibilityHidden(true)
 
                     MonthGrid(
                         month: visibleMonth,
@@ -50,6 +54,7 @@ struct CalendarScreen: View {
                         completedDays: completedDays,
                         onSelect: { selectedDate = $0 }
                     )
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .padding(.top, 10)
 
                     if let date = selectedDate {
@@ -71,15 +76,32 @@ struct CalendarScreen: View {
     private var monthSwitcher: some View {
         HStack(spacing: 8) {
             Text(DateFormat.shared.monthAndYear(date: visibleMonth, language: strings.language))
-                .font(OddlyFont.titleLarge)
+                .oddlyFont(OddlyFont.titleLarge)
                 .foregroundStyle(palette.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            CircleIconButton(.chevronLeft, diameter: 34, iconSize: 16, tint: palette.textSecondary) {
+                .accessibilityHeading()
+            CircleIconButton(
+                .chevronLeft,
+                label: strings.a11yPreviousMonth,
+                diameter: 34,
+                iconSize: 16,
+                tint: palette.textSecondary
+            ) {
                 visibleMonth = visibleMonth.shiftingMonth(by: -1)
             }
-            CircleIconButton(.chevronRight, diameter: 34, iconSize: 16, tint: palette.textSecondary) {
+            CircleIconButton(
+                .chevronRight,
+                label: strings.a11yNextMonth,
+                diameter: 34,
+                iconSize: 16,
+                tint: palette.textSecondary
+            ) {
                 visibleMonth = visibleMonth.shiftingMonth(by: 1)
             }
+        }
+        // Android uses a live region; here the new month is announced explicitly.
+        .onChange(of: visibleMonth) { _, month in
+            announce(DateFormat.shared.monthAndYear(date: month, language: strings.language))
         }
     }
 
@@ -92,9 +114,9 @@ struct CalendarScreen: View {
 
             if dayCompletions.isEmpty {
                 VStack(spacing: 10) {
-                    Text("🌙").font(OddlyFont.headlineMedium)
+                    Text("🌙").oddlyFont(OddlyFont.headlineMedium).accessibilityHidden(true)
                     Text(strings.noChallengeThisDay)
-                        .font(OddlyFont.bodyMedium)
+                        .oddlyFont(OddlyFont.bodyMedium)
                         .foregroundStyle(palette.textSecondary)
                         .multilineTextAlignment(.center)
                 }
@@ -130,7 +152,7 @@ struct CalendarScreen: View {
             ForEach(recent) { entry in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(DateFormat.shared.numeric(date: entry.completion.date))
-                        .font(OddlyFont.labelSmall)
+                        .oddlyFont(OddlyFont.labelSmall)
                         .tracking(0.5)
                         .foregroundStyle(palette.textTertiary)
                     ChallengeRow(
@@ -178,7 +200,7 @@ private struct MonthGrid: View {
                         onTap: { onSelect(date) }
                     )
                 } else {
-                    Color.clear.frame(height: DayCell.diameter)
+                    Color.clear.frame(height: DayCell.hitHeight)
                 }
             }
         }
@@ -187,11 +209,15 @@ private struct MonthGrid: View {
 
 private struct DayCell: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     /// Fixed rather than derived from the column width: an `aspectRatio` here
     /// collapses to the label's intrinsic height inside a `LazyVGrid`, which
     /// clips two-digit dates.
     static let diameter: CGFloat = 40
+    /// Row height: the drawn circle stays 40pt but the tap area is 44pt tall.
+    /// Width is the grid column (about 45pt on a 393pt screen; narrower phones fall a few points short).
+    static let hitHeight: CGFloat = 44
 
     let date: LocalDate
     let isToday: Bool
@@ -202,7 +228,7 @@ private struct DayCell: View {
     var body: some View {
         Button(action: onTap) {
             Text("\(date.dayOfMonth)")
-                .font(OddlyFont.bodySmall)
+                .oddlyFont(OddlyFont.bodySmall)
                 .foregroundStyle(textColor)
                 .frame(width: Self.diameter, height: Self.diameter)
                 .background {
@@ -219,10 +245,17 @@ private struct DayCell: View {
                         Circle().stroke(palette.textTertiary, lineWidth: 1)
                     }
                 }
-                .contentShape(Circle())
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: Self.hitHeight)
+                .contentShape(Rectangle())
         }
         .buttonStyle(PressableStyle(pressedScale: 0.9))
+        .accessibilityLabel(AccessibilityText.shared.calendarDay(
+            date: date,
+            completed: isCompleted,
+            isToday: isToday,
+            strings: strings
+        ))
+        .accessibilitySelected(isSelected)
     }
 
     private var textColor: Color {

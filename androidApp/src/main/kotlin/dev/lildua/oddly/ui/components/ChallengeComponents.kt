@@ -18,13 +18,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.core.text.AccessibilityText
+import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.domain.model.Category
 import dev.lildua.oddly.domain.model.LocalizedChallenge
@@ -72,12 +82,16 @@ fun TodayChallengeCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionLabel(strings.todaysChallenge, color = palette.textSecondary)
                 Spacer(Modifier.weight(1f))
-                OddlyIcon(
-                    OddlyIcon.ChevronRight,
-                    size = 18.dp,
-                    tint = palette.textTertiary,
-                    modifier = Modifier.clickableNoRipple(onClick),
-                )
+                val openLabel = strings.a11yOpenChallenge
+                Box(
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .clickableNoRipple(onClick = onClick)
+                        .semantics { contentDescription = openLabel },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    OddlyIcon(OddlyIcon.ChevronRight, size = 18.dp, tint = palette.textTertiary)
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -87,10 +101,10 @@ fun TodayChallengeCard(
                     text = challenge.title,
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag(UiTestTags.HOME_TODAY_TITLE),
                 )
                 Spacer(Modifier.width(12.dp))
-                CompletionBadge(completed = completed, accent = accent)
+                CompletionBadge(completed = completed, accent = accent, strings = strings)
             }
 
             Spacer(Modifier.height(10.dp))
@@ -114,20 +128,30 @@ fun TodayChallengeCard(
                 SecondaryButton(
                     text = strings.homeAlreadyDoneToday,
                     onClick = onClick,
+                    modifier = Modifier.testTag(UiTestTags.HOME_TODAY_DONE),
                     leadingIcon = OddlyIcon.Check,
                 )
             } else {
-                GradientButton(text = strings.homeStartChallenge, onClick = onStart)
+                GradientButton(
+                    text = strings.homeStartChallenge,
+                    onClick = onStart,
+                    modifier = Modifier.testTag(UiTestTags.HOME_TODAY_START),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CompletionBadge(completed: Boolean, accent: Color) {
+private fun CompletionBadge(completed: Boolean, accent: Color, strings: Strings) {
     val palette = OddlyTheme.palette
+    val description = if (completed) strings.a11yCompleted else strings.a11yNotCompleted
     Box(
         modifier = Modifier
+            .semantics {
+                contentDescription = description
+                role = Role.Image
+            }
             .size(28.dp)
             .clip(RoundedCornerShape(percent = 50))
             .background(if (completed) OddlyColors.Success else Color.Transparent)
@@ -167,7 +191,14 @@ fun ChallengeRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(palette.surfaceElevated)
-            .then(if (onClick != null) Modifier.clickableNoRipple(onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickableNoRipple(onClick = onClick)
+                } else {
+                    // Read title, category and reward as one sentence instead of three stops.
+                    Modifier.semantics(mergeDescendants = true) {}
+                },
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -180,7 +211,8 @@ fun ChallengeRow(
                 text = challenge.title,
                 style = MaterialTheme.typography.titleSmall,
                 color = palette.textPrimary,
-                maxLines = 2,
+                // The title is the main content; only truncate while text is small enough for the rhythm to matter.
+                maxLines = if (isLargeFontScale()) Int.MAX_VALUE else 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(3.dp))
@@ -210,6 +242,7 @@ fun CategoryBadge(
 ) {
     Box(
         modifier = modifier
+            .a11yHidden()
             .size(size)
             .clip(RoundedCornerShape(12.dp))
             .background(category.color.copy(alpha = 0.18f)),
@@ -231,9 +264,14 @@ fun WeekStrip(
     modifier: Modifier = Modifier,
 ) {
     val palette = OddlyTheme.palette
-    val language = LocalStrings.current.language
+    val strings = LocalStrings.current
+    val language = strings.language
+    val summary = AccessibilityText.weekStrip(days, strings)
+    // Fixed 30dp day circles hold an emoji; cap the scale so labels and emoji stay inside them.
+    CappedFontScale(1.5f) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        // One sentence for the whole strip; the seven cells have nothing worth focusing separately.
+        modifier = modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = summary },
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         days.forEach { day ->
@@ -277,6 +315,7 @@ fun WeekStrip(
             }
         }
     }
+    }
 }
 
 /** Big-number tile used across Journey and Statistics. */
@@ -286,12 +325,21 @@ fun StatTile(
     label: String,
     modifier: Modifier = Modifier,
     accent: Color = OddlyColors.Purple,
+    /** Spoken instead of [value] when the value alone reads badly ("Lv.3", an emoji). */
+    valueDescription: String? = null,
 ) {
     val palette = OddlyTheme.palette
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
             .background(palette.surfaceElevated)
+            .then(
+                if (valueDescription != null) {
+                    Modifier.clearAndSetSemantics { contentDescription = "$valueDescription, $label" }
+                } else {
+                    Modifier.semantics(mergeDescendants = true) {}
+                },
+            )
             .padding(16.dp),
     ) {
         Text(
@@ -325,7 +373,7 @@ fun EmptyState(
         modifier = modifier.fillMaxWidth().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        StarryBox(Modifier.fillMaxWidth().height(180.dp), starCount = 30, seed = 21) {
+        StarryBox(Modifier.fillMaxWidth().height(180.dp).a11yHidden(), starCount = 30, seed = 21) {
             Box(Modifier.align(Alignment.Center)) {
                 Astronaut(size = 140.dp)
             }
@@ -338,6 +386,7 @@ fun EmptyState(
             style = MaterialTheme.typography.titleLarge,
             color = palette.textPrimary,
             textAlign = TextAlign.Center,
+            modifier = Modifier.a11yHeading(),
         )
 
         subtitle?.let {
@@ -367,13 +416,26 @@ fun SettingsRow(
     tint: Color = OddlyTheme.palette.textSecondary,
     showChevron: Boolean = true,
     onClick: (() -> Unit)? = null,
+    /**
+     * Makes the whole row a switch target ("title, switch, on"); the [trailing] Switch
+     * must then pass `onCheckedChange = null` and only draw the state.
+     */
+    toggled: Boolean? = null,
+    onToggle: ((Boolean) -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val palette = OddlyTheme.palette
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickableNoRipple(onClick) else Modifier)
+            .then(
+                when {
+                    toggled != null && onToggle != null ->
+                        Modifier.toggleableNoRipple(toggled, Role.Switch, onToggle)
+                    onClick != null -> Modifier.clickableNoRipple(onClick = onClick)
+                    else -> Modifier
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

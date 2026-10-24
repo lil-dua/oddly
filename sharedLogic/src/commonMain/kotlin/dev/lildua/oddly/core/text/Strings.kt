@@ -209,6 +209,27 @@ interface Strings {
     val newDayNotice: String
     val dayChangedCompletionNotice: String
 
+    // --- Accessibility (screen reader only) ---
+    val a11yOpenChallenge: String
+    val a11yPreviousMonth: String
+    val a11yNextMonth: String
+    val a11yPreviousQuote: String
+    val a11yNextQuote: String
+    val a11yAddFavorite: String
+    val a11yRemoveFavorite: String
+    val a11yDismissNotice: String
+    val a11yCompleted: String
+    val a11yNotCompleted: String
+    val a11yToday: String
+    val a11yMostActiveCategory: String
+    val a11yChartTitle: String
+    fun a11yQuotePosition(index: Int, total: Int): String
+    fun a11yLevel(level: Int): String
+    /** [doneDays] are already-formatted day names, oldest first ("today" included). */
+    fun a11yWeekStrip(total: Int, doneDays: List<String>): String
+    fun a11yChartDay(day: String, count: Int): String
+    fun a11yChartRange(from: String, to: String, count: Int): String
+
     companion object {
         fun of(language: AppLanguage): Strings = when (language) {
             AppLanguage.VIETNAMESE -> VietnameseStrings
@@ -411,6 +432,31 @@ object VietnameseStrings : Strings {
     override val newDayNotice = "Đã sang ngày mới — đây là thử thách hôm nay."
     override val dayChangedCompletionNotice =
         "Đã qua nửa đêm nên thử thách hôm qua đã khép lại. Đây là thử thách mới cho hôm nay."
+    // --- Accessibility (screen reader only) ---
+    override val a11yOpenChallenge = "Xem chi tiết thử thách"
+    override val a11yPreviousMonth = "Tháng trước"
+    override val a11yNextMonth = "Tháng sau"
+    override val a11yPreviousQuote = "Câu trước"
+    override val a11yNextQuote = "Câu tiếp theo"
+    override val a11yAddFavorite = "Thêm vào yêu thích"
+    override val a11yRemoveFavorite = "Bỏ khỏi yêu thích"
+    override val a11yDismissNotice = "Đóng thông báo"
+    override val a11yCompleted = "đã hoàn thành"
+    override val a11yNotCompleted = "chưa hoàn thành"
+    override val a11yToday = "hôm nay"
+    override val a11yMostActiveCategory = "Lĩnh vực làm nhiều nhất"
+    override val a11yChartTitle = "Biểu đồ số thử thách đã làm"
+    override fun a11yQuotePosition(index: Int, total: Int) = "Câu $index trên $total"
+    override fun a11yLevel(level: Int) = "Cấp $level"
+    override fun a11yWeekStrip(total: Int, doneDays: List<String>) =
+        if (doneDays.isEmpty()) {
+            "$total ngày gần nhất: chưa hoàn thành ngày nào"
+        } else {
+            "$total ngày gần nhất: hoàn thành ${doneDays.size} ngày — ${doneDays.joinToString(", ")}"
+        }
+    override fun a11yChartDay(day: String, count: Int) = "$day: ${challengeCount(count)}"
+    override fun a11yChartRange(from: String, to: String, count: Int) =
+        "Từ $from đến $to: ${challengeCount(count)}"
 }
 
 object EnglishStrings : Strings {
@@ -616,4 +662,31 @@ object EnglishStrings : Strings {
     override val newDayNotice = "It's a new day — here's today's challenge."
     override val dayChangedCompletionNotice =
         "Midnight passed, so yesterday's challenge has closed. Here's a fresh one for today."
+
+    // --- Accessibility (screen reader only) ---
+    override val a11yOpenChallenge = "View challenge details"
+    override val a11yPreviousMonth = "Previous month"
+    override val a11yNextMonth = "Next month"
+    override val a11yPreviousQuote = "Previous quote"
+    override val a11yNextQuote = "Next quote"
+    override val a11yAddFavorite = "Add to favorites"
+    override val a11yRemoveFavorite = "Remove from favorites"
+    override val a11yDismissNotice = "Dismiss"
+    override val a11yCompleted = "completed"
+    override val a11yNotCompleted = "not completed"
+    override val a11yToday = "today"
+    override val a11yMostActiveCategory = "Most active category"
+    override val a11yChartTitle = "Challenges completed chart"
+    override fun a11yQuotePosition(index: Int, total: Int) = "Quote $index of $total"
+    override fun a11yLevel(level: Int) = "Level $level"
+    override fun a11yWeekStrip(total: Int, doneDays: List<String>) =
+        if (doneDays.isEmpty()) {
+            "Last $total days: nothing completed yet"
+        } else {
+            val n = if (doneDays.size == 1) "1 day" else "${doneDays.size} days"
+            "Last $total days: completed on $n — ${doneDays.joinToString(", ")}"
+        }
+    override fun a11yChartDay(day: String, count: Int) = "$day: ${challengeCount(count)}"
+    override fun a11yChartRange(from: String, to: String, count: Int) =
+        "$from to $to: ${challengeCount(count)}"
 }

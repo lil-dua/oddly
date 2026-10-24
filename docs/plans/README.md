@@ -3,7 +3,7 @@
 Điểm vào cho phiên mới: đọc file này + `docs/release-todo.xlsx` (nguồn sự thật về task) trước khi làm tiếp.
 Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE được chuyển vào thư mục này.
 
-## Đã làm (cập nhật 19/10/2026, sau đợt T-26A)
+## Đã làm (cập nhật 24/10/2026, sau đợt T-24)
 | Task | Trạng thái | Kế hoạch / báo cáo | Còn lại |
 |---|---|---|---|
 | T-01 Giờ hoàn thành thật | Xong | (làm cùng Bước 0, trước khi có quy trình PLAN.md) | — |
@@ -22,7 +22,12 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 | T-22 Crash reporting (không SDK) | Xong (tài liệu) | `T-28_T-18_T-22.md`, `docs/release-process.md` | — |
 | T-06 Rung + âm hệ thống theo toggle | Code xong, APPROVE | `T-06.md` | QA tay 12 kịch bản trên máy thật (haptic khi `fullScreenCover` S07 mở trên iOS, nghe thử `TONE_PROP_ACK` / âm 1025) |
 | T-26A Quote 12 → 60 + test bảo vệ id | Code xong, APPROVE (1 vòng sửa) | `T-26A.md` | Người dùng duyệt `docs/content-review.md`; QA tay 7 bước; T-27 xác minh các câu CẦN XÁC MINH |
-| T-26B Thử thách 120 → 216 | Chưa làm (phác thảo trong `T-26A.md`) | — | — |
+| T-26B1 +47 thử thách Khó (120 → 167) | Code xong, APPROVE (1 vòng sửa) | `T-26B1.md` | Người dùng duyệt `docs/content-review-challenges.md`; QA tay 4 kịch bản; thêm 47 id vào `PublishedContent.kt` trước khi phát hành |
+| T-26B2 +29 Dễ, +20 Vừa (167 → 216) | Code xong, APPROVE (2 vòng sửa) | `T-26B2.md` | Người dùng duyệt mục B2 của `docs/content-review-challenges.md`; QA tay; thêm 96 id (B1 + B2) vào `PublishedContent.kt` trước khi phát hành |
+| T-23A Accessibility: nhãn, vai trò, heading, live region, vùng chạm | Code xong, APPROVE (tester 1 vòng + reviewer 1 vòng sửa) | `T-23A.md` | QA tay TalkBack (12 kịch bản) + VoiceOver (11) + Accessibility Inspector; so ảnh layout trước/sau |
+| T-23B Cỡ chữ lớn + tương phản | Code xong, APPROVE (1 vòng sửa) | `T-23B.md` | QA tay Android font scale 1.3/1.5/2.0 (có máy API ≤ 33), iOS 5 màn còn lại + iPhone SE + đổi cỡ chữ khi app mở + Large Content Viewer; ảnh share giống nhau ở mọi cỡ chữ; theme Sáng |
+| T-24 UI test smoke Android + iOS | Xong, APPROVE (A: 0 vòng sửa; B: 3 vòng sửa — flaky qua nửa đêm + chạm sớm lúc splash cross-fade) | `T-24.md` | QA tay: TalkBack/VoiceOver nhãn không đổi; Archive thiết bị không chứa `UITestHooks`; chạy UI test trên Android API ≤ 33 khi có AVD |
+| T-23C Neon thương hiệu/lĩnh vực làm chữ trên theme Sáng (1.35–2.72) | Chưa làm — cần người duyệt bảng màu thương hiệu | — | — |
 | T-12 Pháp lý / Hỗ trợ | Một phần: version lấy từ build | `T-28_T-18_T-22.md` | Row policy / liên hệ / đánh giá — chờ URL, email, link store (T-10/T-11) |
 
 `T-01_T-02_T-03.md` là kế hoạch tổng ban đầu — chỉ để tham khảo lịch sử.
@@ -64,7 +69,30 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
   có tác phẩm cụ thể / "Tục ngữ Việt Nam", "Ca dao" / "1% HUMAN"; không thêm "Khuyết danh"). `commonTest/.../data/seed/PublishedContent.kt`
   chụp id đã phát hành (120 thử thách + lĩnh vực, 12 quote) — thêm id mới phát hành vào đây khi ra bản. `SeedContentTest` có
   `APPROVED_QUOTE_AUTHORS`, `LEGACY_QUOTE_AUTHORS`. Bảng duyệt: `docs/content-review.md`.
-- Test shared: 220 test mỗi nền tảng (JVM + iosSimulatorArm64).
+- Thử thách (đợt T-26B1): 167 (mỗi lĩnh vực 12 Khó; Khó thuộc 1 trong 4 loại Công sức / Kỹ năng / Vùng thoải mái / Kỷ luật cả ngày,
+  quy ước phút/bước trong KDoc `ChallengeSeed`). Thêm mới luôn nối CUỐI list (test `published challenges stay ahead...`).
+  Đợt T-26B2: 216 thử thách, mỗi ô lĩnh vực × độ khó 12, mỗi lĩnh vực 36; định nghĩa Dễ/Vừa trong KDoc; test
+  `every difficulty has twelve...`, `every category outlasts the cooldown` (≥ 31), `minutes match the difficulty`.
+  **96 id mới (47 B1 + 49 B2) CHƯA nằm trong `PublishedContent.kt`** — thêm khi người dùng duyệt xong, trước khi phát hành.
+  Bảng duyệt: `docs/content-review-challenges.md`.
+- Accessibility (đợt T-23A): chuỗi `a11y*` trong `Strings`; `core/text/AccessibilityText.kt` (câu đọc lịch / dải tuần / biểu đồ;
+  bỏ qua cột đệm `DayBar.isPadding`, thứ trần chỉ trong 7 ngày gần nhất). Android `ui/components/Modifiers.kt`:
+  `clickableNoRipple(onClickLabel, role = Button)`, `selectableNoRipple`, `toggleableNoRipple`, `a11yHeading/Hidden/LiveRegion`;
+  `IconCircleButton`; `SettingsRow(toggled, onToggle)` cả hàng là Switch. iOS `Components/Accessibility.swift` (`accessibilityHeading`,
+  `accessibilitySelected`, `minimumTapTarget`, `announce`); `CircleIconButton(label:)`, `OddlyToggle(label:)` bắt buộc nhãn.
+  Minh hoạ/emoji trang trí ẩn khỏi trình đọc. Banner đổi ngày không tự đóng khi trình đọc bật.
+- Màu + cỡ chữ (đợt T-23B): `core/design/PaletteSpec.kt` (`PaletteSpecs.dark/light`) là nguồn màu nền/chữ/semantic duy nhất cho
+  cả hai nền tảng; chữ trạng thái dùng `palette.success/warning/danger/flame` (Sáng: tertiary 666678, success 14713A, warning A14A0A,
+  danger B91C1C, flame AA340A; Tối: tertiary 8A8A9C), fill/tint vẫn neon. `commonTest/.../core/design/PaletteContrastTest` chặn
+  màu chữ < 4.5. iOS `.oddlyFont(OddlyFont.x)` (`@ScaledMetric`), trần AX2 trong `oddlyPalette`; `FillScrollView`. Android
+  `FontScale.kt` (`CappedFontScale`, `FixedFontScale`, `isLargeFontScale`), `Scroll.kt` (`FillHeightScrollColumn`). Thẻ share khoá
+  cỡ chữ 1.0/`.large`; tab dưới ≤ 1.3×/xxxLarge; ô đồ hoạ cố định ≤ 1.5×/AX1.
+- UI test (đợt T-24): `core/time/Today.pinForTesting(start)` (độ lệch, mặc định 0) + `core/testing/UiTestTags.kt` (id dùng chung).
+  Android `androidApp/src/androidTest/kotlin/dev/lildua/oddly/` (`support/OddlyAppRule`, `Flows.kt`; 6 test: smoke, giờ hoàn thành,
+  đổi ngày ×2, một hoàn thành/ngày ×2). iOS `iosApp/iosAppUITests/` (5 XCUITest, `OddlyAppLauncher.tap(_:expecting:)`), hook
+  `State/UITestHooks.swift` (`#if DEBUG` + env `ODDLY_UI_TEST*`), scheme dùng chung `xcshareddata/xcschemes/iosApp.xcscheme`.
+  Test qua nửa đêm iOS chờ giờ thật (~70 s / ~45 s) — mốc `launchedAt` lấy SAU `app.launch()`. Lệnh chạy trong `.claude/CLAUDE.md`.
+- Test shared: 274 test mỗi nền tảng (JVM + iosSimulatorArm64).
 
 ## Ghi nhận để sau (không thuộc task nào đang mở)
 - iOS `ChallengeDetailScreen.swift`: `.dayAlreadyDone` rơi vào `default` (hành vi đúng).
@@ -84,8 +112,18 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 - Privacy policy EN ghi "Reset all data" trong khi app ghi "Erase all data".
 - `docs/store-listing.md:17` ghi "currently `1.0`, build `1`" — sẽ lỗi thời sau mỗi lần bump; bỏ hoặc thêm vào checklist.
 - Quote trùng ý (nhóm "việc lớn bắt đầu từ nhỏ", nhóm kiên trì); `q_proverb_beginning_hard`/`q_proverb_failure_mother` gốc Hán nhưng ghi "Tục ngữ Việt Nam"; bản en `q_seneca_time` sát bản lưu hành — người dùng quyết khi duyệt content-review / T-27.
+- Tiêu đề thử thách vi 55–60 ký tự có thể bị cắt "…" ở dòng 2 trong hàng danh sách trên máy hẹp — rút tiêu đề nếu QA thấy xấu.
+- `life_sunrise`, `life_watch_something_end` (đã phát hành) thiếu câu cấm nhìn thẳng mặt trời — sửa chữ không cần migrate.
+- `health_dance_three_songs` (Vừa, 12 phút) sát ranh Dễ; vài cặp thử thách gần ý ghi trong Backlog của `docs/content-review-challenges.md`.
+- Ô lịch Android ~40dp (trong `aspectRatio`), iOS rộng ~42–45pt — dưới 48dp/44pt, xem lại khi làm lưới ở T-23B.
+- M3 `Switch(onCheckedChange = null)` mất `minimumInteractiveComponentSize` riêng → hàng công tắc có thể thấp ~16dp; các chỗ mới thêm vùng chạm làm layout cao lên — so ảnh, bù `heightIn` nếu thiết kế không chấp nhận.
+- iOS `StarryBox` ẩn cả `content()` khỏi VoiceOver — chỉ đúng khi bên trong là trang trí; iOS banner Home announce lại khi quay về tab Home.
+- Onboarding "Bỏ qua" không tắt `reminderEnabled` (mặc định true) trong khi "Để sau" ở S03 có tắt — hành vi có sẵn, cần quyết định sản phẩm.
+- iOS `TabDestination.testId` cho Statistics/Settings trả `tab.<raw>`, Android trả null — thống nhất khi cần test hai tab này.
+- UI test: bước chọn sở thích chưa assert ô đã selected (cần `accessibilityAddTraits(.isSelected)` iOS khi có test phụ thuộc sở thích); CI Android phải chờ `sys.boot_completed`.
+- Scheme `iosApp` riêng cũ của người dùng giữ ở `xcuserdata/.../xcschemes/iosApp (local backup).xcscheme` (gitignored).
 - Fixture `V1_DOCUMENT` viết tay (chỉ 1 completion có `"note": null`); fixture `V2_DOCUMENT` sau này nên sinh bằng `OddlyRepository.save`.
 
 ## Gợi ý thứ tự tiếp theo
 - **P0 còn lại (chủ yếu việc store, cần thông tin từ người dùng):** T-10, T-11, T-14, T-15, T-16, T-17, T-19, T-20, T-21.
-- **P1 code làm được ngay bằng `team-run`:** T-26B (96 thử thách mới, phác thảo ở `T-26A.md`; có thể tách B1 Khó / B2 Dễ+Vừa), T-23 (accessibility, 2 ngày), T-24 (UI test, 2 ngày), T-27 (rà nội dung/bản quyền — cần người). Phần còn lại của T-12 chờ T-10/T-11.
+- **P1 code làm được ngay bằng `team-run`:** T-23C nếu người dùng duyệt bảng màu; T-27 (rà nội dung/bản quyền — cần người). Phần còn lại của T-12 chờ T-10/T-11.

@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import SharedLogic
 
 extension Color {
     /// 0xAARRGGBB, matching the `colorHex` values carried by the shared domain
@@ -14,6 +15,11 @@ extension Color {
         )
     }
 
+    /// Colour from a shared `PaletteSpec` field (Kotlin `Long` arrives as `Int64`).
+    init(spec: Int64) {
+        self.init(argb: UInt64(bitPattern: spec))
+    }
+
     /// 0xRRGGBB, fully opaque.
     init(rgb: UInt64) {
         self.init(argb: 0xFF00_0000 | rgb)
@@ -24,16 +30,16 @@ extension Color {
 /// with a small number of saturated neon accents used sparingly for emphasis.
 enum OddlyColors {
     // Surfaces — near-black with a cool blue cast so the neon reads warm against it.
-    static let background = Color(rgb: 0x07070C)
-    static let surface = Color(rgb: 0x12121B)
-    static let surfaceElevated = Color(rgb: 0x1A1A26)
-    static let surfaceHighest = Color(rgb: 0x23232F)
-    static let outline = Color(rgb: 0x2C2C3A)
+    static let background = Color(spec: PaletteSpecs.shared.dark.background)
+    static let surface = Color(spec: PaletteSpecs.shared.dark.surface)
+    static let surfaceElevated = Color(spec: PaletteSpecs.shared.dark.surfaceElevated)
+    static let surfaceHighest = Color(spec: PaletteSpecs.shared.dark.surfaceHighest)
+    static let outline = Color(spec: PaletteSpecs.shared.dark.outline)
 
     // Text
-    static let textPrimary = Color(rgb: 0xF4F4F7)
-    static let textSecondary = Color(rgb: 0xA0A0B0)
-    static let textTertiary = Color(rgb: 0x6C6C7E)
+    static let textPrimary = Color(spec: PaletteSpecs.shared.dark.textPrimary)
+    static let textSecondary = Color(spec: PaletteSpecs.shared.dark.textSecondary)
+    static let textTertiary = Color(spec: PaletteSpecs.shared.dark.textTertiary)
 
     // Brand gradient stops (the "1%" wordmark and primary CTAs)
     static let pink = Color(rgb: 0xFF7EB3)
@@ -43,11 +49,11 @@ enum OddlyColors {
     static let blue = Color(rgb: 0x60A5FA)
 
     // Semantic accents
-    static let flame = Color(rgb: 0xFF7A45)
+    static let flame = Color(spec: PaletteSpecs.shared.dark.flame)
     static let flameBright = Color(rgb: 0xFFB067)
-    static let success = Color(rgb: 0x4ADE80)
-    static let warning = Color(rgb: 0xFBBF24)
-    static let danger = Color(rgb: 0xF87171)
+    static let success = Color(spec: PaletteSpecs.shared.dark.success)
+    static let warning = Color(spec: PaletteSpecs.shared.dark.warning)
+    static let danger = Color(spec: PaletteSpecs.shared.dark.danger)
 
     /// [top] at [alpha] composited over [bottom], resolved up front.
     ///
@@ -73,13 +79,18 @@ enum OddlyColors {
 
     // Light theme surfaces — the spec lists Light as optional from MVP, so the
     // scheme exists but the app defaults to dark.
-    static let lightBackground = Color(rgb: 0xF7F7FB)
-    static let lightSurface = Color(rgb: 0xFFFFFF)
-    static let lightSurfaceElevated = Color(rgb: 0xF0F0F6)
-    static let lightSurfaceHighest = Color(rgb: 0xE6E6F0)
-    static let lightTextPrimary = Color(rgb: 0x14141C)
-    static let lightTextSecondary = Color(rgb: 0x5A5A6E)
-    static let lightOutline = Color(rgb: 0xE0E0EA)
+    static let lightBackground = Color(spec: PaletteSpecs.shared.light.background)
+    static let lightSurface = Color(spec: PaletteSpecs.shared.light.surface)
+    static let lightSurfaceElevated = Color(spec: PaletteSpecs.shared.light.surfaceElevated)
+    static let lightSurfaceHighest = Color(spec: PaletteSpecs.shared.light.surfaceHighest)
+    static let lightTextPrimary = Color(spec: PaletteSpecs.shared.light.textPrimary)
+    static let lightTextSecondary = Color(spec: PaletteSpecs.shared.light.textSecondary)
+    static let lightTextTertiary = Color(spec: PaletteSpecs.shared.light.textTertiary)
+    static let lightFlame = Color(spec: PaletteSpecs.shared.light.flame)
+    static let lightSuccess = Color(spec: PaletteSpecs.shared.light.success)
+    static let lightWarning = Color(spec: PaletteSpecs.shared.light.warning)
+    static let lightDanger = Color(spec: PaletteSpecs.shared.light.danger)
+    static let lightOutline = Color(spec: PaletteSpecs.shared.light.outline)
 }
 
 private extension Color {

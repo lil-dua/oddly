@@ -441,11 +441,9 @@ class OddlyRepositoryTest {
      */
     @Test
     fun `the first challenge is realigned to the interests just chosen`() {
-        val beforeOnboarding = OddlyRepository.resolveDailyChallenge(
-            OddlyRepository.freshState(TODAY),
-            TODAY,
-            Random(1),
-        ).state
+        // Explicit pick outside the target category: a Random(1) draw over the whole
+        // library shifts every time content is added and could land on FINANCE.
+        val beforeOnboarding = stateWithPick(TODAY, firstIdOf(Category.HEALTH))
         val afterChoosing = beforeOnboarding.copy(
             profile = beforeOnboarding.profile.copy(interests = setOf(Category.FINANCE)),
         )
@@ -481,9 +479,7 @@ class OddlyRepositoryTest {
 
     @Test
     fun `realigning does not count as a skip`() {
-        val state = OddlyRepository
-            .resolveDailyChallenge(OddlyRepository.freshState(TODAY), TODAY, Random(1))
-            .state
+        val state = stateWithPick(TODAY, firstIdOf(Category.HEALTH))
             .let { it.copy(profile = it.profile.copy(interests = setOf(Category.CREATIVITY))) }
 
         val realigned = OddlyRepository.realignToInterests(state, TODAY, Random(1))
@@ -493,6 +489,9 @@ class OddlyRepositoryTest {
     }
 
     // MARK: - Rollover
+
+    private fun firstIdOf(category: Category) =
+        ChallengeSeed.all.first { it.category == category }.id
 
     private fun stateWithPick(date: kotlinx.datetime.LocalDate, id: String) =
         OddlyRepository.freshState(date).copy(

@@ -1,5 +1,6 @@
 package dev.lildua.oddly.ui.screens.challenge
 
+import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +23,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.domain.usecase.ChallengeAvailability
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
 import dev.lildua.oddly.ui.components.GlowOrb
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyChip
@@ -90,7 +95,10 @@ fun ChallengeDetailScreen(
                             .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(24.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(challenge.category.emoji, style = MaterialTheme.typography.displaySmall)
+                        // Emoji sits in a fixed 76dp tile.
+                        CappedFontScale(1.5f) {
+                            Text(challenge.category.emoji, style = MaterialTheme.typography.displaySmall, modifier = Modifier.a11yHidden())
+                        }
                     }
                 }
 
@@ -101,6 +109,7 @@ fun ChallengeDetailScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.a11yHeading(),
                 )
 
                 Spacer(Modifier.height(14.dp))
@@ -144,6 +153,7 @@ fun ChallengeDetailScreen(
                             text = "✦",
                             style = MaterialTheme.typography.bodyMedium,
                             color = accent,
+                            modifier = Modifier.a11yHidden(),
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
@@ -166,7 +176,7 @@ fun ChallengeDetailScreen(
                     Text(
                         text = "+${challenge.humanityPercent}% Humanity",
                         style = MaterialTheme.typography.titleMedium,
-                        color = OddlyColors.Success,
+                        color = palette.success,
                     )
                     Spacer(Modifier.weight(1f))
                     Text(
@@ -183,6 +193,7 @@ fun ChallengeDetailScreen(
                 when (availability) {
                     ChallengeAvailability.DONE_THIS_TODAY -> Row(
                         modifier = Modifier
+                            .testTag(UiTestTags.DETAIL_ALREADY_DONE)
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(percent = 50))
                             .background(OddlyColors.Success.copy(alpha = 0.14f))
@@ -193,29 +204,37 @@ fun ChallengeDetailScreen(
                         OddlyIcon(
                             OddlyIcon.Check,
                             size = 18.dp,
-                            tint = OddlyColors.Success,
+                            tint = palette.success,
                             strokeWidth = 2.dp,
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = strings.alreadyCompletedThis,
                             style = MaterialTheme.typography.labelLarge,
-                            color = OddlyColors.Success,
+                            color = palette.success,
                         )
                     }
 
                     ChallengeAvailability.DAY_ALREADY_DONE ->
-                        NeutralNotice(strings.todayDoneComeBackTomorrow)
+                        NeutralNotice(strings.todayDoneComeBackTomorrow, Modifier.testTag(UiTestTags.DETAIL_DAY_DONE))
 
                     ChallengeAvailability.NOT_TODAYS ->
                         if (canSwap) {
-                            GradientButton(text = strings.setAsTodaysChallenge, onClick = onAdopt)
+                            GradientButton(
+                                text = strings.setAsTodaysChallenge,
+                                onClick = onAdopt,
+                                modifier = Modifier.testTag(UiTestTags.DETAIL_ADOPT),
+                            )
                         } else {
                             NeutralNotice(strings.noSwapsLeftAdopt)
                         }
 
                     ChallengeAvailability.CAN_COMPLETE -> {
-                        GradientButton(text = strings.begin, onClick = onComplete)
+                        GradientButton(
+                            text = strings.begin,
+                            onClick = onComplete,
+                            modifier = Modifier.testTag(UiTestTags.DETAIL_BEGIN),
+                        )
 
                         Spacer(Modifier.height(12.dp))
 
@@ -242,10 +261,10 @@ fun ChallengeDetailScreen(
 
 /** Neutral rather than green: this is not a win for *this* challenge. */
 @Composable
-private fun NeutralNotice(text: String) {
+private fun NeutralNotice(text: String, modifier: Modifier = Modifier) {
     val palette = OddlyTheme.palette
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(palette.surfaceElevated)

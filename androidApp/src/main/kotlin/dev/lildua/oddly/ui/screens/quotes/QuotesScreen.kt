@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.quotes
 
+import androidx.compose.foundation.layout.PaddingValues
+import dev.lildua.oddly.ui.components.FillHeightScrollColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +43,15 @@ import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import dev.lildua.oddly.ui.components.IconCircleButton
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yLiveRegion
+import dev.lildua.oddly.ui.components.toggleableNoRipple
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.localized
 import dev.lildua.oddly.ui.theme.OddlyTheme
@@ -83,21 +94,21 @@ fun QuotesScreen(
         ) {
             OddlyTopBar(title = "", onBack = onBack)
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+            FillHeightScrollColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = strings.quotesTitle,
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.textPrimary,
+                    modifier = Modifier.a11yHeading(),
                 )
 
                 Spacer(Modifier.height(16.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OddlyChip(
                         text = strings.quotesFilterAll,
                         accent = OddlyColors.Purple,
@@ -138,15 +149,20 @@ fun QuotesScreen(
                     }
                     Spacer(Modifier.weight(1f))
                 } else {
+                    // Label names the action, so it flips after each tap ("Add" -> "Remove").
+                    val favoriteLabel =
+                        if (isFavorite) strings.a11yRemoveFavorite else strings.a11yAddFavorite
                     Box(
                         modifier = Modifier
+                            .minimumInteractiveComponentSize()
                             .size(44.dp)
                             .clip(CircleShape)
                             .background(
                                 if (isFavorite) OddlyColors.Pink.copy(alpha = 0.18f)
                                 else palette.surfaceElevated,
                             )
-                            .clickableNoRipple { state.toggleFavorite(quote.id) },
+                            .clickableNoRipple { state.toggleFavorite(quote.id) }
+                            .semantics { contentDescription = favoriteLabel },
                         contentAlignment = Alignment.Center,
                     ) {
                         OddlyIcon(
@@ -176,24 +192,32 @@ fun QuotesScreen(
 
                     Spacer(Modifier.height(20.dp))
 
+                    val positionLabel = strings.a11yQuotePosition(index + 1, quotes.size)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        NavArrow(OddlyIcon.ChevronLeft) {
-                            index = (index - 1 + quotes.size) % quotes.size
-                        }
+                        IconCircleButton(
+                            icon = OddlyIcon.ChevronLeft,
+                            contentDescription = strings.a11yPreviousQuote,
+                            onClick = { index = (index - 1 + quotes.size) % quotes.size },
+                        )
                         Spacer(Modifier.size(20.dp))
                         Text(
                             text = "${index + 1} / ${quotes.size}",
                             style = MaterialTheme.typography.labelSmall,
                             color = palette.textTertiary,
+                            modifier = Modifier.semantics {
+                                contentDescription = positionLabel
+                            },
                         )
                         Spacer(Modifier.size(20.dp))
-                        NavArrow(OddlyIcon.ChevronRight) {
-                            index = (index + 1) % quotes.size
-                        }
+                        IconCircleButton(
+                            icon = OddlyIcon.ChevronRight,
+                            contentDescription = strings.a11yNextQuote,
+                            onClick = { index = (index + 1) % quotes.size },
+                        )
                     }
 
                     Spacer(Modifier.weight(1f))
@@ -208,6 +232,9 @@ fun QuotesScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(palette.surfaceElevated)
+                        .toggleableNoRipple(state.settings.reminderEnabled, Role.Switch) {
+                            state.settings = state.settings.copy(reminderEnabled = it)
+                        }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -225,9 +252,8 @@ fun QuotesScreen(
                     }
                     Switch(
                         checked = state.settings.reminderEnabled,
-                        onCheckedChange = {
-                            state.settings = state.settings.copy(reminderEnabled = it)
-                        },
+                        // The row is the toggle target; the Switch only draws state.
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                             checkedTrackColor = OddlyColors.Success,
@@ -256,22 +282,10 @@ private fun QuoteCard(content: @Composable ColumnScope.() -> Unit) {
                     ),
                 ),
             )
+            // One merged, polite live region: changing quote reads the new text once.
+            .semantics(mergeDescendants = true) {}
+            .a11yLiveRegion()
             .padding(28.dp),
         content = content,
     )
-}
-
-@Composable
-private fun NavArrow(icon: OddlyIcon, onClick: () -> Unit) {
-    val palette = OddlyTheme.palette
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(palette.surfaceElevated)
-            .clickableNoRipple(onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        OddlyIcon(icon, size = 16.dp, tint = palette.textSecondary)
-    }
 }

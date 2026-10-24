@@ -51,7 +51,7 @@ struct ShareCardScreen: View {
                                 layout = entry
                             } label: {
                                 Text(entry.label(strings))
-                                    .font(OddlyFont.labelMedium)
+                                    .oddlyFont(OddlyFont.labelMedium)
                                     .foregroundStyle(active ? OddlyColors.purple : palette.textTertiary)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
@@ -59,8 +59,10 @@ struct ShareCardScreen: View {
                                         active ? OddlyColors.purple.opacity(0.2) : palette.surfaceElevated,
                                         in: RoundedRectangle(cornerRadius: OddlyRadius.small, style: .continuous)
                                     )
+                                    .minimumTapTarget()
                             }
                             .buttonStyle(PressableStyle())
+                            .accessibilitySelected(active)
                         }
                     }
 
@@ -68,6 +70,8 @@ struct ShareCardScreen: View {
                     // when the rest of the screen is in the light theme.
                     ShareCardPreview(state: state, challenge: challenge, ratio: layout.ratio)
                         .environment(\.palette, .dark)
+                        // The preview reads as one block instead of a dozen stray labels.
+                        .accessibilityElement(children: .combine)
                         .padding(.top, 20)
 
                     // The system share sheet is also where "Save Image" lives on
@@ -94,7 +98,7 @@ struct ShareCardScreen: View {
                     .padding(.top, 24)
 
                     Text(strings.sharePrivacyNote)
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
@@ -116,10 +120,12 @@ struct ShareCardScreen: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(PressableStyle())
+            .accessibilityLabel(strings.close)
             Spacer()
             Text(strings.shareCardTitle)
-                .font(OddlyFont.titleMedium)
+                .oddlyFont(OddlyFont.titleMedium)
                 .foregroundStyle(palette.textPrimary)
+                .accessibilityHeading()
             Spacer()
             Color.clear.frame(width: 44, height: 44)
         }
@@ -130,11 +136,12 @@ struct ShareCardScreen: View {
         HStack(spacing: 8) {
             OddlyIconView(icon, size: 18, tint: OddlyColors.onNeon)
             Text(title)
-                .font(OddlyFont.labelLarge)
+                .oddlyFont(OddlyFont.labelLarge)
                 .foregroundStyle(OddlyColors.onNeon)
         }
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(minHeight: 54)
         .background(OddlyGradients.primaryButton, in: Capsule())
     }
 
@@ -175,7 +182,12 @@ private struct ShareCardPreview: View {
     let challenge: LocalizedChallenge?
     let ratio: CGFloat
 
+    // Pinned so the preview and the ImageRenderer export look identical at every system text size.
     var body: some View {
+        cardContent.dynamicTypeSize(.large)
+    }
+
+    private var cardContent: some View {
         ZStack {
             LinearGradient(
                 colors: [
@@ -189,27 +201,27 @@ private struct ShareCardPreview: View {
             StarField(starCount: 70, seed: 53)
 
             VStack(spacing: 0) {
-                GradientText("1% HUMAN", font: OddlyFont.titleLarge)
+                GradientText("1% HUMAN", style: OddlyFont.titleLarge)
 
                 Spacer(minLength: 0)
 
                 Text(strings.shareICompleted)
-                    .font(OddlyFont.bodyLarge)
+                    .oddlyFont(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
 
-                GradientText(strings.challengeCount(count: Int32(state.totalCompleted)), font: OddlyFont.displaySmall)
+                GradientText(strings.challengeCount(count: Int32(state.totalCompleted)), style: OddlyFont.displaySmall)
                     .padding(.top, 8)
 
                 Text(strings.keptStreakFor(count: state.streak.current))
-                    .font(OddlyFont.bodyLarge)
+                    .oddlyFont(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 8)
 
                 if let challenge {
                     Text("“\(challenge.title)”")
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.top, 16)
@@ -222,7 +234,7 @@ private struct ShareCardPreview: View {
                 // The card is the app's only growth surface: without this a
                 // recipient sees a nice image and has no idea what made it.
                 Text(Brand.shared.HASHTAG)
-                    .font(OddlyFont.labelMedium)
+                    .oddlyFont(OddlyFont.labelMedium)
                     .foregroundStyle(OddlyColors.purple)
                     .padding(.top, 16)
 
@@ -232,7 +244,7 @@ private struct ShareCardPreview: View {
                     Text(Brand.shared.SHORT_LINK)
                         .foregroundStyle(palette.textPrimary)
                 }
-                .font(OddlyFont.bodySmall)
+                .oddlyFont(OddlyFont.bodySmall)
                 .padding(.top, 6)
             }
             .padding(24)

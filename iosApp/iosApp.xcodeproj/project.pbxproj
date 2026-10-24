@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		2DFA9A07EC6240D7BD9629FF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 868D01512AA302A24A074E41 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E3D57E0E6DE6080F529E2480;
+			remoteInfo = iosApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		018B315BA5AB4FB094BE3A0A /* iosAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		11F9C1B00D12CE4BBDD32522 /* Oddly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oddly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -34,10 +45,22 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		B4D3C42E828E4CA381BFFE43 /* iosAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = iosAppUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		3A289DD8ADA6A03F45795714 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C181A6B8734E4347BF1E94E9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -51,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				11F9C1B00D12CE4BBDD32522 /* Oddly.app */,
+				018B315BA5AB4FB094BE3A0A /* iosAppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -60,6 +84,7 @@
 			children = (
 				845C5AF988874EB4FD9357EA /* Configuration */,
 				7806DAB1D1F6FB84A1DDE66A /* iosApp */,
+				B4D3C42E828E4CA381BFFE43 /* iosAppUITests */,
 				0A5E5FFAA977EA3083056F12 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -67,6 +92,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1F38868194574C91BE4DDB02 /* iosAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 06158B084AD64B9CB6E8379E /* Build configuration list for PBXNativeTarget "iosAppUITests" */;
+			buildPhases = (
+				2DA4D6AF216B4765AAB4D251 /* Sources */,
+				C181A6B8734E4347BF1E94E9 /* Frameworks */,
+				2E091EA5E48343D986D389F7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FEFC7D86963143E7A6141F40 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B4D3C42E828E4CA381BFFE43 /* iosAppUITests */,
+			);
+			name = iosAppUITests;
+			packageProductDependencies = (
+			);
+			productName = iosAppUITests;
+			productReference = 018B315BA5AB4FB094BE3A0A /* iosAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		E3D57E0E6DE6080F529E2480 /* iosApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 42AABB794CBEFFF74C6CC2C4 /* Build configuration list for PBXNativeTarget "iosApp" */;
@@ -100,6 +148,10 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					1F38868194574C91BE4DDB02 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = E3D57E0E6DE6080F529E2480;
+					};
 					E3D57E0E6DE6080F529E2480 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -120,11 +172,19 @@
 			projectRoot = "";
 			targets = (
 				E3D57E0E6DE6080F529E2480 /* iosApp */,
+				1F38868194574C91BE4DDB02 /* iosAppUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2E091EA5E48343D986D389F7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8F0D29ABA3A9358FFDC82BE3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -157,6 +217,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		2DA4D6AF216B4765AAB4D251 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DA35ABB92F80D6AEFBA34F72 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -166,7 +233,30 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		FEFC7D86963143E7A6141F40 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E3D57E0E6DE6080F529E2480 /* iosApp */;
+			targetProxy = 2DFA9A07EC6240D7BD9629FF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		29FB4A4C4CF546A796148EFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lildua.oddly.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = iosApp;
+			};
+			name = Release;
+		};
 		4942459DCD955BD9EC138A39 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -344,9 +434,33 @@
 			};
 			name = Release;
 		};
+		F48F1646270A4AFA8E3C6DAE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lildua.oddly.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = iosApp;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		06158B084AD64B9CB6E8379E /* Build configuration list for PBXNativeTarget "iosAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F48F1646270A4AFA8E3C6DAE /* Debug */,
+				29FB4A4C4CF546A796148EFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		42AABB794CBEFFF74C6CC2C4 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

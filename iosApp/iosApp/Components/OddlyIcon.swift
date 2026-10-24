@@ -56,6 +56,8 @@ struct OddlyIconView: View {
             draw(icon, in: &context, side: min(canvasSize.width, canvasSize.height), color: color)
         }
         .frame(width: size, height: size)
+        // Decorative: buttons that use an icon name themselves with an accessibilityLabel.
+        .accessibilityHidden(true)
     }
 
     private func draw(_ icon: OddlyIcon, in context: inout GraphicsContext, side s: CGFloat, color: Color) {

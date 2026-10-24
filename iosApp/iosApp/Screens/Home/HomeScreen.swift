@@ -18,21 +18,23 @@ struct HomeScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if let notice = state.dayChangeNotice {
-                    OddlyCard(action: state.clearDayChangeNotice) {
+                    OddlyCard(action: state.clearDayChangeNotice, actionHint: strings.a11yDismissNotice) {
                         Text(noticeText(notice))
-                            .font(OddlyFont.bodyMedium)
+                            .oddlyFont(OddlyFont.bodyMedium)
                             .foregroundStyle(palette.textPrimary)
                     }
+                    .accessibilityIdentifier(UiTestTags.shared.HOME_DAY_BANNER)
                     .padding(.top, 20)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(DateFormat.shared.dayAndMonth(date: state.today, language: strings.language))
-                        .font(OddlyFont.labelMedium)
+                        .oddlyFont(OddlyFont.labelMedium)
                         .foregroundStyle(palette.textTertiary)
                     Text(strings.homeHeadline)
-                        .font(OddlyFont.headlineSmall)
+                        .oddlyFont(OddlyFont.headlineSmall)
                         .foregroundStyle(palette.textPrimary)
+                        .accessibilityHeading()
                 }
                 .padding(.top, state.dayChangeNotice == nil ? 20 : 4)
                 .padding(.bottom, 4)
@@ -55,7 +57,8 @@ struct HomeScreen: View {
                     StatTile(
                         value: "Lv.\(state.profile.level)",
                         label: strings.xpProgress(current: state.profile.xpInLevel, total: state.profile.xpForNextLevel),
-                        accent: OddlyColors.pink
+                        accent: OddlyColors.pink,
+                        valueDescription: strings.a11yLevel(level: Int32(state.profile.level))
                     )
                 }
 
@@ -69,8 +72,12 @@ struct HomeScreen: View {
         .background(palette.background)
         .statusBarScrim(palette.background)
         // Self-dismiss; a fresh notice restarts the timer because the id changes.
+        // VoiceOver users hear it immediately and keep it until they dismiss it,
+        // since they may not reach the banner within 4 s.
         .task(id: state.dayChangeNotice) {
-            guard state.dayChangeNotice != nil else { return }
+            guard let notice = state.dayChangeNotice else { return }
+            announce(noticeText(notice))
+            if UIAccessibility.isVoiceOverRunning { return }
             try? await Task.sleep(for: .seconds(4))
             if !Task.isCancelled { state.clearDayChangeNotice() }
         }
@@ -90,7 +97,7 @@ struct HomeScreen: View {
                 SectionLabel(strings.streak)
                 Spacer()
                 Text("\(strings.streakDays(count: state.streak.current)) 🔥")
-                    .font(OddlyFont.labelMedium)
+                    .oddlyFont(OddlyFont.labelMedium)
                     .foregroundStyle(palette.flame)
                 OddlyIconView(.chevronRight, size: 14, tint: palette.textTertiary)
             }
@@ -108,12 +115,12 @@ struct HomeScreen: View {
                 OddlyIconView(.chevronRight, size: 14, tint: palette.textTertiary)
             }
             Text("“\(quote.text)”")
-                .font(OddlyFont.bodyMedium)
+                .oddlyFont(OddlyFont.bodyMedium)
                 .foregroundStyle(palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 12)
             Text("– \(quote.author)")
-                .font(OddlyFont.bodySmall)
+                .oddlyFont(OddlyFont.bodySmall)
                 .foregroundStyle(palette.textTertiary)
                 .padding(.top, 8)
         }
@@ -131,10 +138,10 @@ struct HomeScreen: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(strings.wantAnotherChallenge)
-                        .font(OddlyFont.titleSmall)
+                        .oddlyFont(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
                     Text(exploreBody)
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

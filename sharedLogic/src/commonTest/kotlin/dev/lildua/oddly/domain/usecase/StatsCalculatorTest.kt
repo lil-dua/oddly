@@ -9,6 +9,7 @@ import dev.lildua.oddly.domain.model.AppLanguage
 import dev.lildua.oddly.domain.model.Category
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -179,5 +180,200 @@ class StatsCalculatorTest {
         )
 
         assertEquals(Category.HEALTH, summary.mostActiveCategory)
+    }
+
+    // MARK: - Bar date spans (screen reader)
+
+    @Test
+    fun `week bars are single days ending today`() {
+        val bars = summarize(emptyList(), StatsRange.WEEK).bars
+
+        assertEquals(7, bars.size)
+        assertTrue(bars.all { it.startDate == it.endDate })
+        assertEquals(TODAY, bars.last().endDate)
+        assertTrue(bars.last().isToday)
+        assertEquals(daysAgo(6), bars.first().startDate)
+    }
+
+    @Test
+    fun `month bars are contiguous and end today`() {
+        val bars = summarize(completionsOn(0, 10, 29), StatsRange.MONTH).bars
+
+        assertEquals(TODAY, bars.last().endDate)
+        assertEquals(daysAgo(29), bars.first().startDate)
+        // span 30 / bucket 5 leaves the oldest column wholly outside the window: it is
+        // an empty column pinned to the first day, so contiguity holds from the 2nd bar.
+        assertEquals(0, bars.first().count)
+        bars.drop(1).zipWithNext().forEach { (a, b) ->
+            assertEquals(a.endDate.toEpochDays() + 1, b.startDate.toEpochDays())
+        }
+        assertTrue(bars.all { it.startDate <= it.endDate })
+    }
+
+    @Test
+    fun `all range bars never reach before the earliest completion window`() {
+        val bars = summarize(completionsOn(0, 20), StatsRange.ALL).bars
+
+        assertEquals(daysAgo(20), bars.first().startDate)
+        assertEquals(TODAY, bars.last().endDate)
+        assertEquals(2, bars.sumOf { it.count })
+    }
+
+    @Test
+    fun `all range with no completions still spans seven days ending today`() {
+        val bars = summarize(emptyList(), StatsRange.ALL).bars
+
+        assertEquals(7, bars.size)
+        assertEquals(daysAgo(6), bars.first().startDate)
+        assertEquals(TODAY, bars.last().endDate)
+    }
+
+    // MARK: - Empty oldest column (bucketSize * 7 > span)
+
+    /** The pre-fix count rule (HEAD): sum of days start..end, 0 when the clamped range is inverted. */
+    private fun legacyCounts(
+        completions: List<dev.lildua.oddly.domain.model.ChallengeCompletion>,
+        range: StatsRange,
+    ): List<Int> {
+        val done = completions.groupingBy { it.date.toEpochDays() }.eachCount()
+        val today = TODAY.toEpochDays()
+        val span = range.days ?: (today - (completions.minOfOrNull { it.date.toEpochDays() } ?: today) + 1).coerceAtLeast(7)
+        val windowStart = today - span + 1
+        val bucket = (span + 6) / 7
+        return (6 downTo 0).map { i ->
+            val end = today - i * bucket
+            val start = (end - bucket + 1).coerceAtLeast(windowStart)
+            if (start > end) 0 else (start..end).sumOf { done[it] ?: 0 }
+        }
+    }
+
+    @Test
+    fun `every range keeps seven bars with start not after end and the last ending today`() {
+        val data = completionsOn(0, 1, 3, 10, 29, 30, 100, 364, 365, 500)
+        StatsRange.entries.forEach { range ->
+            val bars = summarize(data, range).bars
+            assertEquals(7, bars.size, "$range")
+            assertTrue(bars.all { it.startDate <= it.endDate }, "$range start<=end")
+            assertEquals(TODAY, bars.last().endDate, "$range")
+        }
+    }
+
+    @Test
+    fun `bar counts match the pre-fix counts for month year and all`() {
+        val data = completionsOn(0, 1, 3, 5, 10, 29, 30, 31, 100, 200, 364, 365, 500)
+        listOf(StatsRange.MONTH, StatsRange.YEAR, StatsRange.ALL).forEach { range ->
+            assertEquals(legacyCounts(data, range), summarize(data, range).bars.map { it.count }, "$range")
+        }
+    }
+
+    @Test
+    fun `all range bar counts match the pre-fix counts for every earliest day`() {
+        for (earliest in 0..60) {
+            val data = completionsOn(0, earliest)
+            val bars = summarize(data, StatsRange.ALL).bars
+            assertEquals(legacyCounts(data, StatsRange.ALL), bars.map { it.count }, "earliest=$earliest")
+            assertEquals(data.size, bars.sumOf { it.count }, "sum earliest=$earliest")
+            assertTrue(bars.all { it.startDate <= it.endDate }, "earliest=$earliest")
+        }
+    }
+
+    @Test
+    fun `month bar total equals the headline total and the oldest column is empty`() {
+        val data = completionsOn(0, 10, 29, 30)
+        val summary = summarize(data, StatsRange.MONTH)
+
+        assertEquals(StatsCalculator.filterTo(data, TODAY, StatsRange.MONTH).size, summary.bars.sumOf { it.count })
+        assertEquals(0, summary.bars.first().count)
+        assertEquals(daysAgo(29), summary.bars.first().startDate)
+        assertEquals(daysAgo(29), summary.bars.first().endDate)
+    }
+
+    @Test
+    fun `an empty oldest column is padding and is not read in either language`() {
+        val bars = summarize(completionsOn(0), StatsRange.MONTH).bars
+        assertTrue(bars.first().isPadding)
+        assertTrue(bars.drop(1).none { it.isPadding })
+        listOf(dev.lildua.oddly.core.text.VietnameseStrings, dev.lildua.oddly.core.text.EnglishStrings).forEach { s ->
+            val text = dev.lildua.oddly.core.text.AccessibilityText.chart(bars, s)
+            assertEquals(bars.size - 1, text.split(". ").size - 1, text)
+        }
+    }
+
+    @Test
+    fun `all range with 8 days of history does not read the window start date repeatedly`() {
+        val bars = summarize(completionsOn(0, 7), StatsRange.ALL).bars
+        listOf(dev.lildua.oddly.core.text.VietnameseStrings, dev.lildua.oddly.core.text.EnglishStrings).forEach { s ->
+            val text = dev.lildua.oddly.core.text.AccessibilityText.chart(bars, s)
+            val weekday = dev.lildua.oddly.core.time.DateFormat.fullWeekday(daysAgo(7), s.language)
+            assertTrue(text.split(weekday).size - 1 <= 1, text)
+        }
+    }
+
+    @Test
+    fun `a single day column older than 7 days is not read with a bare weekday`() {
+        val bars = summarize(completionsOn(0, 8), StatsRange.ALL).bars
+        val old = bars.first { it.startDate == it.endDate && it.startDate == daysAgo(8) }
+        listOf(dev.lildua.oddly.core.text.VietnameseStrings, dev.lildua.oddly.core.text.EnglishStrings).forEach { s ->
+            val text = dev.lildua.oddly.core.text.AccessibilityText.chartBar(old, s, TODAY)
+            assertEquals(
+                s.a11yChartDay(dev.lildua.oddly.core.time.DateFormat.dayAndMonth(old.startDate, s.language), old.count),
+                text,
+            )
+        }
+    }
+
+    @Test
+    fun `chart sentences are unique skip padding and never name an old day by bare weekday for every range and span`() {
+        val langs = listOf(dev.lildua.oddly.core.text.VietnameseStrings, dev.lildua.oddly.core.text.EnglishStrings)
+        val cases = (0..59).map { StatsRange.ALL to it } + listOf(StatsRange.WEEK to 0, StatsRange.MONTH to 0, StatsRange.YEAR to 0)
+        for ((range, earliest) in cases) {
+            val data = completionsOn(0, earliest, 3)
+            val bars = summarize(data, range).bars
+            val tag = "$range earliest=$earliest"
+            // data columns are never padding; padding is always empty
+            assertTrue(bars.none { it.isPadding && it.count > 0 }, tag)
+            assertEquals(summarize(data, range).bars.sumOf { it.count }, bars.filterNot { it.isPadding }.sumOf { it.count }, tag)
+            langs.forEach { s ->
+                val spoken = bars.filterNot { it.isPadding }.map {
+                    dev.lildua.oddly.core.text.AccessibilityText.chartBar(it, s, TODAY)
+                }
+                val expected = (listOf(s.a11yChartTitle) + spoken).joinToString(". ")
+                assertEquals(expected, dev.lildua.oddly.core.text.AccessibilityText.chart(bars, s), tag)
+                assertEquals(spoken.size, spoken.toSet().size, "$tag duplicate sentence: $spoken")
+                bars.filterNot { it.isPadding }.forEach { b ->
+                    if (b.startDate == b.endDate && !b.isToday && TODAY.toEpochDays() - b.startDate.toEpochDays() > 6) {
+                        val bare = s.a11yChartDay(dev.lildua.oddly.core.time.DateFormat.fullWeekday(b.startDate, s.language), b.count)
+                        assertTrue(dev.lildua.oddly.core.text.AccessibilityText.chartBar(b, s, TODAY) != bare, tag)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `all range with 9 days of history keeps the earliest completion column and reads its date`() {
+        val data = completionsOn(0, 8)
+        val bars = summarize(data, StatsRange.ALL).bars
+        val col = bars.first { it.count > 0 && it.startDate <= daysAgo(8) }
+        assertFalse(col.isPadding)
+        assertEquals(legacyCounts(data, StatsRange.ALL), bars.map { it.count })
+        listOf(
+            dev.lildua.oddly.core.text.VietnameseStrings,
+            dev.lildua.oddly.core.text.EnglishStrings,
+        ).forEach { s ->
+            val text = dev.lildua.oddly.core.text.AccessibilityText.chart(bars, s)
+            assertTrue(text.contains(dev.lildua.oddly.core.time.DateFormat.dayAndMonth(daysAgo(8), s.language)), text)
+        }
+    }
+
+    @Test
+    fun `vietnamese old day format is weekday comma day thang month`() {
+        assertEquals(
+            "Thứ Sáu, 16 tháng 10",
+            dev.lildua.oddly.core.time.DateFormat.dayAndMonth(
+                kotlinx.datetime.LocalDate(2026, 10, 16),
+                AppLanguage.VIETNAMESE,
+            ),
+        )
     }
 }

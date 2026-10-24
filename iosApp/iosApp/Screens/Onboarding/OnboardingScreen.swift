@@ -1,4 +1,5 @@
 import SwiftUI
+import SharedLogic
 
 private struct Benefit: Identifiable {
     let id = UUID()
@@ -29,53 +30,58 @@ struct OnboardingScreen: View {
             palette.background.ignoresSafeArea()
             StarField(starCount: 70, seed: 9).ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                HStack {
-                    Spacer()
-                    TextAction(strings.skip, action: onSkip)
-                }
-
-                Text(strings.onboardingWelcome)
-                    .font(OddlyFont.headlineSmall)
-                    .foregroundStyle(palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 24)
-
-                GradientText("1% HUMAN", font: OddlyFont.displaySmall)
-
-                Text(strings.onboardingSubtitle)
-                    .font(OddlyFont.bodyMedium)
-                    .foregroundStyle(palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 14)
-
-                Spacer(minLength: 0)
-
-                Astronaut(size: 210)
-
-                Spacer(minLength: 0)
-
-                HStack(alignment: .top, spacing: 0) {
-                    ForEach(benefits) { benefit in
-                        VStack(spacing: 10) {
-                            OddlyIconView(benefit.icon, size: 24, tint: benefit.tint)
-                            Text(benefit.label)
-                                .font(OddlyFont.bodySmall)
-                                .foregroundStyle(palette.textSecondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
+            FillScrollView {
+                VStack(spacing: 0) {
+                    HStack {
+                        Spacer()
+                        TextAction(strings.skip, action: onSkip)
+                            .accessibilityIdentifier(UiTestTags.shared.ONBOARDING_SKIP)
                     }
+
+                    Text(strings.onboardingWelcome)
+                        .oddlyFont(OddlyFont.headlineSmall)
+                        .foregroundStyle(palette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 24)
+
+                    GradientText("1% HUMAN", style: OddlyFont.displaySmall)
+                        .accessibilityHeading()
+
+                    Text(strings.onboardingSubtitle)
+                        .oddlyFont(OddlyFont.bodyMedium)
+                        .foregroundStyle(palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 14)
+
+                    Spacer(minLength: 0)
+
+                    Astronaut(size: 210)
+
+                    Spacer(minLength: 0)
+
+                    HStack(alignment: .top, spacing: 0) {
+                        ForEach(benefits) { benefit in
+                            VStack(spacing: 10) {
+                                OddlyIconView(benefit.icon, size: 24, tint: benefit.tint)
+                                Text(benefit.label)
+                                    .oddlyFont(OddlyFont.bodySmall)
+                                    .foregroundStyle(palette.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+
+                    GradientButton(strings.onboardingStart, action: onStart)
+                        .accessibilityIdentifier(UiTestTags.shared.ONBOARDING_START)
+                        .padding(.top, 32)
+
+                    PageDots(count: 3, selected: 0)
+                        .padding(.top, 20)
                 }
-
-                GradientButton(strings.onboardingStart, action: onStart)
-                    .padding(.top, 32)
-
-                PageDots(count: 3, selected: 0)
-                    .padding(.top, 20)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 24)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 24)
         }
     }
 }
@@ -97,5 +103,6 @@ struct PageDots: View {
                     )
             }
         }
+        .accessibilityHidden(true)
     }
 }

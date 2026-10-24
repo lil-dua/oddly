@@ -40,9 +40,10 @@ struct ChooseCategoryScreen: View {
 
                     VStack(spacing: 0) {
                         Text(strings.chooseCategoryTitle)
-                            .font(OddlyFont.headlineMedium)
+                            .oddlyFont(OddlyFont.headlineMedium)
                             .foregroundStyle(palette.textPrimary)
                             .multilineTextAlignment(.center)
+                            .accessibilityHeading()
                             .frame(maxWidth: .infinity)
 
                         let counts = completedPerCategory
@@ -75,6 +76,8 @@ private struct CategoryTile: View {
     @Environment(\.palette) private var palette
     @Environment(\.strings) private var strings
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let category: ChallengeCategory
     let completedCount: Int
     let totalCount: Int
@@ -83,23 +86,28 @@ private struct CategoryTile: View {
     var body: some View {
         let accent = category.color
         let shape = RoundedRectangle(cornerRadius: OddlyRadius.large, style: .continuous)
+        // Square at normal sizes; at accessibility sizes the name and count no longer fit, so grow with content.
+        let large = dynamicTypeSize.isAccessibilitySize
 
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 0) {
-                Text(category.emoji).font(OddlyFont.displaySmall)
+                Text(category.emoji).oddlyFont(OddlyFont.displaySmall)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                    .accessibilityHidden(true)
                 Spacer(minLength: 8)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(category.title.of(strings))
-                        .font(OddlyFont.titleSmall)
+                        .oddlyFont(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
                         .multilineTextAlignment(.leading)
                     Text(strings.doneOutOf(done: Int32(completedCount), total: Int32(totalCount)))
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(accent)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .aspectRatio(1, contentMode: .fill)
+            // maxHeight lets both tiles of a grid row share the taller one's height.
+            .frame(maxWidth: .infinity, maxHeight: large ? .infinity : nil, alignment: large ? .topLeading : .leading)
+            .aspectRatio(large ? nil : 1, contentMode: .fill)
             .padding(16)
             .background(OddlyGradients.categoryWash(accent), in: shape)
             .overlay(shape.stroke(accent.opacity(0.25), lineWidth: 1))

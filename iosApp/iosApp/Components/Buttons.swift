@@ -47,12 +47,14 @@ struct GradientButton: View {
                     OddlyIconView(leadingIcon, size: 18, tint: OddlyColors.onNeon)
                 }
                 Text(title)
-                    .font(OddlyFont.labelLarge)
+                    .oddlyFont(OddlyFont.labelLarge)
                     .foregroundStyle(OddlyColors.onNeon)
                     .multilineTextAlignment(.center)
             }
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .frame(height: height)
+            // `height` is a minimum so a wrapped label at large Dynamic Type is never clipped.
+            .frame(minHeight: height)
             .background(gradient, in: Capsule())
         }
         .buttonStyle(PressableStyle())
@@ -89,11 +91,13 @@ struct SecondaryButton: View {
                     OddlyIconView(leadingIcon, size: 18, tint: palette.textPrimary)
                 }
                 Text(title)
-                    .font(OddlyFont.labelLarge)
+                    .oddlyFont(OddlyFont.labelLarge)
                     .foregroundStyle(palette.textPrimary)
             }
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .frame(height: height)
+            // `height` is a minimum so a wrapped label at large Dynamic Type is never clipped.
+            .frame(minHeight: height)
             .background(palette.surfaceElevated.opacity(0.5), in: Capsule())
             .overlay(Capsule().stroke(palette.outline, lineWidth: 1))
         }
@@ -118,10 +122,11 @@ struct TextAction: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(OddlyFont.labelMedium)
+                .oddlyFont(OddlyFont.labelMedium)
                 .foregroundStyle(color ?? palette.textSecondary)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 4)
+                .minimumTapTarget()
         }
         .buttonStyle(PressableStyle(pressedScale: 0.94))
     }
@@ -132,6 +137,8 @@ struct CircleIconButton: View {
     @Environment(\.palette) private var palette
 
     let icon: OddlyIcon
+    /// Spoken name of the action; mandatory because the icon itself is hidden from VoiceOver.
+    let label: String
     var diameter: CGFloat = 38
     var iconSize: CGFloat = 20
     var tint: Color?
@@ -139,12 +146,14 @@ struct CircleIconButton: View {
 
     init(
         _ icon: OddlyIcon,
+        label: String,
         diameter: CGFloat = 38,
         iconSize: CGFloat = 20,
         tint: Color? = nil,
         action: @escaping () -> Void
     ) {
         self.icon = icon
+        self.label = label
         self.diameter = diameter
         self.iconSize = iconSize
         self.tint = tint
@@ -156,7 +165,9 @@ struct CircleIconButton: View {
             OddlyIconView(icon, size: iconSize, tint: tint ?? palette.textPrimary)
                 .frame(width: diameter, height: diameter)
                 .background(palette.surfaceElevated, in: Circle())
+                .minimumTapTarget()
         }
         .buttonStyle(PressableStyle())
+        .accessibilityLabel(label)
     }
 }

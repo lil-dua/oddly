@@ -22,9 +22,9 @@ struct SplashScreen: View {
                 ZStack {
                     BrandRing(size: 190, lineWidth: 7)
                     VStack(spacing: 0) {
-                        GradientText("1%", font: OddlyFont.displayMedium, tracking: -1)
+                        GradientText("1%", style: OddlyFont.displayMedium, tracking: -1)
                         Text("HUMAN")
-                            .font(OddlyFont.labelLarge)
+                            .oddlyFont(OddlyFont.labelLarge)
                             .foregroundStyle(palette.textSecondary)
                     }
                 }
@@ -33,7 +33,7 @@ struct SplashScreen: View {
                     Text(strings.splashTaglineLine1)
                     Text(strings.splashTaglineLine2)
                 }
-                .font(OddlyFont.bodyLarge)
+                .oddlyFont(OddlyFont.bodyLarge)
                 .foregroundStyle(palette.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, 56)

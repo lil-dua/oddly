@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.onboarding
 
+import androidx.compose.foundation.layout.PaddingValues
+import dev.lildua.oddly.ui.components.FillHeightScrollColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,8 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
 import dev.lildua.oddly.ui.components.Astronaut
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
@@ -57,15 +63,15 @@ fun OnboardingScreen(
     ) {
         StarField(Modifier.fillMaxSize(), starCount = 70, seed = 9)
 
-        Column(
+        FillHeightScrollColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextAction(strings.skip, onSkip)
+                TextAction(strings.skip, onSkip, modifier = Modifier.testTag(UiTestTags.ONBOARDING_SKIP))
             }
 
             Spacer(Modifier.height(24.dp))
@@ -79,6 +85,7 @@ fun OnboardingScreen(
             GradientText(
                 text = "1% HUMAN",
                 style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.a11yHeading(),
             )
 
             Spacer(Modifier.height(14.dp))
@@ -119,7 +126,11 @@ fun OnboardingScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            GradientButton(text = strings.onboardingStart, onClick = onStart)
+            GradientButton(
+                text = strings.onboardingStart,
+                onClick = onStart,
+                modifier = Modifier.testTag(UiTestTags.ONBOARDING_START),
+            )
 
             Spacer(Modifier.height(20.dp))
 
@@ -131,7 +142,7 @@ fun OnboardingScreen(
 @Composable
 private fun PageDots(count: Int, selected: Int) {
     val palette = OddlyTheme.palette
-    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+    Row(modifier = Modifier.a11yHidden(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
         repeat(count) { index ->
             Box(
                 Modifier

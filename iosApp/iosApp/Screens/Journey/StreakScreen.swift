@@ -25,14 +25,17 @@ struct StreakScreen: View {
                             .frame(width: 260, height: 260)
                         VStack(spacing: 0) {
                             Text("\(streak.current)")
-                                .font(OddlyFont.displayLarge)
+                                .oddlyFont(OddlyFont.displayLarge)
                                 .foregroundStyle(palette.textPrimary)
                             Text(strings.days)
-                                .font(OddlyFont.bodyLarge)
+                                .oddlyFont(OddlyFont.bodyLarge)
                                 .foregroundStyle(palette.textSecondary)
                         }
+                        // The ring is a fixed 190pt; keep the big number inside it.
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .frame(width: 190, height: 190)
                         .background(OddlyColors.flame.opacity(0.1), in: Circle())
+                        .accessibilityElement(children: .combine)
                     }
                     .padding(.top, 12)
 
@@ -40,7 +43,7 @@ struct StreakScreen: View {
                         StatTile(
                             value: "\(streak.best)",
                             label: strings.personalBest,
-                            accent: OddlyColors.warning
+                            accent: palette.warning
                         )
                         StatTile(
                             value: "\(state.totalCompleted)",
@@ -60,7 +63,7 @@ struct StreakScreen: View {
                     reminderCard
 
                     Text(strings.streakNoPenalty)
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                         .multilineTextAlignment(.center)
                         .padding(.top, 4)
@@ -76,13 +79,13 @@ struct StreakScreen: View {
     /// Encouragement, not punishment.
     private var encouragement: some View {
         HStack(alignment: .top, spacing: 14) {
-            Text("🔥").font(OddlyFont.headlineSmall)
+            Text("🔥").oddlyFont(OddlyFont.headlineSmall).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(strings.keepStreakTitle)
-                    .font(OddlyFont.titleSmall)
+                    .oddlyFont(OddlyFont.titleSmall)
                     .foregroundStyle(palette.textPrimary)
                 Text(state.completedToday ? strings.keepStreakDoneToday : strings.keepStreakPending)
-                    .font(OddlyFont.bodySmall)
+                    .oddlyFont(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -100,18 +103,22 @@ struct StreakScreen: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(strings.reminderLabel)
-                        .font(OddlyFont.titleSmall)
+                        .oddlyFont(OddlyFont.titleSmall)
                         .foregroundStyle(palette.textPrimary)
                     Text(strings.reminderToggleBody)
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(palette.textTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityHidden(true)
 
-                OddlyToggle(isOn: Binding(
-                    get: { state.settings.reminderEnabled },
-                    set: { state.settings = state.settings.with(reminderEnabled: $0) }
-                ))
+                OddlyToggle(
+                    isOn: Binding(
+                        get: { state.settings.reminderEnabled },
+                        set: { state.settings = state.settings.with(reminderEnabled: $0) }
+                    ),
+                    label: "\(strings.reminderLabel), \(strings.reminderToggleBody)"
+                )
             }
         }
     }

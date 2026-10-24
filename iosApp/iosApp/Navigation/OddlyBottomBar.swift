@@ -1,4 +1,5 @@
 import SwiftUI
+import SharedLogic
 
 /// Four-destination bottom navigation (spec §5). Everything deeper is a child
 /// route, so this bar never grows.
@@ -35,7 +36,7 @@ struct OddlyBottomBar: View {
                                     in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 )
                             Text(tab.label(strings))
-                                .font(OddlyFont.labelSmall)
+                                .oddlyFont(OddlyFont.labelSmall)
                                 .foregroundStyle(tint)
                         }
                         .padding(.horizontal, 14)
@@ -43,6 +44,13 @@ struct OddlyBottomBar: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PressableStyle())
+                    .accessibilitySelected(active)
+                    .accessibilityIdentifier(tab.testId)
+                    // Past the cap the label is shown in the system Large Content Viewer on long press.
+                    .accessibilityShowsLargeContentViewer {
+                        OddlyIconView(tab.icon, size: 20, tint: tint)
+                        Text(tab.label(strings))
+                    }
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -51,6 +59,8 @@ struct OddlyBottomBar: View {
             .padding(.bottom, 6)
             .animation(.easeOut(duration: 0.18), value: selected)
         }
+        // Four labelled tabs only fit up to xxxLarge, like the system tab bar.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(palette.surface)
     }
 }

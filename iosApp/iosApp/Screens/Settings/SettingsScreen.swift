@@ -46,8 +46,9 @@ struct SettingsScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text(strings.settingsTitle)
-                    .font(OddlyFont.headlineMedium)
+                    .oddlyFont(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
+                    .accessibilityHeading()
                     .padding(.top, 20)
 
                 profileCard
@@ -77,7 +78,12 @@ struct SettingsScreen: View {
                     .padding(.bottom, 8)
 
                 SettingsGroup {
-                    SettingsRow(icon: .bell, title: strings.dailyReminder, showChevron: false) {
+                    SettingsRow(
+                        icon: .bell,
+                        title: strings.dailyReminder,
+                        showChevron: false,
+                        hidesTitleFromVoiceOver: true
+                    ) {
                         OddlyToggle(isOn: Binding(
                             get: { state.settings.reminderEnabled },
                             set: { enabled in
@@ -85,9 +91,13 @@ struct SettingsScreen: View {
                                 guard enabled else { return }
                                 Task {
                                     notificationsAllowed = await ReminderScheduler.requestAuthorization()
+                                    // Announced here, not via onChange: the tab is rebuilt on every switch and the
+                                    // initial permission check would otherwise re-announce each time (Android's
+                                    // live region stays silent for a node present at first composition).
+                                    if !notificationsAllowed { announce(strings.notificationsDisabledNotice) }
                                 }
                             }
-                        ))
+                        ), label: strings.dailyReminder)
                     }
                     SettingsRow(
                         icon: .clock,
@@ -95,7 +105,12 @@ struct SettingsScreen: View {
                         value: DateFormat.shared.time(time: settings.reminderTime),
                         action: { sheet = .reminderTime }
                     )
-                    SettingsRow(icon: .volume, title: strings.soundAndHaptics, showChevron: false) {
+                    SettingsRow(
+                        icon: .volume,
+                        title: strings.soundAndHaptics,
+                        showChevron: false,
+                        hidesTitleFromVoiceOver: true
+                    ) {
                         OddlyToggle(isOn: Binding(
                             get: { state.settings.soundEnabled },
                             // One switch for in-app sound/haptics and the reminder's sound
@@ -104,7 +119,7 @@ struct SettingsScreen: View {
                                 state.settings = state.settings.with(soundEnabled: $0, hapticsEnabled: $0)
                                 if $0 { feedback.fire(FeedbackRules.shared.preview(settings: state.settings)) }
                             }
-                        ))
+                        ), label: strings.soundAndHaptics)
                     }
                 }
 
@@ -113,14 +128,14 @@ struct SettingsScreen: View {
                         openSystemSettings()
                     } label: {
                         HStack(spacing: 10) {
-                            OddlyIconView(.info, size: 18, tint: OddlyColors.warning)
+                            OddlyIconView(.info, size: 18, tint: palette.warning)
                             Text(strings.notificationsDisabledNotice)
-                                .font(OddlyFont.bodySmall)
+                                .oddlyFont(OddlyFont.bodySmall)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(strings.openSystemSettings)
-                                .font(OddlyFont.labelMedium)
+                                .oddlyFont(OddlyFont.labelMedium)
                         }
-                        .foregroundStyle(OddlyColors.warning)
+                        .foregroundStyle(palette.warning)
                         .padding(14)
                         .background(
                             OddlyColors.warning.opacity(0.12),
@@ -147,8 +162,8 @@ struct SettingsScreen: View {
 
                 if exportFailed {
                     Text(strings.exportFailed)
-                        .font(OddlyFont.bodySmall)
-                        .foregroundStyle(OddlyColors.warning)
+                        .oddlyFont(OddlyFont.bodySmall)
+                        .foregroundStyle(palette.warning)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
                         .background(
@@ -159,9 +174,9 @@ struct SettingsScreen: View {
                 }
 
                 if let notice = importNotice {
-                    let color = notice == .succeeded ? OddlyColors.success : OddlyColors.warning
+                    let color = notice == .succeeded ? palette.success : palette.warning
                     Text(notice == .succeeded ? strings.importSucceeded : strings.importFailed)
-                        .font(OddlyFont.bodySmall)
+                        .oddlyFont(OddlyFont.bodySmall)
                         .foregroundStyle(color)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
@@ -176,7 +191,7 @@ struct SettingsScreen: View {
                     SettingsRow(
                         icon: .trash,
                         title: strings.eraseAllData,
-                        tint: OddlyColors.danger,
+                        tint: palette.danger,
                         showChevron: false,
                         action: { showResetDialog = true }
                     )
@@ -184,7 +199,7 @@ struct SettingsScreen: View {
                 .padding(.top, 20)
 
                 Text(strings.settingsFooter(version: AppVersion.marketing))
-                    .font(OddlyFont.bodySmall)
+                    .oddlyFont(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
@@ -197,6 +212,14 @@ struct SettingsScreen: View {
         .statusBarScrim(palette.background)
         .oddlyFeedback(feedback)
         .task { notificationsAllowed = await ReminderScheduler.isAuthorized() }
+        // Android uses live regions on these notices; here each is announced when it appears.
+        .onChange(of: exportFailed) { _, failed in
+            if failed { announce(strings.exportFailed) }
+        }
+        .onChange(of: importNotice) { _, notice in
+            guard let notice else { return }
+            announce(notice == .succeeded ? strings.importSucceeded : strings.importFailed)
+        }
         .sheet(item: $sheet) { which in
             sheetContent(for: which)
                 .oddlyPalette(palette)
@@ -363,14 +386,14 @@ struct SettingsScreen: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(state.profile.displayName)
-                    .font(OddlyFont.titleMedium)
+                    .oddlyFont(OddlyFont.titleMedium)
                     .foregroundStyle(palette.textPrimary)
                 Text(strings.levelWithXp(
                     level: state.profile.level,
                     current: state.profile.xpInLevel,
                     total: state.profile.xpForNextLevel
                 ))
-                .font(OddlyFont.bodySmall)
+                .oddlyFont(OddlyFont.bodySmall)
                 .foregroundStyle(palette.textTertiary)
                 GradientProgressBar(progress: Double(state.profile.levelProgress), height: 5)
                     .padding(.top, 4)
@@ -408,13 +431,14 @@ private struct OptionPickerSheet<Option: AnyObject & Equatable>: View {
                     } label: {
                         HStack {
                             Text(label(option))
-                                .font(OddlyFont.bodyLarge)
+                                .oddlyFont(OddlyFont.bodyLarge)
                                 .foregroundStyle(isSelected ? OddlyColors.purple : palette.textPrimary)
                             Spacer()
                             if isSelected {
                                 OddlyIconView(.check, size: 14, tint: Color(rgb: 0x0B0B12), lineWidth: 2)
                                     .frame(width: 22, height: 22)
                                     .background(OddlyColors.purple, in: Circle())
+                                    .accessibilityHidden(true)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -426,6 +450,7 @@ private struct OptionPickerSheet<Option: AnyObject & Equatable>: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PressableStyle(pressedScale: 0.99))
+                    .accessibilitySelected(isSelected)
                 }
             }
         }
@@ -495,8 +520,9 @@ private struct SheetShell<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
-                .font(OddlyFont.headlineSmall.weight(.bold))
+                .oddlyFont(OddlyFont.headlineSmall.weight(.bold))
                 .foregroundStyle(palette.textPrimary)
+                .accessibilityHeading()
                 .padding(.bottom, 16)
 
             content()

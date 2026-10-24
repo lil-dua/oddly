@@ -17,8 +17,9 @@ struct JourneyScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text(strings.journeyTitle)
-                    .font(OddlyFont.headlineMedium)
+                    .oddlyFont(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
+                    .accessibilityHeading()
                     .padding(.top, 20)
                     .padding(.bottom, 4)
 
@@ -29,6 +30,7 @@ struct JourneyScreen: View {
                         actionText: strings.exploreChallenges,
                         action: onStartFirstChallenge
                     )
+                    .accessibilityIdentifier(UiTestTags.shared.JOURNEY_EMPTY)
                 } else {
                     levelCard
 
@@ -44,7 +46,7 @@ struct JourneyScreen: View {
                         StatTile(
                             value: "\(state.streak.current)",
                             label: strings.consecutiveDays,
-                            accent: OddlyColors.flame
+                            accent: palette.flame
                         )
                     }
 
@@ -57,7 +59,7 @@ struct JourneyScreen: View {
                         StatTile(
                             value: "\(state.completionRatePercent)%",
                             label: strings.completionRate,
-                            accent: OddlyColors.success
+                            accent: palette.success
                         )
                     }
 
@@ -73,6 +75,7 @@ struct JourneyScreen: View {
                         NavigationRow(title: strings.completionCalendar, icon: .calendar, action: onOpenCalendar)
                         NavigationRow(title: strings.streakRow, icon: .flame, action: onOpenStreak)
                         NavigationRow(title: strings.allChallenges, icon: .target, action: onOpenAllChallenges)
+                            .accessibilityIdentifier(UiTestTags.shared.JOURNEY_ALL_CHALLENGES)
                     }
                 }
             }
@@ -89,17 +92,19 @@ struct JourneyScreen: View {
             VStack(alignment: .leading, spacing: 0) {
                 SectionLabel(strings.currentLevel)
                 Text("Level \(profile.level)")
-                    .font(OddlyFont.headlineMedium)
+                    .oddlyFont(OddlyFont.headlineMedium)
                     .foregroundStyle(palette.textPrimary)
                     .padding(.top, 10)
                 Text(strings.xpProgress(current: profile.xpInLevel, total: profile.xpForNextLevel))
-                    .font(OddlyFont.bodySmall)
+                    .oddlyFont(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .padding(.top, 12)
                 GradientProgressBar(progress: Double(profile.levelProgress))
                     .padding(.top, 8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(UiTestTags.shared.JOURNEY_LEVEL)
 
             Astronaut(size: 96)
         }
@@ -126,13 +131,13 @@ struct CategoryDistribution: View {
             ForEach(Array(slices.enumerated()), id: \.offset) { _, slice in
                 VStack(spacing: 8) {
                     HStack(spacing: 10) {
-                        Text(slice.category.emoji).font(OddlyFont.bodyMedium)
+                        Text(slice.category.emoji).oddlyFont(OddlyFont.bodyMedium).accessibilityHidden(true)
                         Text(slice.category.title.of(strings))
-                            .font(OddlyFont.bodyMedium)
+                            .oddlyFont(OddlyFont.bodyMedium)
                             .foregroundStyle(palette.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text("\(Int(slice.fraction * 100))%")
-                            .font(OddlyFont.labelMedium)
+                            .oddlyFont(OddlyFont.labelMedium)
                             .foregroundStyle(slice.category.color)
                     }
                     GradientProgressBar(
@@ -145,6 +150,7 @@ struct CategoryDistribution: View {
                         )
                     )
                 }
+                .accessibilityElement(children: .combine)
             }
         }
     }
@@ -162,7 +168,7 @@ private struct NavigationRow: View {
             HStack(spacing: 14) {
                 OddlyIconView(icon, size: 20, tint: OddlyColors.purple)
                 Text(title)
-                    .font(OddlyFont.bodyLarge)
+                    .oddlyFont(OddlyFont.bodyLarge)
                     .foregroundStyle(palette.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 OddlyIconView(.chevronRight, size: 16, tint: palette.textTertiary)

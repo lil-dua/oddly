@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.onboarding
 
+import androidx.compose.foundation.layout.PaddingValues
+import dev.lildua.oddly.ui.components.FillHeightScrollColumn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -30,7 +34,10 @@ import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.StarField
 import dev.lildua.oddly.ui.components.TextAction
-import dev.lildua.oddly.ui.components.clickableNoRipple
+import androidx.compose.ui.semantics.Role
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
+import dev.lildua.oddly.ui.components.toggleableNoRipple
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
@@ -55,11 +62,11 @@ fun ChooseInterestScreen(
     ) {
         StarField(Modifier.fillMaxSize(), starCount = 50, seed = 13)
 
-        Column(
+        FillHeightScrollColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(28.dp))
@@ -69,6 +76,7 @@ fun ChooseInterestScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.a11yHeading(),
             )
 
             Spacer(Modifier.height(10.dp))
@@ -87,6 +95,7 @@ fun ChooseInterestScreen(
                         category = category,
                         selected = category in selected,
                         onClick = { onToggle(category) },
+                        modifier = Modifier.testTag(UiTestTags.interest(category)),
                     )
                 }
             }
@@ -96,6 +105,7 @@ fun ChooseInterestScreen(
             GradientButton(
                 text = strings.interestsContinue,
                 onClick = onContinue,
+                modifier = Modifier.testTag(UiTestTags.INTERESTS_CONTINUE),
             )
 
             Spacer(Modifier.height(8.dp))
@@ -117,6 +127,7 @@ private fun InterestRow(
     category: Category,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
@@ -131,16 +142,16 @@ private fun InterestRow(
     )
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(fill)
             .border(1.5.dp, border, RoundedCornerShape(16.dp))
-            .clickableNoRipple(onClick)
+            .toggleableNoRipple(selected, Role.Checkbox) { onClick() }
             .padding(horizontal = 16.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(category.emoji, style = MaterialTheme.typography.titleMedium)
+        Text(category.emoji, style = MaterialTheme.typography.titleMedium, modifier = Modifier.a11yHidden())
         Spacer(Modifier.size(12.dp))
         Text(
             text = category.title.of(strings.language),
@@ -151,6 +162,7 @@ private fun InterestRow(
         if (selected) {
             Box(
                 modifier = Modifier
+                    .a11yHidden()
                     .size(22.dp)
                     .clip(RoundedCornerShape(percent = 50))
                     .background(accent),

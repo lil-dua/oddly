@@ -1,5 +1,6 @@
 package dev.lildua.oddly.ui.screens.statistics
 
+import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -39,10 +40,19 @@ import dev.lildua.oddly.ui.components.GradientProgressBar
 import dev.lildua.oddly.ui.components.OddlyCard
 import dev.lildua.oddly.ui.components.SectionLabel
 import dev.lildua.oddly.ui.components.StatTile
-import dev.lildua.oddly.ui.components.clickableNoRipple
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyGradients
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import dev.lildua.oddly.core.text.AccessibilityText
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
+import dev.lildua.oddly.ui.components.selectableNoRipple
 import dev.lildua.oddly.ui.theme.LocalStrings
 import dev.lildua.oddly.ui.theme.OddlyTheme
 import dev.lildua.oddly.ui.theme.color
@@ -74,6 +84,7 @@ fun StatisticsScreen(
             text = strings.statisticsTitle,
             style = MaterialTheme.typography.headlineMedium,
             color = palette.textPrimary,
+            modifier = Modifier.a11yHeading(),
         )
 
         Spacer(Modifier.height(20.dp))
@@ -108,7 +119,7 @@ fun StatisticsScreen(
                     Text(
                         text = strings.deltaVsPrevious(delta),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (delta >= 0) OddlyColors.Success else palette.textTertiary,
+                        color = if (delta >= 0) palette.success else palette.textTertiary,
                         modifier = Modifier.padding(bottom = 6.dp),
                     )
                 }
@@ -116,7 +127,7 @@ fun StatisticsScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            BarChart(bars = summary.bars)
+            BarChart(bars = summary.bars, description = AccessibilityText.chart(summary.bars, strings))
         }
 
         Spacer(Modifier.height(16.dp))
@@ -126,12 +137,14 @@ fun StatisticsScreen(
                 value = summary.mostActiveCategory?.emoji ?: "–",
                 label = summary.mostActiveCategory?.title?.of(strings.language) ?: strings.noData,
                 accent = summary.mostActiveCategory?.color ?: palette.textTertiary,
+                // The emoji alone reads as its Unicode name; say what the tile means instead.
+                valueDescription = strings.a11yMostActiveCategory,
                 modifier = Modifier.weight(1f),
             )
             StatTile(
                 value = "${state.completionRatePercent}%",
                 label = strings.completionRate,
-                accent = OddlyColors.Success,
+                accent = palette.success,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -150,8 +163,11 @@ fun StatisticsScreen(
                 )
             } else {
                 summary.distribution.forEach { slice ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(slice.category.emoji, style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        modifier = Modifier.semantics(mergeDescendants = true) {},
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(slice.category.emoji, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.a11yHidden())
                         Spacer(Modifier.width(10.dp))
                         Text(
                             text = slice.category.title.of(strings.language),
@@ -191,6 +207,7 @@ private fun RangeTabs(selected: StatsRange, onSelect: (StatsRange) -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(palette.surfaceElevated)
+            .selectableGroup()
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -199,9 +216,10 @@ private fun RangeTabs(selected: StatsRange, onSelect: (StatsRange) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .minimumInteractiveComponentSize()
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (active) OddlyColors.Purple.copy(alpha = 0.22f) else Color.Transparent)
-                    .clickableNoRipple { onSelect(entry) }
+                    .selectableNoRipple(active, Role.Tab) { onSelect(entry) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -220,14 +238,18 @@ private fun RangeTabs(selected: StatsRange, onSelect: (StatsRange) -> Unit) {
  * shape stays readable whatever the absolute counts are.
  */
 @Composable
-private fun BarChart(bars: List<DayBar>) {
+private fun BarChart(bars: List<DayBar>, description: String) {
     val palette = OddlyTheme.palette
     val max = (bars.maxOfOrNull { it.count } ?: 0).coerceAtLeast(1)
 
+    // The chart is a fixed 140dp tall with axis labels inside; unbounded scaling squeezes the bars out.
+    CappedFontScale(1.5f) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp),
+            .height(140.dp)
+            // Seven columns read as one summary; separate "3", "T2", "-5" stops mean nothing.
+            .clearAndSetSemantics { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
@@ -279,5 +301,6 @@ private fun BarChart(bars: List<DayBar>) {
                 )
             }
         }
+    }
     }
 }

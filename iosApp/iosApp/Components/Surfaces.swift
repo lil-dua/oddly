@@ -1,4 +1,5 @@
 import SwiftUI
+import SharedLogic
 
 /// The standard content container: rounded, slightly lifted, hairline border.
 struct OddlyCard<Content: View>: View {
@@ -9,6 +10,8 @@ struct OddlyCard<Content: View>: View {
     var borderColor: Color?
     var contentPadding: CGFloat = 18
     var action: (() -> Void)?
+    /// VoiceOver hint for what activating the card does (Android: onClickLabel).
+    var actionHint: String?
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -22,6 +25,7 @@ struct OddlyCard<Content: View>: View {
         if let action {
             Button(action: action) { surface }
                 .buttonStyle(PressableStyle(pressedScale: 0.985))
+                .accessibilityHint(actionHint ?? "")
         } else {
             surface
         }
@@ -31,20 +35,20 @@ struct OddlyCard<Content: View>: View {
 /// Text painted with a gradient — the "1%" wordmark and hero numbers.
 struct GradientText: View {
     let text: String
-    var font: Font
+    var style: OddlyTextStyle
     var gradient: LinearGradient = OddlyGradients.brandText
     var tracking: CGFloat = 0
 
-    init(_ text: String, font: Font, gradient: LinearGradient = OddlyGradients.brandText, tracking: CGFloat = 0) {
+    init(_ text: String, style: OddlyTextStyle, gradient: LinearGradient = OddlyGradients.brandText, tracking: CGFloat = 0) {
         self.text = text
-        self.font = font
+        self.style = style
         self.gradient = gradient
         self.tracking = tracking
     }
 
     var body: some View {
         Text(text)
-            .font(font)
+            .oddlyFont(style)
             .tracking(tracking)
             .multilineTextAlignment(.center)
             .foregroundStyle(gradient)
@@ -65,9 +69,10 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(text.uppercased())
-            .font(OddlyFont.labelSmall)
+            .oddlyFont(OddlyFont.labelSmall)
             .tracking(0.5)
             .foregroundStyle(color ?? palette.textTertiary)
+            .accessibilityHeading()
     }
 }
 
@@ -98,6 +103,7 @@ struct GradientProgressBar: View {
 /// Screen header with an optional back affordance and trailing slot.
 struct OddlyTopBar<Trailing: View>: View {
     @Environment(\.palette) private var palette
+    @Environment(\.strings) private var strings
 
     let title: String
     var onBack: (() -> Void)?
@@ -106,12 +112,14 @@ struct OddlyTopBar<Trailing: View>: View {
     var body: some View {
         HStack(spacing: 12) {
             if let onBack {
-                CircleIconButton(.chevronLeft, diameter: 38, iconSize: 20, action: onBack)
+                CircleIconButton(.chevronLeft, label: strings.back, diameter: 38, iconSize: 20, action: onBack)
+                    .accessibilityIdentifier(UiTestTags.shared.NAV_BACK)
             }
             Text(title)
-                .font(OddlyFont.headlineSmall.weight(.bold))
+                .oddlyFont(OddlyFont.headlineSmall.weight(.bold))
                 .foregroundStyle(palette.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(title.isEmpty ? [] : .isHeader)
             trailing()
         }
         .padding(.horizontal, 20)
@@ -139,10 +147,10 @@ struct OddlyChip: View {
         let tint = accent ?? palette.textSecondary
         let pill = HStack(spacing: 6) {
             if let leadingEmoji {
-                Text(leadingEmoji).font(OddlyFont.labelMedium)
+                Text(leadingEmoji).oddlyFont(OddlyFont.labelMedium).accessibilityHidden(true)
             }
             Text(text)
-                .font(OddlyFont.labelMedium)
+                .oddlyFont(OddlyFont.labelMedium)
                 .foregroundStyle(selected ? tint : palette.textSecondary)
                 .lineLimit(1)
         }
@@ -152,8 +160,9 @@ struct OddlyChip: View {
         .overlay(Capsule().stroke(selected ? tint.opacity(0.7) : .clear, lineWidth: 1))
 
         if let action {
-            Button(action: action) { pill }
+            Button(action: action) { pill.minimumTapTarget() }
                 .buttonStyle(PressableStyle())
+                .accessibilitySelected(selected)
         } else {
             pill
         }
@@ -163,9 +172,11 @@ struct OddlyChip: View {
 /// A switch tinted to the app's palette rather than the system accent.
 struct OddlyToggle: View {
     @Binding var isOn: Bool
+    /// Spoken name; the visible title next to the switch is hidden from VoiceOver by the caller.
+    let label: String
 
     var body: some View {
-        Toggle("", isOn: $isOn)
+        Toggle(label, isOn: $isOn)
             .labelsHidden()
             .tint(OddlyColors.success)
     }

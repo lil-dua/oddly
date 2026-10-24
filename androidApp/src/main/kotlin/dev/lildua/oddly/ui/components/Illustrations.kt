@@ -37,6 +37,8 @@ import kotlin.random.Random
  * Programmatic artwork. Everything here is drawn with Compose primitives rather
  * than shipped as an asset, which keeps the APK small and lets the illustrations
  * pick up theme colours automatically.
+ *
+ * Purely decorative: Canvas has no semantics, so a screen reader skips these on purpose.
  */
 
 private data class Star(val x: Float, val y: Float, val radius: Float, val alpha: Float)

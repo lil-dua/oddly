@@ -44,7 +44,7 @@ struct AllChallengesScreen: View {
             }
 
             Text(strings.challengeCount(count: Int32(challenges.count)))
-                .font(OddlyFont.labelSmall)
+                .oddlyFont(OddlyFont.labelSmall)
                 .tracking(0.5)
                 .foregroundStyle(palette.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -71,6 +71,7 @@ struct AllChallengesScreen: View {
                                     : "+\(ref.challenge.humanityPercent)%",
                                 action: { onSelect(ref.challenge) }
                             )
+                            .accessibilityIdentifier(UiTestTags.shared.libraryRow(challengeId: ref.id))
                         }
                     }
                     .padding(.horizontal, 20)

@@ -1,5 +1,6 @@
 package dev.lildua.oddly.ui.screens.journey
 
+import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +37,14 @@ import dev.lildua.oddly.ui.components.ChallengeRow
 import dev.lildua.oddly.ui.components.OddlyIcon
 import dev.lildua.oddly.ui.components.OddlyTopBar
 import dev.lildua.oddly.ui.components.SectionLabel
-import dev.lildua.oddly.ui.components.clickableNoRipple
+import dev.lildua.oddly.ui.components.IconCircleButton
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
+import dev.lildua.oddly.ui.components.a11yLiveRegion
+import dev.lildua.oddly.ui.components.selectableNoRipple
+import dev.lildua.oddly.core.text.AccessibilityText
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import dev.lildua.oddly.ui.state.OddlyAppState
 import dev.lildua.oddly.ui.theme.OddlyColors
 import dev.lildua.oddly.ui.theme.OddlyGradients
@@ -83,21 +91,31 @@ fun CalendarScreen(
                     text = DateFormat.monthAndYear(visibleMonth, strings.language),
                     style = MaterialTheme.typography.titleLarge,
                     color = palette.textPrimary,
-                    modifier = Modifier.weight(1f),
+                    // Live region so paging months announces the new month name.
+                    modifier = Modifier.weight(1f).a11yHeading().a11yLiveRegion(),
                 )
-                MonthArrow(OddlyIcon.ChevronLeft) {
-                    visibleMonth = shiftMonth(visibleMonth, -1)
-                }
+                IconCircleButton(
+                    icon = OddlyIcon.ChevronLeft,
+                    contentDescription = strings.a11yPreviousMonth,
+                    onClick = { visibleMonth = shiftMonth(visibleMonth, -1) },
+                    diameter = 34.dp,
+                )
                 Spacer(Modifier.width(8.dp))
-                MonthArrow(OddlyIcon.ChevronRight) {
-                    visibleMonth = shiftMonth(visibleMonth, 1)
-                }
+                IconCircleButton(
+                    icon = OddlyIcon.ChevronRight,
+                    contentDescription = strings.a11yNextMonth,
+                    onClick = { visibleMonth = shiftMonth(visibleMonth, 1) },
+                    diameter = 34.dp,
+                )
             }
 
             Spacer(Modifier.height(20.dp))
 
             // Weekday headers
-            Row(Modifier.fillMaxWidth()) {
+            // Each day cell already speaks its full weekday, so the header row is redundant.
+            // Cells are width-bound; past 1.5x two-digit days and weekday labels overflow them.
+            CappedFontScale(1.5f) {
+            Row(Modifier.fillMaxWidth().a11yHidden()) {
                 DateFormat.weekdayHeaders(strings.language).forEach { label ->
                     Text(
                         text = label,
@@ -108,16 +126,19 @@ fun CalendarScreen(
                     )
                 }
             }
+            }
 
             Spacer(Modifier.height(10.dp))
 
-            MonthGrid(
-                month = visibleMonth,
-                today = state.today,
-                selected = selectedDate,
-                completedDays = completedDays,
-                onSelect = { selectedDate = it },
-            )
+            CappedFontScale(1.5f) {
+                MonthGrid(
+                    month = visibleMonth,
+                    today = state.today,
+                    selected = selectedDate,
+                    completedDays = completedDays,
+                    onSelect = { selectedDate = it },
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
 
@@ -137,7 +158,7 @@ fun CalendarScreen(
                             .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("🌙", style = MaterialTheme.typography.headlineMedium)
+                        Text("🌙", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.a11yHidden())
                         Spacer(Modifier.height(10.dp))
                         Text(
                             text = strings.noChallengeThisDay,
@@ -185,21 +206,6 @@ fun CalendarScreen(
 
             Spacer(Modifier.height(28.dp))
         }
-    }
-}
-
-@Composable
-private fun MonthArrow(icon: OddlyIcon, onClick: () -> Unit) {
-    val palette = OddlyTheme.palette
-    Box(
-        modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
-            .background(palette.surfaceElevated)
-            .clickableNoRipple(onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        OddlyIcon(icon, size = 16.dp, tint = palette.textSecondary)
     }
 }
 
@@ -261,6 +267,8 @@ private fun DayCell(
     onClick: () -> Unit,
 ) {
     val palette = OddlyTheme.palette
+    val strings = LocalStrings.current
+    val description = AccessibilityText.calendarDay(date, isCompleted, isToday, strings)
 
     Box(
         modifier = Modifier
@@ -280,7 +288,9 @@ private fun DayCell(
                     else -> Modifier
                 },
             )
-            .clickableNoRipple(onClick),
+            // No role: the state is "selected", the label already carries date and completion.
+            .selectableNoRipple(isSelected, role = null, onClick = onClick)
+            .clearAndSetSemantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.challenge
 
+import androidx.compose.foundation.layout.PaddingValues
+import dev.lildua.oddly.ui.components.FillHeightScrollColumn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -27,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.ui.components.a11yHeading
 import dev.lildua.oddly.ui.components.GlowOrb
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyIcon
@@ -74,10 +77,9 @@ fun AnotherChallengeScreen(
         ) {
             OddlyTopBar(title = "", onBack = onBack)
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 28.dp),
+            FillHeightScrollColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.height(16.dp))
@@ -87,6 +89,7 @@ fun AnotherChallengeScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     color = palette.textPrimary,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.a11yHeading(),
                 )
 
                 Spacer(Modifier.weight(1f))

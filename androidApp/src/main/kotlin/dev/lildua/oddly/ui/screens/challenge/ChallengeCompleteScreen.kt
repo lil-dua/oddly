@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.challenge
 
+import androidx.compose.foundation.layout.PaddingValues
+import dev.lildua.oddly.ui.components.FillHeightScrollColumn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -26,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -36,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.domain.model.LocalizedChallenge
 import dev.lildua.oddly.domain.model.Reward
+import dev.lildua.oddly.ui.components.a11yHeading
+import dev.lildua.oddly.ui.components.a11yHidden
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.GradientText
 import dev.lildua.oddly.ui.components.OddlyIcon
@@ -87,15 +93,15 @@ fun ChallengeCompleteScreen(
         StarField(Modifier.fillMaxSize(), starCount = 60, seed = 29)
         Confetti(progress = burst, modifier = Modifier.fillMaxSize())
 
-        Column(
+        FillHeightScrollColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 28.dp, vertical = 20.dp),
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(horizontal = 28.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextAction(strings.done, onDone)
+                TextAction(strings.done, onDone, modifier = Modifier.testTag(UiTestTags.COMPLETE_DONE))
             }
 
             Spacer(Modifier.weight(1f))
@@ -103,7 +109,7 @@ fun ChallengeCompleteScreen(
             Text(
                 text = "🥳",
                 style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier.scale(popScale),
+                modifier = Modifier.scale(popScale).a11yHidden(),
             )
 
             Spacer(Modifier.height(24.dp))
@@ -112,6 +118,7 @@ fun ChallengeCompleteScreen(
                 text = strings.celebrationTitle,
                 style = MaterialTheme.typography.headlineLarge,
                 color = palette.textPrimary,
+                modifier = Modifier.a11yHeading(),
             )
 
             Spacer(Modifier.height(6.dp))
@@ -133,8 +140,13 @@ fun ChallengeCompleteScreen(
             Spacer(Modifier.height(20.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                RewardPill("+${reward?.xp ?: challenge.rewardXp} XP", OddlyColors.Purple)
-                RewardPill("🔥 ${strings.streakDays(streakDays)}", OddlyColors.Flame)
+                RewardPill("+${reward?.xp ?: challenge.rewardXp} XP", OddlyColors.Purple, modifier = Modifier.testTag(UiTestTags.COMPLETE_XP))
+                RewardPill(
+                    "🔥 ${strings.streakDays(streakDays)}",
+                    OddlyColors.Flame,
+                    palette.flame,
+                    Modifier.testTag(UiTestTags.COMPLETE_STREAK),
+                )
             }
 
             if (reward?.leveledUp == true) {
@@ -146,12 +158,12 @@ fun ChallengeCompleteScreen(
                         .background(OddlyColors.Warning.copy(alpha = 0.16f))
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
-                    OddlyIcon(OddlyIcon.Sparkle, size = 16.dp, tint = OddlyColors.Warning)
+                    OddlyIcon(OddlyIcon.Sparkle, size = 16.dp, tint = palette.warning)
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = "${strings.levelUp} ${reward.newLevel}!",
                         style = MaterialTheme.typography.labelMedium,
-                        color = OddlyColors.Warning,
+                        color = palette.warning,
                     )
                 }
             }
@@ -188,12 +200,13 @@ fun ChallengeCompleteScreen(
 }
 
 @Composable
-private fun RewardPill(text: String, color: Color) {
+// textColor is separate because the neon tint reads fine as a fill but fails AA as text on light themes.
+private fun RewardPill(text: String, color: Color, textColor: Color = color, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
-        color = color,
-        modifier = Modifier
+        color = textColor,
+        modifier = modifier
             .clip(RoundedCornerShape(percent = 50))
             .background(color.copy(alpha = 0.14f))
             .padding(horizontal = 16.dp, vertical = 10.dp),
