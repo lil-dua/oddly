@@ -109,6 +109,7 @@ struct SettingsScreen: View {
                                 }
                             }
                         ), label: strings.dailyReminder)
+                        .accessibilityIdentifier(UiTestTags.shared.SETTINGS_REMINDER)
                     }
                     SettingsRow(
                         icon: .clock,
@@ -154,6 +155,7 @@ struct SettingsScreen: View {
                         )
                     }
                     .buttonStyle(PressableStyle(pressedScale: 0.99))
+                    .accessibilityIdentifier(UiTestTags.shared.SETTINGS_NOTIFICATIONS_NOTICE)
                     .padding(.top, 10)
                 }
 

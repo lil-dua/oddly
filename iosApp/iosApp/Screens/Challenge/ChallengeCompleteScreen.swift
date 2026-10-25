@@ -94,6 +94,7 @@ struct ChallengeCompleteScreen: View {
                     Spacer(minLength: 0)
 
                     GradientButton(strings.share, leadingIcon: .share, action: onShare)
+                        .accessibilityIdentifier(UiTestTags.shared.COMPLETE_SHARE)
 
                     SecondaryButton(strings.browseLibrary, action: onBrowseLibrary)
                         .padding(.top, 12)

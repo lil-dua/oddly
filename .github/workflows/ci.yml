@@ -1,0 +1,107 @@
+# CI for 1% HUMAN (T-25). On every push / PR it runs:
+#   android: shared JVM tests, Android lint, an unsigned R8 release bundle, and a compile of the
+#            androidTest sources (so the UI tests cannot rot unnoticed). Runs on Ubuntu.
+#   ios:     shared Kotlin/Native tests, then xcodebuild build-for-testing (app + UI test target). Runs on macOS.
+# The release bundle is deliberately unsigned: without keystore.properties the build skips signing
+# (androidApp/build.gradle.kts), so CI needs no secrets and never touches the upload key.
+# Emulator / XCUITest runs live in ui-tests.yml (manual only).
+# paths-ignore skips docs-only commits. If you enable "required status checks" on master, drop it from
+# `pull_request`, otherwise a docs-only PR waits forever on a check that never runs.
+# Runners: if `macos-26` is not available, switch iOS to `macos-15` and set XCODE_VERSION to a 16.x/26.x
+# that exists on that image (see actions/runner-images). If Temurin 25 breaks the build, use java-version 21.
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Empty = Xcode default of the runner image. Example: 26.0 -> /Applications/Xcode_26.0.app
+  XCODE_VERSION: ''
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Test, lint, release bundle, compile androidTest
+        run: >-
+          ./gradlew
+          :sharedLogic:testAndroidHostTest
+          :androidApp:lintDebug
+          :androidApp:bundleRelease
+          :androidApp:compileDebugAndroidTestKotlin
+          --stacktrace
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: |
+            sharedLogic/build/test-results/**
+            sharedLogic/build/reports/tests/**
+            androidApp/build/reports/lint-results-debug.*
+          retention-days: 7
+
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Xcode
+        if: env.XCODE_VERSION != ''
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+      - name: Toolchain versions
+        run: xcodebuild -version
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - run: java -version
+      - uses: gradle/actions/setup-gradle@v6
+      # Kotlin/Native prebuilt is several hundred MB; keyed on the Kotlin version in the catalog.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
+      - name: Shared tests (Kotlin/Native)
+        run: ./gradlew :sharedLogic:iosSimulatorArm64Test --stacktrace
+      # No signing: Config.xcconfig has an empty TEAM_ID. The Xcode build phase calls ./gradlew,
+      # which picks up JAVA_HOME exported by setup-java.
+      - name: Build app and UI test target
+        run: >-
+          xcodebuild build-for-testing
+          -project iosApp/iosApp.xcodeproj
+          -scheme iosApp
+          -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-shared-test-results
+          path: sharedLogic/build/test-results/**
+          retention-days: 7

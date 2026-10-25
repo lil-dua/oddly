@@ -69,6 +69,8 @@ struct CalendarScreen: View {
                 .padding(.horizontal, 20)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(UiTestTags.shared.CALENDAR_SCREEN)
         .background(palette.background)
         .toolbar(.hidden, for: .navigationBar)
     }

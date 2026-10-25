@@ -25,3 +25,26 @@ node_modules/
 
 # Claude Code local config and agents
 .claude/
+
+# Signing, provisioning and secrets specific to this machine
+*.p12
+*.pem
+*.mobileprovision
+*.cer
+*.certSigningRequest
+.env
+.env.*
+!.env.example
+google-services.json
+GoogleService-Info.plist
+
+# Xcode / Swift local state
+DerivedData/
+*.xcuserstate
+.swiftpm/
+Pods/
+
+# Local logs and dumps
+*.log
+*.hprof
+hs_err_pid*

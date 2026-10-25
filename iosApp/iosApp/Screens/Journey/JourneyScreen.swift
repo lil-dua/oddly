@@ -73,6 +73,7 @@ struct JourneyScreen: View {
 
                     VStack(spacing: 10) {
                         NavigationRow(title: strings.completionCalendar, icon: .calendar, action: onOpenCalendar)
+                            .accessibilityIdentifier(UiTestTags.shared.JOURNEY_CALENDAR)
                         NavigationRow(title: strings.streakRow, icon: .flame, action: onOpenStreak)
                         NavigationRow(title: strings.allChallenges, icon: .target, action: onOpenAllChallenges)
                             .accessibilityIdentifier(UiTestTags.shared.JOURNEY_ALL_CHALLENGES)

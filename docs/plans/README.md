@@ -3,7 +3,7 @@
 Điểm vào cho phiên mới: đọc file này + `docs/release-todo.xlsx` (nguồn sự thật về task) trước khi làm tiếp.
 Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE được chuyển vào thư mục này.
 
-## Đã làm (cập nhật 25/10/2026, sau đợt T-30/T-31 + dọn backlog)
+## Đã làm (cập nhật 25/10/2026, sau đợt T-19 + T-25)
 | Task | Trạng thái | Kế hoạch / báo cáo | Còn lại |
 |---|---|---|---|
 | T-01 Giờ hoàn thành thật | Xong | (làm cùng Bước 0, trước khi có quy trình PLAN.md) | — |
@@ -34,6 +34,8 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 | T-30 Xoá `sharedUI` + README | Code xong, APPROVE (1 vòng sửa) | `T-30_T-31_backlog.md` | — |
 | T-31 Memo hoá giá trị dẫn xuất | Code xong, APPROVE (1 vòng sửa) | `T-30_T-31_backlog.md` | QA tay: đổi range Statistics, qua nửa đêm, xoá/nhập backup, bản R8 |
 | Dọn backlog (10 mục) | Code xong, APPROVE | `T-30_T-31_backlog.md` | QA tay: caption S08, gỡ thông báo đã hiện iOS, VoiceOver EmptyState, S14 sau đổi cỡ chữ/ngôn ngữ/process death; **đăng lại `privacy-policy.html` lên `lil-dua.github.io`** |
+| T-19 Ảnh chụp & đồ hoạ store | Code xong, APPROVE (2 vòng sửa) | `T-19.md` | Người dùng duyệt caption + bộ ảnh (`build/store-assets/`), chọn 05-share Android 9:16 hay 1:1; tải lên store |
+| T-25 CI GitHub Actions | Code xong, APPROVE (0 vòng sửa) | `T-25.md` | Người dùng push, xem run đầu (runner `macos-26`, Temurin 25 chỉ kiểm được trên GitHub), chạy thử "UI tests" một lần; tuỳ chọn branch protection |
 
 `T-01_T-02_T-03.md` là kế hoạch tổng ban đầu — chỉ để tham khảo lịch sử.
 
@@ -106,7 +108,16 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
   tính distribution một lần. Android `completions` là List bất biến trong `mutableStateOf`, giá trị dẫn xuất `derivedStateOf`; iOS stored
   property tính lại trong `didSet` của `completions`/`today` + cuối `init`. Android `OddlyApp` có `rememberSaveableStateHolder` theo route
   (giữ state khi Share → Back; bỏ state khi route rời back stack sau 500 ms, và bỏ slot khôi phục sau Activity recreate). `UiTestTags.TAB_STATISTICS`.
-- Test shared: 303 test mỗi nền tảng (JVM + iosSimulatorArm64); UI test Android 9, iOS 6.
+- Ảnh store (đợt T-19): `tools/store-shots.sh` (một lệnh: emulator + simulator iPhone 17 Pro Max → raw `build/store-shots/raw/`, khung HTML +
+  headless Chrome + `tools/store-art/Flatten.swift` → `build/store-assets/{play,appstore}/`, feature graphic, icon 512). Dữ liệu demo
+  `core/testing/StoreShotScenario` (ghim 19/11/2026 09:41, streak 14). Test chụp Android `androidTest/.../screenshots/` (arg `storeShots`),
+  iOS `StoreScreenshotTests` (env `TEST_RUNNER_ODDLY_SHOTS_DIR`) mặc định skipped; hook iOS env `ODDLY_UI_TEST_SCENARIO`/`_LANGUAGE`.
+  Script đổi locale simulator iPhone 17 Pro Max sang en_US (ghi trong `docs/store-listing.md`). iOS `ShareCardScreen` bỏ `.statusBarScrim` (sheet).
+- CI (đợt T-25): `.github/workflows/ci.yml` (push mọi nhánh + PR vào master, bỏ qua `docs/**`/`*.md`; job `android` ubuntu: host test +
+  `lintDebug` + `bundleRelease` không ký + compile androidTest; job `ios` `macos-26`: `iosSimulatorArm64Test` + `xcodebuild build-for-testing`
+  generic sim `CODE_SIGNING_ALLOWED=NO`), `ui-tests.yml` chỉ `workflow_dispatch`. JDK Temurin 25. Lint baseline `androidApp/lint-baseline.xml`
+  (40 issue cũ, chỉ fail khi có error mới).
+- Test shared: 311 test mỗi nền tảng (JVM + iosSimulatorArm64); UI test Android 9 (+2 skipped), iOS 6 (+2 skipped).
 
 ## Ghi nhận để sau (không thuộc task nào đang mở)
 - iOS `ChallengeDetailScreen.swift`: `.dayAlreadyDone` rơi vào `default` (hành vi đúng).
@@ -127,6 +138,10 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 - Scheme `iosApp` riêng cũ của người dùng giữ ở `xcuserdata/.../xcschemes/iosApp (local backup).xcscheme` (gitignored).
 - Android: mọi màn trong back stack giờ giữ vị trí cuộn khi Back (`rememberScrollState` saveable) — vô hại; mở lại S14 < 500 ms sau khi rời còn state cũ.
 - iOS `recomputeDerived()` chạy hai lần khi đổi ngày/nhập backup — rẻ, không sửa.
+- Ảnh 05-share Android chụp thẻ 9:16 (ghi chú riêng tư bị cắt mép dưới), iOS chụp Vuông 1:1; `StoreShotScenario` nằm trong framework iOS release (không đường gọi).
+- Lint baseline: 2 error cũ — `app_name` "1% HUMAN" (thêm `formatted="false"`, đừng dùng `%%`) và `OddlyApp.kt` `remember(routeKey)` trả Unit
+  (chuyển side effect ra khỏi `remember`); dọn xong gỡ khỏi baseline. 9 warning trong baseline ghi đường dẫn tuyệt đối máy dev → trên CI hiện lại
+  thành warning (không làm đỏ). Bật required checks thì bỏ `paths-ignore` ở nhánh `pull_request`.
 - Favicon data-URI trong `docs/landing/index.html` + `docs/privacy-policy.html` (người dùng thêm, SVG inline, không gọi mạng).
 - Fixture `V1_DOCUMENT` viết tay (chỉ 1 completion có `"note": null`); fixture `V2_DOCUMENT` sau này nên sinh bằng `OddlyRepository.save`.
 

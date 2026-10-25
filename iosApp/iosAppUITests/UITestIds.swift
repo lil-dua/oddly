@@ -23,6 +23,7 @@ enum UITestIds {
     static let completeDone = "complete.done"
     static let completeXp = "complete.xp"
     static let completeStreak = "complete.streak"
+    static let completeShare = "complete.share"
 
     static let navBack = "nav.back"
 
@@ -35,9 +36,18 @@ enum UITestIds {
     static let settingsContact = "settings.contact"
     static let settingsPrivacy = "settings.privacy"
     static let settingsAbout = "settings.about"
+    static let settingsReminder = "settings.reminder"
+    static let settingsNotificationsNotice = "settings.notificationsNotice"
 
     static let journeyEmpty = "journey.empty"
     static let journeyLevel = "journey.level"
     static let journeyAllChallenges = "journey.allChallenges"
+    static let journeyCalendar = "journey.calendar"
+
+    static let calendarScreen = "calendar.screen"
+    static let statisticsScreen = "statistics.screen"
+    static let shareCard = "share.card"
+    static let shareClose = "share.close"
+    static let shareLayoutSquare = "share.layout.square"
     static func libraryRow(_ challengeId: String) -> String { "library.\(challengeId)" }
 }

@@ -15,6 +15,7 @@ Cập nhật `docs/store-listing.md` mục 6 trước mỗi bản (mục mới n
 Giới hạn: Play ≤ 500 ký tự, App Store ≤ 4000 ký tự.
 
 ## 3. Checklist build
+0. CI (`ci.yml`) xanh trên commit sẽ phát hành; chạy thủ công workflow "UI tests" (Actions → UI tests → Run workflow).
 1. `tools/bump-version.sh [x.y]`.
 2. Android: `./gradlew :androidApp:bundleRelease` (AAB đã kèm mapping R8 tại `BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`).
 3. iOS: Xcode Archive (Release có dSYM); giữ "Upload symbols" bật khi export/upload.

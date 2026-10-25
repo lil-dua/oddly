@@ -188,7 +188,12 @@ fun ChallengeCompleteScreen(
 
             Spacer(Modifier.weight(1f))
 
-            GradientButton(text = strings.share, onClick = onShare, leadingIcon = OddlyIcon.Share)
+            GradientButton(
+                text = strings.share,
+                onClick = onShare,
+                leadingIcon = OddlyIcon.Share,
+                modifier = Modifier.testTag(UiTestTags.COMPLETE_SHARE),
+            )
 
             Spacer(Modifier.height(12.dp))
 

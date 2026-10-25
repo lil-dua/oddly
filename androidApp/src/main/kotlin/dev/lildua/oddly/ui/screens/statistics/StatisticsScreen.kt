@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.statistics
 
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -74,6 +76,7 @@ fun StatisticsScreen(
 
     Column(
         Modifier
+            .testTag(UiTestTags.STATISTICS_SCREEN)
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()

@@ -63,6 +63,7 @@ struct ShareCardScreen: View {
                             }
                             .buttonStyle(PressableStyle())
                             .accessibilitySelected(active)
+                            .accessibilityIdentifier(entry == .square ? UiTestTags.shared.SHARE_LAYOUT_SQUARE : "")
                         }
                     }
 
@@ -72,6 +73,7 @@ struct ShareCardScreen: View {
                         .environment(\.palette, .dark)
                         // The preview reads as one block instead of a dozen stray labels.
                         .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier(UiTestTags.shared.SHARE_CARD)
                         .padding(.top, 20)
 
                     // The system share sheet is also where "Save Image" lives on
@@ -108,7 +110,8 @@ struct ShareCardScreen: View {
                 .padding(.horizontal, 24)
             }
         }
-        .statusBarScrim(palette.background)
+        // No status-bar scrim here: this screen is only ever a sheet, which has no status bar over it, and the
+        // root-measured inset would paint over the close button and title.
         .task(id: layout) { renderCard() }
     }
 
@@ -121,6 +124,7 @@ struct ShareCardScreen: View {
             }
             .buttonStyle(PressableStyle())
             .accessibilityLabel(strings.close)
+            .accessibilityIdentifier(UiTestTags.shared.SHARE_CLOSE)
             Spacer()
             Text(strings.shareCardTitle)
                 .oddlyFont(OddlyFont.titleMedium)

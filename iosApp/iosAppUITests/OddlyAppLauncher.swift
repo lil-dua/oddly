@@ -13,8 +13,13 @@ final class OddlyAppLauncher {
     static let timeout: TimeInterval = 20
 
     /// - Parameter now: pinned local time, ISO `yyyy-MM-ddTHH:mm:ss` (the clock keeps running from there).
-    func launch(now: String, keepData: Bool = false) {
+    /// - Parameters:
+    ///   - scenario: `ODDLY_UI_TEST_SCENARIO`, e.g. `storeShots` to seed the demo data.
+    ///   - language: `ODDLY_UI_TEST_LANGUAGE` (`vi` or `en`), only read with a scenario.
+    func launch(now: String, keepData: Bool = false, scenario: String? = nil, language: String? = nil) {
         app.launchEnvironment["ODDLY_UI_TEST"] = "1"
+        app.launchEnvironment["ODDLY_UI_TEST_SCENARIO"] = scenario
+        app.launchEnvironment["ODDLY_UI_TEST_LANGUAGE"] = language
         app.launchEnvironment["ODDLY_UI_TEST_NOW"] = now
         app.launchEnvironment["ODDLY_UI_TEST_KEEP_DATA"] = keepData ? "1" : nil
         app.launch()

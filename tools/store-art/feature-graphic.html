@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<!-- Play feature graphic, 1024x500. Everything that matters sits inside the central 800x400. -->
+<style>
+  :root { --pink: #FF7EB3; --magenta: #E879F9; --purple: #A78BFA; --blue: #60A5FA; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; background: #07070C;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .stage { position: relative; width: 1024px; height: 500px; overflow: hidden;
+    background:
+      radial-gradient(40% 70% at 50% 50%, rgba(167,139,250,.32), transparent 72%),
+      radial-gradient(1.4px 1.4px at 8% 14%, #fff9, transparent), radial-gradient(1.2px 1.2px at 22% 82%, #fff7, transparent),
+      radial-gradient(1.6px 1.6px at 90% 20%, #fff7, transparent), radial-gradient(1.2px 1.2px at 94% 76%, #fff6, transparent),
+      radial-gradient(1.2px 1.2px at 6% 52%, #fff6, transparent), radial-gradient(1.4px 1.4px at 60% 6%, #fff6, transparent),
+      #07070C; }
+  .row { position: absolute; left: 112px; right: 112px; top: 100px; height: 300px; display: flex; align-items: center; justify-content: center; gap: 36px; }
+  .mark { width: 200px; height: 200px; flex: none; filter: drop-shadow(0 10px 36px rgba(232,121,249,.5)); }
+  .text { display: flex; flex-direction: column; gap: 14px; }
+  .word { font-size: 72px; font-weight: 800; letter-spacing: -.02em; line-height: 1; white-space: nowrap;
+    background: linear-gradient(100deg, var(--pink), var(--magenta) 35%, var(--purple) 70%, var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { font-size: 30px; font-weight: 500; color: #C9C9D6; letter-spacing: -.01em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="row">
+  <svg class="mark" viewBox="22 30 66 46" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7EB3"/><stop offset=".35" stop-color="#E879F9"/><stop offset=".7" stop-color="#A78BFA"/><stop offset="1" stop-color="#60A5FA"/></linearGradient></defs>
+    <path fill="url(#g)" fill-rule="evenodd" d="M44 36V72H34V47.5L26 52V43L36 36Z M50 44a8 8 0 1 0 16 0a8 8 0 1 0-16 0Z M54.4 44a3.6 3.6 0 1 0 7.2 0a3.6 3.6 0 1 0-7.2 0Z M68 64a8 8 0 1 0 16 0a8 8 0 1 0-16 0Z M72.4 64a3.6 3.6 0 1 0 7.2 0a3.6 3.6 0 1 0-7.2 0Z M52.06 68.92L57.94 73.08L81.94 39.08L76.06 34.92Z"/>
+  </svg>
+  <div class="text"><div class="word">1% HUMAN</div><div class="tag">{{TAGLINE}}</div></div>
+</div></div>
+</body>
+</html>

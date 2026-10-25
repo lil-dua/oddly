@@ -27,6 +27,7 @@ object UiTestTags {
     const val COMPLETE_DONE = "complete.done"
     const val COMPLETE_XP = "complete.xp"
     const val COMPLETE_STREAK = "complete.streak"
+    const val COMPLETE_SHARE = "complete.share"
 
     const val NAV_BACK = "nav.back"
 
@@ -39,9 +40,18 @@ object UiTestTags {
     const val SETTINGS_CONTACT = "settings.contact"
     const val SETTINGS_PRIVACY = "settings.privacy"
     const val SETTINGS_ABOUT = "settings.about"
+    const val SETTINGS_REMINDER = "settings.reminder"
+    const val SETTINGS_NOTIFICATIONS_NOTICE = "settings.notificationsNotice"
 
     const val JOURNEY_EMPTY = "journey.empty"
     const val JOURNEY_LEVEL = "journey.level"
     const val JOURNEY_ALL_CHALLENGES = "journey.allChallenges"
+    const val JOURNEY_CALENDAR = "journey.calendar"
+
+    const val CALENDAR_SCREEN = "calendar.screen"
+    const val STATISTICS_SCREEN = "statistics.screen"
+    const val SHARE_CARD = "share.card"
+    const val SHARE_CLOSE = "share.close"
+    const val SHARE_LAYOUT_SQUARE = "share.layout.square"
     fun libraryRow(challengeId: String) = "library.$challengeId"
 }

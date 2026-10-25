@@ -1,5 +1,7 @@
 package dev.lildua.oddly.ui.screens.journey
 
+import androidx.compose.ui.platform.testTag
+import dev.lildua.oddly.core.testing.UiTestTags
 import dev.lildua.oddly.ui.components.CappedFontScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,6 +75,7 @@ fun CalendarScreen(
 
     Column(
         Modifier
+            .testTag(UiTestTags.CALENDAR_SCREEN)
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()

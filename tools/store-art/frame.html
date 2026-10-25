@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<!-- Store screenshot frame. tools/store-shots.sh fills the {{...}} placeholders and renders it with headless Chrome.
+     Palette and phone chrome follow docs/landing/index.html; no network resources. -->
+<style>
+  :root {
+    --w: {{WIDTH}}px; --h: {{HEIGHT}}px;
+    --bg: #07070C; --text: #F4F4F7;
+    --pink: #FF7EB3; --magenta: #E879F9; --purple: #A78BFA; --blue: #60A5FA;
+    --brand: linear-gradient(100deg, var(--pink), var(--magenta) 35%, var(--purple) 70%, var(--blue));
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: var(--w); height: var(--h); overflow: hidden; background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .stage { position: relative; width: var(--w); height: var(--h); overflow: hidden;
+    background:
+      radial-gradient(60% 38% at 50% 62%, rgba(167,139,250,.34), transparent 70%),
+      radial-gradient(1.4px 1.4px at 12% 8%, #fff9, transparent), radial-gradient(1.2px 1.2px at 82% 5%, #fff7, transparent),
+      radial-gradient(1.6px 1.6px at 70% 22%, #fff6, transparent), radial-gradient(1.2px 1.2px at 24% 31%, #fff6, transparent),
+      radial-gradient(1.4px 1.4px at 92% 44%, #fff7, transparent), radial-gradient(1.2px 1.2px at 6% 58%, #fff6, transparent),
+      radial-gradient(1.4px 1.4px at 88% 80%, #fff6, transparent), radial-gradient(1.2px 1.2px at 14% 90%, #fff5, transparent),
+      var(--bg); }
+  .caption { position: absolute; left: calc(var(--w) * .08); right: calc(var(--w) * .08); top: calc(var(--h) * .045);
+    height: calc(var(--h) * .13); display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: calc(var(--w) * .078); line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: var(--text); text-wrap: balance; }
+  .caption span { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* Phone width is a share of the canvas; its height follows the raw image and runs off the bottom edge. */
+  .phone { position: absolute; left: 50%; top: calc(var(--h) * .205); width: calc(var(--w) * {{PHONE}}); margin-left: calc(var(--w) * {{PHONE}} / -2);
+    border-radius: calc(var(--w) * .085) calc(var(--w) * .085) 0 0; padding: calc(var(--w) * .022) calc(var(--w) * .022) 0;
+    background: linear-gradient(160deg, #2a2a3a, #12121b);
+    box-shadow: 0 0 0 2px #34344a inset, 0 calc(var(--w) * .04) calc(var(--w) * .08) rgba(0,0,0,.8), 0 0 calc(var(--w) * .12) rgba(167,139,250,.45); }
+  /* Cover-crop to the canvas bottom so a taller or shorter raw shot (iOS vs Android) never leaves a gap under the phone. */
+  .phone img { display: block; width: 100%; height: calc(var(--h) * .795 - var(--w) * .022 + 4px); object-fit: cover; object-position: top; border-radius: calc(var(--w) * .066) calc(var(--w) * .066) 0 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="caption"><span>{{CAPTION}}</span></div>
+  <div class="phone"><img src="{{IMAGE}}" alt=""></div>
+</div>
+</body>
+</html>

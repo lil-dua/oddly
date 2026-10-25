@@ -1,5 +1,7 @@
 # ODDLY — 1% HUMAN
 
+[![CI](https://github.com/lil-dua/oddly/actions/workflows/ci.yml/badge.svg)](https://github.com/lil-dua/oddly/actions/workflows/ci.yml)
+
 An offline-first mobile app that turns one small action a day into a habit.
 One challenge, a few minutes, a reward, a streak — no account, no backend, no network.
 
@@ -163,6 +165,18 @@ challenge, reward, Journey, day change, one completion per day): Compose UI
 tests in `androidApp/src/androidTest` on an emulator, XCUITest in
 `iosApp/iosAppUITests` on a simulator. Elements are found by the ids in
 `UiTestTags`, not by text. The commands are in [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
+
+## CI
+
+GitHub Actions, no secrets needed. `.github/workflows/ci.yml` runs on every push and
+pull request (docs-only changes are skipped) with two parallel jobs: `android`
+(Ubuntu: shared JVM tests, `lintDebug`, an unsigned R8 `bundleRelease`, and a compile
+of the androidTest sources) and `ios` (macOS: Kotlin/Native shared tests, then
+`xcodebuild build-for-testing` with signing off). Existing lint findings live in
+`androidApp/lint-baseline.xml`; only new errors fail the build.
+
+UI tests are not part of CI. Run them by hand from the Actions tab: UI tests, Run
+workflow (`.github/workflows/ui-tests.yml`, platform android, ios or both).
 
 ## Design system
 

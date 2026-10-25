@@ -207,7 +207,12 @@ fun JourneyScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        NavigationRow(strings.completionCalendar, OddlyIcon.Calendar, onOpenCalendar)
+        NavigationRow(
+            strings.completionCalendar,
+            OddlyIcon.Calendar,
+            onOpenCalendar,
+            Modifier.testTag(UiTestTags.JOURNEY_CALENDAR),
+        )
         Spacer(Modifier.height(10.dp))
         NavigationRow(strings.streakRow, OddlyIcon.Flame, onOpenStreak)
         Spacer(Modifier.height(10.dp))

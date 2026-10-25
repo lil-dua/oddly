@@ -34,8 +34,10 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.lildua.oddly.core.testing.UiTestTags
 import dev.lildua.oddly.core.text.Brand
 import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.domain.model.LocalizedChallenge
@@ -105,6 +107,7 @@ fun ShareCardScreen(
             val closeLabel = strings.close
             Box(
                 modifier = Modifier
+                    .testTag(UiTestTags.SHARE_CLOSE)
                     .minimumInteractiveComponentSize()
                     .clickableNoRipple(onClick = onBack)
                     .semantics { contentDescription = closeLabel },
@@ -135,6 +138,7 @@ fun ShareCardScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .then(if (entry == ShareLayout.SQUARE) Modifier.testTag(UiTestTags.SHARE_LAYOUT_SQUARE) else Modifier)
                             .minimumInteractiveComponentSize()
                             .clip(RoundedCornerShape(12.dp))
                             .background(
@@ -157,7 +161,7 @@ fun ShareCardScreen(
             Spacer(Modifier.height(20.dp))
 
             Box(
-                Modifier.semantics(mergeDescendants = true) {}.drawWithContent {
+                Modifier.testTag(UiTestTags.SHARE_CARD).semantics(mergeDescendants = true) {}.drawWithContent {
                     cardLayer.record { this@drawWithContent.drawContent() }
                     drawLayer(cardLayer)
                 },

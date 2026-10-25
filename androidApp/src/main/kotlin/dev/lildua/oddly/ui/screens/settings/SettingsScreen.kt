@@ -218,6 +218,7 @@ fun SettingsScreen(state: OddlyAppState) {
             SettingsRow(
                 icon = OddlyIcon.Bell,
                 title = strings.dailyReminder,
+                modifier = Modifier.testTag(UiTestTags.SETTINGS_REMINDER),
                 showChevron = false,
                 toggled = settings.reminderEnabled,
                 onToggle = { enabled ->
@@ -272,6 +273,7 @@ fun SettingsScreen(state: OddlyAppState) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(OddlyColors.Warning.copy(alpha = 0.12f))
+                    .testTag(UiTestTags.SETTINGS_NOTIFICATIONS_NOTICE)
                     .clickableNoRipple { notifications.openSystemSettings() }
                     .a11yLiveRegion()
                     .padding(14.dp),

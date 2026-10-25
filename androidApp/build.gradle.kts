@@ -101,6 +101,11 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    lint {
+        // Two errors predate CI (T-25); the baseline keeps them from turning the
+        // first run red while still failing the build on any new error.
+        baseline = file("lint-baseline.xml")
+    }
     signingConfigs {
         if (keystoreProperties != null) {
             create("release") {
