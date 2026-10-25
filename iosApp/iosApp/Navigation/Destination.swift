@@ -48,13 +48,13 @@ enum OnboardingStep: Hashable {
 }
 
 extension TabDestination {
-    /// UI-test id (`UiTestTags`) — Home, Journey and Settings are driven by tests; the others fall back to their raw value.
+    /// UI-test id (`UiTestTags`) — one id per tab, mirrored on Android.
     var testId: String {
         switch self {
         case .home: return UiTestTags.shared.TAB_HOME
         case .journey: return UiTestTags.shared.TAB_JOURNEY
+        case .statistics: return UiTestTags.shared.TAB_STATISTICS
         case .settings: return UiTestTags.shared.TAB_SETTINGS
-        default: return "tab.\(rawValue)"
         }
     }
 }

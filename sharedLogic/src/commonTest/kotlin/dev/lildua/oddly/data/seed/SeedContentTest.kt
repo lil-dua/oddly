@@ -352,6 +352,23 @@ class SeedContentTest {
         // A date before the epoch yields a negative day index and must still resolve.
         assertNotNull(QuoteSeed.forDayIndex(-1))
     }
+
+    @Test
+    fun `sunrise and sunset challenges warn against looking at the sun`() {
+        for (id in listOf("life_sunrise", "life_watch_something_end")) {
+            val challenge = assertNotNull(ChallengeSeed.byId(id), id)
+            assertTrue(
+                challenge.howToDoIt.any { it.vi.contains("nhìn thẳng vào mặt trời") },
+                "$id vi has no sun warning",
+            )
+            assertTrue(
+                challenge.howToDoIt.any { it.en.contains("look straight at the sun") },
+                "$id en has no sun warning",
+            )
+            assertTrue(challenge.howToDoIt.size in 2..4, "$id step count")
+            assertTrue(challenge.howToDoIt.all { it.vi.length <= 120 && it.en.length <= 120 }, "$id step length")
+        }
+    }
 }
 
 /**

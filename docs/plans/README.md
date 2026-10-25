@@ -3,7 +3,7 @@
 Điểm vào cho phiên mới: đọc file này + `docs/release-todo.xlsx` (nguồn sự thật về task) trước khi làm tiếp.
 Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE được chuyển vào thư mục này.
 
-## Đã làm (cập nhật 25/10/2026, sau đợt T-10/T-12)
+## Đã làm (cập nhật 25/10/2026, sau đợt T-30/T-31 + dọn backlog)
 | Task | Trạng thái | Kế hoạch / báo cáo | Còn lại |
 |---|---|---|---|
 | T-01 Giờ hoàn thành thật | Xong | (làm cùng Bước 0, trước khi có quy trình PLAN.md) | — |
@@ -30,7 +30,10 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 | T-23C Neon thương hiệu/lĩnh vực làm chữ trên theme Sáng (1.35–2.72) | Chưa làm — cần người duyệt bảng màu thương hiệu | — | — |
 | T-11 Privacy policy | Xong | — | Live: https://lil-dua.github.io/projects/oddly/privacy/privacy-policy.html (nguồn `docs/privacy-policy.html`, sửa xong phải đăng lại site repo `lil-dua.github.io`) |
 | T-12 Pháp lý / Hỗ trợ | Code xong, APPROVE (2 vòng sửa) | `T-28_T-18_T-22.md`, `T-10_T-12.md` | QA tay: TalkBack/VoiceOver, alert fallback iOS; hàng Đánh giá iOS ẩn tới khi điền `Brand.APP_STORE_ID` (T-17) |
-| T-10 Link thương hiệu share card | Code xong, APPROVE | `T-10_T-12.md` | Landing đã đăng (bản thiết kế mới trong `docs/landing/index.html` cần đăng lại); QA thẻ share 9:16/1:1 |
+| T-10 Link thương hiệu share card | Code xong, APPROVE | `T-10_T-12.md` | Landing bản thiết kế mới đã đăng (25/10/2026); QA thẻ share 9:16/1:1 |
+| T-30 Xoá `sharedUI` + README | Code xong, APPROVE (1 vòng sửa) | `T-30_T-31_backlog.md` | — |
+| T-31 Memo hoá giá trị dẫn xuất | Code xong, APPROVE (1 vòng sửa) | `T-30_T-31_backlog.md` | QA tay: đổi range Statistics, qua nửa đêm, xoá/nhập backup, bản R8 |
+| Dọn backlog (10 mục) | Code xong, APPROVE | `T-30_T-31_backlog.md` | QA tay: caption S08, gỡ thông báo đã hiện iOS, VoiceOver EmptyState, S14 sau đổi cỡ chữ/ngôn ngữ/process death; **đăng lại `privacy-policy.html` lên `lil-dua.github.io`** |
 
 `T-01_T-02_T-03.md` là kế hoạch tổng ban đầu — chỉ để tham khảo lịch sử.
 
@@ -98,36 +101,33 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
   `APP_STORE_ID: String? = null`) + `core/text/ExternalLinks.kt` (mailto, Play market/https, App Store review, percentEncode).
   Android `screens/settings/LinkLauncher.kt` (try/catch, không `<queries>`); iOS `openURL` có completion; fallback hộp thoại hiện
   địa chỉ + Sao chép. `SettingsRow(subtitle, onClickLabel)`. Nguồn landing `docs/landing/index.html`.
-- Test shared: 295 test mỗi nền tảng (JVM + iosSimulatorArm64); UI test Android 7, iOS 6.
+- Dọn dẹp + hiệu năng (đợt T-30/T-31): `sharedUI/` đã xoá, gỡ alias catalog không dùng (`core-ktx`, `espresso`, `testJunit`).
+  `ChallengeSeed.byId` tra Map; selector O(n+m); `DailyChallengeRules.swapsLeft(dayDone:pickDate:swapsUsed:today:)`; `StatsCalculator.summarize`
+  tính distribution một lần. Android `completions` là List bất biến trong `mutableStateOf`, giá trị dẫn xuất `derivedStateOf`; iOS stored
+  property tính lại trong `didSet` của `completions`/`today` + cuối `init`. Android `OddlyApp` có `rememberSaveableStateHolder` theo route
+  (giữ state khi Share → Back; bỏ state khi route rời back stack sau 500 ms, và bỏ slot khôi phục sau Activity recreate). `UiTestTags.TAB_STATISTICS`.
+- Test shared: 303 test mỗi nền tảng (JVM + iosSimulatorArm64); UI test Android 9, iOS 6.
 
 ## Ghi nhận để sau (không thuộc task nào đang mở)
 - iOS `ChallengeDetailScreen.swift`: `.dayAlreadyDone` rơi vào `default` (hành vi đúng).
-- Android `absorb()` clear + addAll `_completions` mỗi lần — chấp nhận được với dữ liệu nhỏ (liên quan T-31).
-- `swapsLeft`/`canReroll` dựng lại `currentState()` mỗi lần đọc — gom vào T-31.
-- `Strings.wantAnotherChallengeBody` không còn dùng — xoá khi dọn chuỗi.
-- S08 vào lại qua back stack khi hết lượt hiện "Còn 0 lượt" (bấm bị guard về Home) — có thể ẩn caption khi `swapsLeft == 0`.
-- iOS chỉ gỡ thông báo đã hiện khi nhắc đang bật + có quyền (sau `guard` trong `reschedule`); Android gỡ vô điều kiện — chuyển `removeDeliveredNotifications` lên trước `guard`.
-- Copy xoay vòng cũ "Giữ chuỗi ngày của bạn nhé" trong `ReminderSeed` vẫn có thể hiện với người chưa có chuỗi.
 - "Xóa tất cả dữ liệu" đi qua `resetAllData()` (không gọi `repository.clear()`) — xoá favorites chỉ kiểm bằng QA tay; cần test AppState khi có hạ tầng.
-- Android S14 dùng `remember` (không `rememberSaveable`) cho `showFavorites`/`favoriteSnapshot`/`index` — xoay màn hình về chip "Tất cả".
 - Nhãn trợ năng cho nút tim + chip lọc (cả app chưa có, làm đồng loạt); nút Share ở S14 chia sẻ thử thách chứ không phải quote.
 - Android bỏ tagline S01 (splash hệ thống chỉ nền + icon), iOS vẫn giữ — Quyết định #6 của `T-07_T-29.md`; phương án (b) giữ màn Compose nếu muốn.
 - iOS theme Sáng: launch screen tối chuyển sang S01 sáng.
 - iOS đọc tệp import đồng bộ trên main thread (Android dùng IO) — nếu QA thấy giật với tệp iCloud thì chuyển `Task.detached`.
 - iOS `importBackup` ghi store hai lần cùng nội dung (`settings.didSet` rồi `persist()`) — vô hại.
-- Privacy policy EN ghi "Reset all data" trong khi app ghi "Erase all data".
-- `docs/store-listing.md:17` ghi "currently `1.0`, build `1`" — sẽ lỗi thời sau mỗi lần bump; bỏ hoặc thêm vào checklist.
 - Quote trùng ý (nhóm "việc lớn bắt đầu từ nhỏ", nhóm kiên trì); `q_proverb_beginning_hard`/`q_proverb_failure_mother` gốc Hán nhưng ghi "Tục ngữ Việt Nam"; bản en `q_seneca_time` sát bản lưu hành — người dùng quyết khi duyệt content-review / T-27.
 - Tiêu đề thử thách vi 55–60 ký tự có thể bị cắt "…" ở dòng 2 trong hàng danh sách trên máy hẹp — rút tiêu đề nếu QA thấy xấu.
-- `life_sunrise`, `life_watch_something_end` (đã phát hành) thiếu câu cấm nhìn thẳng mặt trời — sửa chữ không cần migrate.
 - `health_dance_three_songs` (Vừa, 12 phút) sát ranh Dễ; vài cặp thử thách gần ý ghi trong Backlog của `docs/content-review-challenges.md`.
 - Ô lịch Android ~40dp (trong `aspectRatio`), iOS rộng ~42–45pt — dưới 48dp/44pt, xem lại khi làm lưới ở T-23B.
 - M3 `Switch(onCheckedChange = null)` mất `minimumInteractiveComponentSize` riêng → hàng công tắc có thể thấp ~16dp; các chỗ mới thêm vùng chạm làm layout cao lên — so ảnh, bù `heightIn` nếu thiết kế không chấp nhận.
-- iOS `StarryBox` ẩn cả `content()` khỏi VoiceOver — chỉ đúng khi bên trong là trang trí; iOS banner Home announce lại khi quay về tab Home.
+- iOS banner Home announce lại khi quay về tab Home.
 - Onboarding "Bỏ qua" không tắt `reminderEnabled` (mặc định true) trong khi "Để sau" ở S03 có tắt — hành vi có sẵn, cần quyết định sản phẩm.
-- iOS `TabDestination.testId` cho Statistics/Settings trả `tab.<raw>`, Android trả null — thống nhất khi cần test hai tab này.
 - UI test: bước chọn sở thích chưa assert ô đã selected (cần `accessibilityAddTraits(.isSelected)` iOS khi có test phụ thuộc sở thích); CI Android phải chờ `sys.boot_completed`.
 - Scheme `iosApp` riêng cũ của người dùng giữ ở `xcuserdata/.../xcschemes/iosApp (local backup).xcscheme` (gitignored).
+- Android: mọi màn trong back stack giờ giữ vị trí cuộn khi Back (`rememberScrollState` saveable) — vô hại; mở lại S14 < 500 ms sau khi rời còn state cũ.
+- iOS `recomputeDerived()` chạy hai lần khi đổi ngày/nhập backup — rẻ, không sửa.
+- Favicon data-URI trong `docs/landing/index.html` + `docs/privacy-policy.html` (người dùng thêm, SVG inline, không gọi mạng).
 - Fixture `V1_DOCUMENT` viết tay (chỉ 1 completion có `"note": null`); fixture `V2_DOCUMENT` sau này nên sinh bằng `OddlyRepository.save`.
 
 ## Gợi ý thứ tự tiếp theo

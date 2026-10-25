@@ -41,13 +41,12 @@ private val TabDestination.icon: OddlyIcon
         TabDestination.SETTINGS -> OddlyIcon.Settings
     }
 
-// Only the tabs the UI tests drive have an id.
-private val TabDestination.testTag: String?
+private val TabDestination.testTag: String
     get() = when (this) {
         TabDestination.HOME -> UiTestTags.TAB_HOME
         TabDestination.JOURNEY -> UiTestTags.TAB_JOURNEY
+        TabDestination.STATISTICS -> UiTestTags.TAB_STATISTICS
         TabDestination.SETTINGS -> UiTestTags.TAB_SETTINGS
-        else -> null
     }
 
 /**
@@ -93,7 +92,7 @@ private fun BottomBarContent(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .then(tab.testTag?.let { Modifier.testTag(it) } ?: Modifier)
+                    .testTag(tab.testTag)
                     .clip(RoundedCornerShape(14.dp))
                     .selectableNoRipple(active, Role.Tab) { onSelect(tab) }
                     .padding(horizontal = 14.dp, vertical = 6.dp),

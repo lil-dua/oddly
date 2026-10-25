@@ -38,7 +38,11 @@ object ChallengeSeed {
         addAll(lifeExperience)
     }
 
-    fun byId(id: String): Challenge? = all.firstOrNull { it.id == id }
+    /** Declared after [all] so it is built from the finished list (object init order). */
+    private val byIdIndex: Map<String, Challenge> = all.associateBy { it.id }
+
+    /** O(1): stats, selector and AppState look challenges up once per completion. */
+    fun byId(id: String): Challenge? = byIdIndex[id]
 
     fun byCategory(category: Category): List<Challenge> = all.filter { it.category == category }
 }
@@ -2625,7 +2629,7 @@ private val lifeExperience = listOf(
         how = listOf(
             t("Tra giờ mặt trời mọc hoặc lặn.", "Look up the sunrise or sunset time."),
             t("Ra ngoài trước đó 10 phút.", "Get outside ten minutes before it."),
-            t("Cất điện thoại đi.", "Put your phone away."),
+            t("Cất điện thoại đi, và đừng nhìn thẳng vào mặt trời.", "Put your phone away, and never look straight at the sun."),
         ),
     ),
     challenge(
@@ -2800,7 +2804,7 @@ private val lifeExperience = listOf(
         why = t("Chụp ảnh làm ta yên tâm rằng mình sẽ nhớ, nên ta thôi không nhìn nữa. Không chụp thì buộc phải có mặt.", "Taking a photo reassures you that you'll remember, so you stop looking. Not taking one forces you to be there."),
         how = listOf(
             t("Tìm chỗ nhìn được về hướng tây.", "Find somewhere with a view west."),
-            t("Tới trước khi mặt trời lặn khoảng 20 phút.", "Arrive about twenty minutes before sunset."),
+            t("Tới trước khi mặt trời lặn khoảng 20 phút; đừng nhìn thẳng vào mặt trời.", "Arrive about twenty minutes before sunset, and never look straight at the sun."),
             t("Để điện thoại trong túi cho tới khi trời tối.", "Keep your phone away until it is dark."),
         ),
     ),

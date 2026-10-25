@@ -7,9 +7,12 @@ import SharedLogic
 /// the writes are a few kilobytes of JSON, and a habit app that loses the
 /// completion the user was just congratulated for is worse than a slow one.
 ///
-/// Derived values — streak, statistics, category mix — are still computed from
-/// the completion list on demand rather than stored, so there is only ever one
-/// source of truth to keep consistent.
+/// Derived values — streak, week strip, explored categories — are never
+/// persisted, but they are cached in stored properties that `recomputeDerived`
+/// refreshes from the `didSet` of `completions` and `today` (the only inputs), so
+/// each is computed once per change instead of on every read across the bridge.
+/// Any new write path to those two properties gets the refresh for free; keep it
+/// that way rather than assigning the cached values by hand.
 ///
 /// The Android app has the same class backed by Compose snapshot state; the two
 /// stay deliberately parallel so the shared layer remains the only place the
@@ -18,9 +21,13 @@ import SharedLogic
 final class OddlyAppState {
 
     /// The calendar day every screen shows. Moves only through `refreshDay`.
-    private(set) var today: LocalDate
+    private(set) var today: LocalDate {
+        didSet { recomputeDerived() }
+    }
 
-    private(set) var completions: [ChallengeCompletion]
+    private(set) var completions: [ChallengeCompletion] {
+        didSet { recomputeDerived() }
+    }
     private(set) var profile: UserProfile
     private(set) var interests: Set<ChallengeCategory>
 
@@ -80,25 +87,50 @@ final class OddlyAppState {
         self.favoriteQuoteIds = resolution.state.favoriteQuoteIds
         self.dailyChallengeDate = resolution.state.dailyChallenge?.date
         self.swapsUsed = Int(resolution.state.dailyChallenge?.swapsUsed ?? 0)
+        // didSet does not run inside init, so seed the cache here.
+        let derived = Self.derive(completions: resolution.state.completions, today: today)
+        self.streak = derived.streak
+        self.weekActivity = derived.weekActivity
+        self.completedToday = derived.completedToday
+        self.exploredCategoryCount = derived.exploredCategoryCount
     }
 
     // MARK: - Derived state
 
-    var streak: StreakInfo {
-        StreakCalculator.shared.calculate(completions: completions, today: today)
+    private(set) var streak: StreakInfo
+    private(set) var weekActivity: [DayActivity]
+    private(set) var completedToday: Bool
+    private(set) var exploredCategoryCount: Int
+
+    private func recomputeDerived() {
+        let derived = Self.derive(completions: completions, today: today)
+        streak = derived.streak
+        weekActivity = derived.weekActivity
+        completedToday = derived.completedToday
+        exploredCategoryCount = derived.exploredCategoryCount
     }
 
-    var weekActivity: [DayActivity] {
-        StreakCalculator.shared.recentActivity(completions: completions, today: today, days: 7)
-    }
-
-    var completedToday: Bool {
-        DailyChallengeRules.shared.isDayDone(completions: completions, today: today)
+    private static func derive(completions: [ChallengeCompletion], today: LocalDate) -> (
+        streak: StreakInfo, weekActivity: [DayActivity], completedToday: Bool, exploredCategoryCount: Int
+    ) {
+        (
+            streak: StreakCalculator.shared.calculate(completions: completions, today: today),
+            weekActivity: StreakCalculator.shared.recentActivity(completions: completions, today: today, days: 7),
+            completedToday: DailyChallengeRules.shared.isDayDone(completions: completions, today: today),
+            exploredCategoryCount: Set(
+                completions.compactMap { ChallengeSeed.shared.byId(id: $0.challengeId)?.category }
+            ).count
+        )
     }
 
     /// Swaps left today; 0 once today is done (see `DailyChallengeRules.swapsLeft`).
     var swapsLeft: Int {
-        Int(DailyChallengeRules.shared.swapsLeft(state: currentState(), today: today))
+        Int(DailyChallengeRules.shared.swapsLeft(
+            dayDone: completedToday,
+            pickDate: dailyChallengeDate,
+            swapsUsed: Int32(swapsUsed),
+            today: today
+        ))
     }
 
     /// False once today is done or the swaps ran out: no more swapping. Also the
@@ -110,10 +142,6 @@ final class OddlyAppState {
     var completionRatePercent: Int {
         let total = completions.count + skippedCount
         return total == 0 ? 0 : (completions.count * 100) / total
-    }
-
-    var exploredCategoryCount: Int {
-        Set(completions.compactMap { ChallengeSeed.shared.byId(id: $0.challengeId)?.category }).count
     }
 
     var quoteOfTheDay: Quote {

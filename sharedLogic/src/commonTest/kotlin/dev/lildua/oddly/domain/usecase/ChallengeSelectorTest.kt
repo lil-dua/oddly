@@ -229,4 +229,16 @@ class ChallengeSelectorTest {
         // health-2's 1.0 — about two thirds of the picks.
         assertTrue(financeCount in 600..730, "finance was picked $financeCount times in 1000")
     }
+
+    @Test
+    fun `recent categories count completions of library challenges only`() {
+        val picked = select(
+            library = listOf(health, finance),
+            completions = listOf(
+                completion(daysAgo(1), challengeId = "not-in-library"),
+                completion(daysAgo(2), challengeId = "also-missing"),
+            ),
+        )
+        assertNotNull(picked)
+    }
 }

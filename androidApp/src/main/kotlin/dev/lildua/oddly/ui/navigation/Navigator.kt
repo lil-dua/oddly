@@ -20,6 +20,9 @@ class Navigator(start: Destination) {
 
     val current: Destination get() = backStack.last()
 
+    /** Read-only snapshot of the stack, bottom first. */
+    val entries: List<Destination> get() = backStack.toList()
+
     val canGoBack: Boolean get() = backStack.size > 1
 
     fun push(destination: Destination) {

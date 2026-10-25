@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ReminderPlannerTest {
 
@@ -105,5 +106,19 @@ class ReminderPlannerTest {
         assertNotEquals(v.reminderStreakBody, e.reminderStreakBody)
         assertNotEquals(v.reminderLapsedTitle, e.reminderLapsedTitle)
         assertNotEquals(v.reminderLapsedBody, e.reminderLapsedBody)
+    }
+
+    @Test
+    fun `rotating reminder copy never mentions a streak`() {
+        val banned = listOf("chuỗi", "streak", "unbroken", "gián đoạn")
+        for (lang in listOf(vi, en)) {
+            for (day in 0 until 6) {
+                val c = ReminderSeed.content(day, lang)
+                for (word in banned) {
+                    assertTrue(!c.title.contains(word, ignoreCase = true), "$lang day $day title: ${c.title}")
+                    assertTrue(!c.body.contains(word, ignoreCase = true), "$lang day $day body: ${c.body}")
+                }
+            }
+        }
     }
 }

@@ -88,9 +88,21 @@ object DailyChallengeRules {
      * [MAX_SWAPS_PER_DAY] minus those used on today's pick (a pick from another
      * day, or none, means a fresh set).
      */
-    fun swapsLeft(state: PersistedState, today: LocalDate): Int {
-        if (isDayDone(state.completions, today)) return 0
-        return (MAX_SWAPS_PER_DAY - swapsUsedOn(state, today)).coerceAtLeast(0)
+    fun swapsLeft(state: PersistedState, today: LocalDate): Int = swapsLeft(
+        dayDone = isDayDone(state.completions, today),
+        pickDate = state.dailyChallenge?.date,
+        swapsUsed = state.dailyChallenge?.swapsUsed ?: 0,
+        today = today,
+    )
+
+    /**
+     * Same rule from loose parts, so an AppState can ask without building a
+     * [PersistedState] (copying every completion) on each read.
+     */
+    fun swapsLeft(dayDone: Boolean, pickDate: LocalDate?, swapsUsed: Int, today: LocalDate): Int {
+        if (dayDone) return 0
+        val used = if (pickDate == today) swapsUsed else 0
+        return (MAX_SWAPS_PER_DAY - used).coerceAtLeast(0)
     }
 
     private fun swapsUsedOn(state: PersistedState, today: LocalDate): Int =

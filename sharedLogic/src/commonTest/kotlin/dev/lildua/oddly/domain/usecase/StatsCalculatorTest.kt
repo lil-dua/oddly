@@ -376,4 +376,25 @@ class StatsCalculatorTest {
             ),
         )
     }
+
+    @Test
+    fun `summarize distribution matches distribution of the window`() {
+        val ids = ChallengeSeed.all.take(6).map { it.id }
+        val log = ids.mapIndexed { i, id -> completion(daysAgo(i * 3), challengeId = id) }
+        for (range in StatsRange.entries) {
+            val summary = summarize(log, range)
+            val windowed = StatsCalculator.filterTo(log, TODAY, range)
+            assertEquals(StatsCalculator.distribution(windowed), summary.distribution)
+            assertEquals(windowed.size, summary.totalCompleted)
+        }
+    }
+
+    @Test
+    fun `distribution skips completions whose challenge id is unknown`() {
+        val log = listOf(
+            completion(TODAY, challengeId = ChallengeSeed.all.first().id),
+            completion(daysAgo(1), challengeId = "no_such_challenge"),
+        )
+        assertEquals(1, StatsCalculator.distribution(log).sumOf { it.count })
+    }
 }

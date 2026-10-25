@@ -22,7 +22,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -129,6 +131,20 @@ fun OddlyApp() {
                 if (state.hasCompletedOnboarding) TabDestination.HOME else Destination.Onboarding,
             )
             val current = navigator.current
+            val saveableStates = rememberSaveableStateHolder()
+            // Drop the saved state of routes that left the back stack, so reopening
+            // S14 from Home starts fresh. Waits out the exit animation: a key still on
+            // screen must not be removed.
+            val savedKeys = remember { mutableSetOf<String>() }
+            LaunchedEffect(current) {
+                savedKeys += current.toString()
+                delay(500)
+                val live = navigator.entries.map { it.toString() }.toSet()
+                savedKeys.filter { it !in live }.forEach { key ->
+                    saveableStates.removeState(key)
+                    savedKeys -= key
+                }
+            }
 
             // A new day sends everyone back to Home: the screens above it were
             // built for yesterday. Onboarding is left alone; the data still updates.
@@ -161,197 +177,209 @@ fun OddlyApp() {
                         },
                         label = "route",
                     ) { destination ->
-                        when (destination) {
+                        // One saved-state slot per route, so S14 keeps its filter and position
+                        // across Share and Back (the screen is otherwise recomposed from scratch).
+                        val routeKey = destination.toString()
+                        // The holder survives Activity recreation through the Bundle but
+                        // Navigator and savedKeys do not, so a key seen for the first time
+                        // this session may carry a restored slot from a dead back stack.
+                        remember(routeKey) {
+                            if (savedKeys.add(routeKey)) saveableStates.removeState(routeKey)
+                        }
+                        saveableStates.SaveableStateProvider(routeKey) {
+                            when (destination) {
 
-                            // --- Onboarding ---
+                                // --- Onboarding ---
 
-                            Destination.Onboarding -> OnboardingScreen(
-                                onStart = { navigator.push(Destination.ChooseInterest) },
-                                onSkip = {
-                                    state.completeOnboarding()
-                                    navigator.resetTo(TabDestination.HOME)
-                                },
-                            )
+                                Destination.Onboarding -> OnboardingScreen(
+                                    onStart = { navigator.push(Destination.ChooseInterest) },
+                                    onSkip = {
+                                        state.completeOnboarding()
+                                        navigator.resetTo(TabDestination.HOME)
+                                    },
+                                )
 
-                            Destination.ChooseInterest -> ChooseInterestScreen(
-                                selected = state.interests,
-                                onToggle = {
-                                    state.toggleInterest(it)
-                                    feedback.play(FeedbackRules.selection(state.settings))
-                                },
-                                onContinue = { navigator.push(Destination.NotificationPermission) },
-                            )
+                                Destination.ChooseInterest -> ChooseInterestScreen(
+                                    selected = state.interests,
+                                    onToggle = {
+                                        state.toggleInterest(it)
+                                        feedback.play(FeedbackRules.selection(state.settings))
+                                    },
+                                    onContinue = { navigator.push(Destination.NotificationPermission) },
+                                )
 
-                            Destination.NotificationPermission -> NotificationPermissionScreen(
-                                onAllow = { time ->
-                                    val (hour, minute) = time.split(":").map(String::toInt)
-                                    state.settings = state.settings.copy(
-                                        reminderEnabled = true,
-                                        reminderTime = kotlinx.datetime.LocalTime(hour, minute),
+                                Destination.NotificationPermission -> NotificationPermissionScreen(
+                                    onAllow = { time ->
+                                        val (hour, minute) = time.split(":").map(String::toInt)
+                                        state.settings = state.settings.copy(
+                                            reminderEnabled = true,
+                                            reminderTime = kotlinx.datetime.LocalTime(hour, minute),
+                                        )
+                                        notifications.request()
+                                        state.completeOnboarding()
+                                        navigator.resetTo(TabDestination.HOME)
+                                    },
+                                    onSkip = {
+                                        state.settings = state.settings.copy(reminderEnabled = false)
+                                        state.completeOnboarding()
+                                        navigator.resetTo(TabDestination.HOME)
+                                    },
+                                )
+
+                                // --- Tabs ---
+
+                                TabDestination.HOME -> HomeScreen(
+                                    state = state,
+                                    onOpenChallenge = {
+                                        navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
+                                    },
+                                    onStartChallenge = {
+                                        navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
+                                    },
+                                    onAnotherChallenge = { navigator.push(Destination.AnotherChallenge) },
+                                    onOpenStreak = { navigator.push(Destination.Streak) },
+                                    onOpenQuotes = { navigator.push(Destination.Quotes) },
+                                )
+
+                                TabDestination.JOURNEY -> JourneyScreen(
+                                    state = state,
+                                    onOpenCalendar = { navigator.push(Destination.Calendar) },
+                                    onOpenStreak = { navigator.push(Destination.Streak) },
+                                    onOpenAllChallenges = { navigator.push(Destination.AllChallenges) },
+                                    onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
+                                )
+
+                                TabDestination.STATISTICS -> StatisticsScreen(
+                                    state = state,
+                                    onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
+                                )
+
+                                TabDestination.SETTINGS -> SettingsScreen(state = state)
+
+                                // --- Challenge flow ---
+
+                                is Destination.ChallengeDetail -> {
+                                    val challenge = ChallengeSeed.byId(destination.challengeId)
+                                        ?: state.todayChallenge
+                                    ChallengeDetailScreen(
+                                        challenge = challenge.localized(),
+                                        // One scoring completion a day, for today's pick only;
+                                        // library entries must be adopted first.
+                                        availability = state.availability(challenge.id),
+                                        canSwap = state.canReroll,
+                                        onBack = { navigator.pop() },
+                                        onComplete = {
+                                            // Refused (e.g. midnight passed): no reward screen;
+                                            // the day-change reset above takes over.
+                                            if (state.complete(challenge)) {
+                                                // Here, not in the reward screen's effect: that screen is
+                                                // rebuilt on Back from ShareCard and would replay it.
+                                                feedback.play(FeedbackRules.reward(state.lastReward, state.settings))
+                                                navigator.push(Destination.ChallengeComplete(challenge.id))
+                                            }
+                                        },
+                                        // Stays on this screen: availability flips to
+                                        // CAN_COMPLETE once todayChallenge changes. A day
+                                        // change is handled by the reset to Home above.
+                                        onAdopt = { state.adopt(challenge) },
+                                        onAnother = { navigator.push(Destination.AnotherChallenge) },
                                     )
-                                    notifications.request()
-                                    state.completeOnboarding()
-                                    navigator.resetTo(TabDestination.HOME)
-                                },
-                                onSkip = {
-                                    state.settings = state.settings.copy(reminderEnabled = false)
-                                    state.completeOnboarding()
-                                    navigator.resetTo(TabDestination.HOME)
-                                },
-                            )
+                                }
 
-                            // --- Tabs ---
+                                is Destination.ChallengeComplete -> {
+                                    val challenge = ChallengeSeed.byId(destination.challengeId)
+                                        ?: state.todayChallenge
+                                    ChallengeCompleteScreen(
+                                        challenge = challenge.localized(),
+                                        reward = state.lastReward,
+                                        streakDays = state.streak.current,
+                                        quote = QuoteSeed
+                                            .forDayIndex(state.today.toEpochDays())
+                                            .localized()
+                                            .text,
+                                        onShare = { navigator.push(Destination.ShareCard(challenge.id)) },
+                                        onBrowseLibrary = {
+                                            state.clearReward()
+                                            navigator.selectTab(TabDestination.HOME)
+                                            navigator.push(Destination.AllChallenges)
+                                        },
+                                        onDone = {
+                                            state.clearReward()
+                                            navigator.selectTab(TabDestination.HOME)
+                                        },
+                                    )
+                                }
 
-                            TabDestination.HOME -> HomeScreen(
-                                state = state,
-                                onOpenChallenge = {
-                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                                },
-                                onStartChallenge = {
-                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                                },
-                                onAnotherChallenge = { navigator.push(Destination.AnotherChallenge) },
-                                onOpenStreak = { navigator.push(Destination.Streak) },
-                                onOpenQuotes = { navigator.push(Destination.Quotes) },
-                            )
-
-                            TabDestination.JOURNEY -> JourneyScreen(
-                                state = state,
-                                onOpenCalendar = { navigator.push(Destination.Calendar) },
-                                onOpenStreak = { navigator.push(Destination.Streak) },
-                                onOpenAllChallenges = { navigator.push(Destination.AllChallenges) },
-                                onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
-                            )
-
-                            TabDestination.STATISTICS -> StatisticsScreen(
-                                state = state,
-                                onStartFirstChallenge = { navigator.selectTab(TabDestination.HOME) },
-                            )
-
-                            TabDestination.SETTINGS -> SettingsScreen(state = state)
-
-                            // --- Challenge flow ---
-
-                            is Destination.ChallengeDetail -> {
-                                val challenge = ChallengeSeed.byId(destination.challengeId)
-                                    ?: state.todayChallenge
-                                ChallengeDetailScreen(
-                                    challenge = challenge.localized(),
-                                    // One scoring completion a day, for today's pick only;
-                                    // library entries must be adopted first.
-                                    availability = state.availability(challenge.id),
-                                    canSwap = state.canReroll,
+                                Destination.AnotherChallenge -> AnotherChallengeScreen(
+                                    swapsLeft = state.swapsLeft,
+                                    completedToday = state.completedToday,
                                     onBack = { navigator.pop() },
-                                    onComplete = {
-                                        // Refused (e.g. midnight passed): no reward screen;
-                                        // the day-change reset above takes over.
-                                        if (state.complete(challenge)) {
-                                            // Here, not in the reward screen's effect: that screen is
-                                            // rebuilt on Back from ShareCard and would replay it.
-                                            feedback.play(FeedbackRules.reward(state.lastReward, state.settings))
-                                            navigator.push(Destination.ChallengeComplete(challenge.id))
+                                    onSurpriseMe = {
+                                        // Reachable via the back stack after completing.
+                                        if (!state.canReroll) {
+                                            navigator.selectTab(TabDestination.HOME)
+                                            return@AnotherChallengeScreen
                                         }
+                                        val day = state.today
+                                        state.reroll()
+                                        // Day changed: the reset to Home takes over.
+                                        if (state.today != day) return@AnotherChallengeScreen
+                                        navigator.pop()
+                                        navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                     },
-                                    // Stays on this screen: availability flips to
-                                    // CAN_COMPLETE once todayChallenge changes. A day
-                                    // change is handled by the reset to Home above.
-                                    onAdopt = { state.adopt(challenge) },
-                                    onAnother = { navigator.push(Destination.AnotherChallenge) },
+                                    onChooseCategory = { navigator.push(Destination.ChooseCategory) },
                                 )
-                            }
 
-                            is Destination.ChallengeComplete -> {
-                                val challenge = ChallengeSeed.byId(destination.challengeId)
-                                    ?: state.todayChallenge
-                                ChallengeCompleteScreen(
-                                    challenge = challenge.localized(),
-                                    reward = state.lastReward,
-                                    streakDays = state.streak.current,
-                                    quote = QuoteSeed
-                                        .forDayIndex(state.today.toEpochDays())
-                                        .localized()
-                                        .text,
-                                    onShare = { navigator.push(Destination.ShareCard(challenge.id)) },
-                                    onBrowseLibrary = {
-                                        state.clearReward()
-                                        navigator.selectTab(TabDestination.HOME)
-                                        navigator.push(Destination.AllChallenges)
-                                    },
-                                    onDone = {
-                                        state.clearReward()
-                                        navigator.selectTab(TabDestination.HOME)
+                                Destination.ChooseCategory -> ChooseCategoryScreen(
+                                    state = state,
+                                    onBack = { navigator.pop() },
+                                    onPick = { category ->
+                                        if (!state.canReroll) {
+                                            navigator.selectTab(TabDestination.HOME)
+                                            return@ChooseCategoryScreen
+                                        }
+                                        val day = state.today
+                                        state.reroll(category)
+                                        if (state.today != day) return@ChooseCategoryScreen
+                                        feedback.play(FeedbackRules.selection(state.settings))
+                                        navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
                                     },
                                 )
+
+                                Destination.AllChallenges -> AllChallengesScreen(
+                                    state = state,
+                                    onBack = { navigator.pop() },
+                                    onSelect = { challenge ->
+                                        navigator.push(Destination.ChallengeDetail(challenge.id))
+                                    },
+                                )
+
+                                // --- Progress & content ---
+
+                                Destination.Calendar -> CalendarScreen(
+                                    state = state,
+                                    onBack = { navigator.pop() },
+                                )
+
+                                Destination.Streak -> StreakScreen(
+                                    state = state,
+                                    onBack = { navigator.pop() },
+                                )
+
+                                Destination.Quotes -> QuotesScreen(
+                                    state = state,
+                                    onBack = { navigator.pop() },
+                                    onShare = {
+                                        navigator.push(Destination.ShareCard(state.todayChallenge.id))
+                                    },
+                                )
+
+                                is Destination.ShareCard -> ShareCardScreen(
+                                    state = state,
+                                    challenge = ChallengeSeed.byId(destination.challengeId)?.localized(),
+                                    onBack = { navigator.pop() },
+                                )
                             }
-
-                            Destination.AnotherChallenge -> AnotherChallengeScreen(
-                                swapsLeft = state.swapsLeft,
-                                onBack = { navigator.pop() },
-                                onSurpriseMe = {
-                                    // Reachable via the back stack after completing.
-                                    if (!state.canReroll) {
-                                        navigator.selectTab(TabDestination.HOME)
-                                        return@AnotherChallengeScreen
-                                    }
-                                    val day = state.today
-                                    state.reroll()
-                                    // Day changed: the reset to Home takes over.
-                                    if (state.today != day) return@AnotherChallengeScreen
-                                    navigator.pop()
-                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                                },
-                                onChooseCategory = { navigator.push(Destination.ChooseCategory) },
-                            )
-
-                            Destination.ChooseCategory -> ChooseCategoryScreen(
-                                state = state,
-                                onBack = { navigator.pop() },
-                                onPick = { category ->
-                                    if (!state.canReroll) {
-                                        navigator.selectTab(TabDestination.HOME)
-                                        return@ChooseCategoryScreen
-                                    }
-                                    val day = state.today
-                                    state.reroll(category)
-                                    if (state.today != day) return@ChooseCategoryScreen
-                                    feedback.play(FeedbackRules.selection(state.settings))
-                                    navigator.push(Destination.ChallengeDetail(state.todayChallenge.id))
-                                },
-                            )
-
-                            Destination.AllChallenges -> AllChallengesScreen(
-                                state = state,
-                                onBack = { navigator.pop() },
-                                onSelect = { challenge ->
-                                    navigator.push(Destination.ChallengeDetail(challenge.id))
-                                },
-                            )
-
-                            // --- Progress & content ---
-
-                            Destination.Calendar -> CalendarScreen(
-                                state = state,
-                                onBack = { navigator.pop() },
-                            )
-
-                            Destination.Streak -> StreakScreen(
-                                state = state,
-                                onBack = { navigator.pop() },
-                            )
-
-                            Destination.Quotes -> QuotesScreen(
-                                state = state,
-                                onBack = { navigator.pop() },
-                                onShare = {
-                                    navigator.push(Destination.ShareCard(state.todayChallenge.id))
-                                },
-                            )
-
-                            is Destination.ShareCard -> ShareCardScreen(
-                                state = state,
-                                challenge = ChallengeSeed.byId(destination.challengeId)?.localized(),
-                                onBack = { navigator.pop() },
-                            )
                         }
                     }
                 }

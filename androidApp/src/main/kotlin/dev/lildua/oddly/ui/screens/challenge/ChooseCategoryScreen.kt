@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
@@ -56,12 +57,14 @@ fun ChooseCategoryScreen(
 
     // Count distinct challenges cleared, not completions: the same challenge can
     // be done on several days, and "12 / 10 done" would be nonsense.
-    val completedPerCategory = state.completions
-        .map { it.challengeId }
-        .distinct()
-        .mapNotNull { ChallengeSeed.byId(it)?.category }
-        .groupingBy { it }
-        .eachCount()
+    val completedPerCategory = remember(state.completions) {
+        state.completions
+            .map { it.challengeId }
+            .distinct()
+            .mapNotNull { ChallengeSeed.byId(it)?.category }
+            .groupingBy { it }
+            .eachCount()
+    }
 
     Box(
         Modifier

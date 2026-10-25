@@ -28,6 +28,7 @@ enum UITestIds {
 
     static let tabHome = "tab.home"
     static let tabJourney = "tab.journey"
+    static let tabStatistics = "tab.statistics"
     static let tabSettings = "tab.settings"
 
     static let settingsRate = "settings.rate"

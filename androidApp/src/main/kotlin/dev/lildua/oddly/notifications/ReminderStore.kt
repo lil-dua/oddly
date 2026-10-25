@@ -8,9 +8,9 @@ import kotlinx.datetime.LocalTime
  * The reminder time, mirrored to disk so the alarm can be re-armed after a
  * reboot.
  *
- * Deliberately narrow: this is scheduler state, not the app's data layer. When
- * the Room repositories land (see the roadmap) the reminder settings move there
- * and this goes away.
+ * Deliberately narrow: this is scheduler state, not the app's data layer. It
+ * stays separate from OddlyRepository so [BootReceiver] can re-arm the alarm by
+ * reading three small values instead of decoding the whole saved document at boot.
  */
 internal object ReminderStore {
 

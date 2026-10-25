@@ -55,6 +55,9 @@ class OddlyAppRule : TestRule {
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }
 
+    /** Recreates the activity as a font-scale or locale change would, carrying the saved-state Bundle. */
+    fun recreate() = scenario!!.recreate()
+
     fun pressBack() {
         scenario!!.onActivity { it.onBackPressedDispatcher.onBackPressed() }
     }

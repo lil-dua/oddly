@@ -2,8 +2,8 @@ package dev.lildua.oddly.ui.state
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,9 +41,11 @@ import kotlin.random.Random
  * the writes are a few kilobytes of JSON, and a habit app that loses the
  * completion the user was just congratulated for is worse than a slow one.
  *
- * Derived values — streak, statistics, category mix — are still computed from
- * the completion list on demand rather than stored, so there is only ever one
- * source of truth to keep consistent.
+ * Derived values — streak, week strip, explored categories — are never stored
+ * or persisted, but they are memoised with derivedStateOf over [completions] and
+ * [today], so they recompute only when one of those changes rather than on every
+ * read in every recomposition. [completions] is an immutable list replaced as a
+ * whole, so that is the single write that invalidates them.
  */
 @Stable
 class OddlyAppState(
@@ -62,11 +64,8 @@ class OddlyAppState(
     var today: LocalDate by mutableStateOf(initialToday)
         private set
 
-    private val _completions = mutableStateListOf<ChallengeCompletion>().apply {
-        addAll(initial.completions)
-    }
-
-    val completions: List<ChallengeCompletion> get() = _completions
+    var completions: List<ChallengeCompletion> by mutableStateOf(initial.completions)
+        private set
 
     var profile: UserProfile by mutableStateOf(initial.profile)
         private set
@@ -119,17 +118,17 @@ class OddlyAppState(
 
     // MARK: - Derived state
 
-    val streak: StreakInfo
-        get() = StreakCalculator.calculate(_completions, today)
+    val streak: StreakInfo by derivedStateOf { StreakCalculator.calculate(completions, today) }
 
-    val weekActivity: List<DayActivity>
-        get() = StreakCalculator.recentActivity(_completions, today)
+    val weekActivity: List<DayActivity> by derivedStateOf {
+        StreakCalculator.recentActivity(completions, today)
+    }
 
-    val completedToday: Boolean
-        get() = DailyChallengeRules.isDayDone(_completions, today)
+    val completedToday: Boolean by derivedStateOf { DailyChallengeRules.isDayDone(completions, today) }
 
     /** Swaps left today; 0 once today is done (see [DailyChallengeRules.swapsLeft]). */
-    val swapsLeft: Int get() = DailyChallengeRules.swapsLeft(currentState(), today)
+    val swapsLeft: Int
+        get() = DailyChallengeRules.swapsLeft(completedToday, dailyChallengeDate, swapsUsed, today)
 
     /**
      * False once today is done or the swaps ran out: no more swapping. Also the
@@ -137,19 +136,17 @@ class OddlyAppState(
      */
     val canReroll: Boolean get() = swapsLeft > 0
 
-    val totalCompleted: Int get() = _completions.size
+    val totalCompleted: Int get() = completions.size
 
     val completionRatePercent: Int
         get() {
-            val total = _completions.size + skippedCount
-            return if (total == 0) 0 else (_completions.size * 100) / total
+            val total = completions.size + skippedCount
+            return if (total == 0) 0 else (completions.size * 100) / total
         }
 
-    val exploredCategoryCount: Int
-        get() = _completions
-            .mapNotNull { ChallengeSeed.byId(it.challengeId)?.category }
-            .distinct()
-            .size
+    val exploredCategoryCount: Int by derivedStateOf {
+        completions.mapNotNull { ChallengeSeed.byId(it.challengeId)?.category }.distinct().size
+    }
 
     /** Hearted quotes in seed order (see [QuoteFavorites.favorites]). */
     val favoriteQuotes: List<Quote> get() = QuoteFavorites.favorites(favoriteQuoteIds)
@@ -157,16 +154,16 @@ class OddlyAppState(
     fun isFavorite(quoteId: String): Boolean = quoteId in favoriteQuoteIds
 
     fun completionsOn(date: LocalDate): List<ChallengeCompletion> =
-        _completions.filter { it.date == date }.sortedByDescending { it.completedAt }
+        completions.filter { it.date == date }.sortedByDescending { it.completedAt }
 
     fun challengeOf(completion: ChallengeCompletion): Challenge? =
         ChallengeSeed.byId(completion.challengeId)
 
     fun isCompleted(challengeId: String): Boolean =
-        _completions.any { it.challengeId == challengeId }
+        completions.any { it.challengeId == challengeId }
 
     fun isCompletedToday(challengeId: String): Boolean =
-        _completions.any { it.date == today && it.challengeId == challengeId }
+        completions.any { it.date == today && it.challengeId == challengeId }
 
     fun availability(challengeId: String): ChallengeAvailability =
         DailyChallengeRules.availability(currentState(), challengeId, today)
@@ -310,7 +307,7 @@ class OddlyAppState(
 
     /** Wipes local data (spec §S15). Used by the Reset action in Settings. */
     fun resetAllData() {
-        _completions.clear()
+        completions = emptyList()
         profile = profile.copy(level = 1, xpInLevel = 0)
         skippedCount = 0
         swapsUsed = 0
@@ -359,7 +356,7 @@ class OddlyAppState(
     private fun currentState() = PersistedState(
         profile = profile.copy(interests = interests),
         settings = settings,
-        completions = _completions.toList(),
+        completions = completions,
         dailyChallenge = dailyChallengeDate?.let {
             DailyChallenge(date = it, challengeId = todayChallenge.id, swapsUsed = swapsUsed)
         },
@@ -374,8 +371,7 @@ class OddlyAppState(
      * settings and favorites are only ever edited here, so they are left alone.
      */
     private fun absorb(state: PersistedState) {
-        _completions.clear()
-        _completions.addAll(state.completions)
+        completions = state.completions
         profile = state.profile
         skippedCount = state.skippedCount
         dailyChallengeDate = state.dailyChallenge?.date

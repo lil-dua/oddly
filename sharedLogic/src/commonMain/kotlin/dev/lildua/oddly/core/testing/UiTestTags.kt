@@ -32,6 +32,7 @@ object UiTestTags {
 
     const val TAB_HOME = "tab.home"
     const val TAB_JOURNEY = "tab.journey"
+    const val TAB_STATISTICS = "tab.statistics"
     const val TAB_SETTINGS = "tab.settings"
 
     const val SETTINGS_RATE = "settings.rate"

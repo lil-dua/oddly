@@ -158,6 +158,7 @@ struct MainShell: View {
         case .anotherChallenge:
             AnotherChallengeScreen(
                 swapsLeft: state.swapsLeft,
+                completedToday: state.completedToday,
                 onBack: pop,
                 onSurpriseMe: {
                     guard state.canReroll else { goHome(); return }

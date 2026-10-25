@@ -51,19 +51,21 @@ enum ReminderScheduler {
     static func reschedule(settings: AppSettings, completions: [ChallengeCompletion]) async {
         cancelAll()
 
-        guard settings.reminderEnabled, await isAuthorized() else { return }
-
         let center = UNUserNotificationCenter.current()
         let calendar = Calendar.current
         let now = Date()
 
-        // A reminder already shown today is stale once today is done.
+        // A reminder already shown today is stale once today is done. Cleared
+        // before the enabled/permission guard, like Android, so a notification
+        // delivered earlier does not linger after the user turned reminders off.
         let todayLocal = LocalDate.from(now, calendar: calendar)
         if DailyChallengeRules.shared.isDayDone(completions: completions, today: todayLocal) {
             center.removeDeliveredNotifications(
                 withIdentifiers: [identifierPrefix + String(todayLocal.toEpochDays())]
             )
         }
+
+        guard settings.reminderEnabled, await isAuthorized() else { return }
 
         for offset in 0..<horizonInDays {
             // A newer run owns the schedule now; do not re-add what it cleared.

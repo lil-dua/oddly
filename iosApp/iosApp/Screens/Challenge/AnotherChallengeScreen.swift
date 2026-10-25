@@ -7,6 +7,7 @@ struct AnotherChallengeScreen: View {
     @Environment(\.strings) private var strings
 
     let swapsLeft: Int
+    let completedToday: Bool
     let onBack: () -> Void
     let onSurpriseMe: () -> Void
     let onChooseCategory: () -> Void
@@ -24,6 +25,12 @@ struct AnotherChallengeScreen: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var swapsCaption: String {
+        if completedToday { return strings.wantAnotherChallengeDoneBody }
+        if swapsLeft == 0 { return strings.noSwapsLeftToday }
+        return strings.swapsLeftToday(count: Int32(swapsLeft))
     }
 
     private var content: some View {
@@ -60,7 +67,8 @@ struct AnotherChallengeScreen: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 28)
 
-                Text(strings.swapsLeftToday(count: Int32(swapsLeft)))
+                // Same three states as the Home card; never "0 swaps left".
+                Text(swapsCaption)
                     .oddlyFont(OddlyFont.bodySmall)
                     .foregroundStyle(palette.textTertiary)
                     .multilineTextAlignment(.center)

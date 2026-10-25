@@ -3,10 +3,13 @@
 An offline-first mobile app that turns one small action a day into a habit.
 One challenge, a few minutes, a reward, a streak — no account, no backend, no network.
 
-> **Status:** Android and iOS apps both complete and running against sample
-> data, fully bilingual (Vietnamese / English), with daily local reminders and
-> share-image export. Persistence is the main gap — see
-> [Not built yet](#not-built-yet).
+> **Status:** Android and iOS apps are feature-complete and fully bilingual
+> (Vietnamese / English), with 216 seed challenges, daily local reminders,
+> share-image export and JSON backup/restore. Everything is stored on the device
+> (`PersistedState` v3, migrated step by step); there is no account, backend or
+> network permission. What is left before release is tracked in
+> [`docs/release-todo.xlsx`](docs/release-todo.xlsx) and
+> [`docs/release-process.md`](docs/release-process.md).
 
 ## Architecture
 
@@ -24,14 +27,19 @@ SwiftUI on iOS. There is no Compose Multiplatform in this project.
 sharedLogic/src/commonMain/kotlin/dev/lildua/oddly/
   core/text/          Strings — every UI string, in both languages
                       ReminderSeed — rotating reminder copy
-                      Brand — the share card's call to action
-  core/time/          DateFormat — date/weekday formatting per language
+                      Brand — links, support address, store ids
+                      ExternalLinks, AccessibilityText
+  core/time/          Today (the clock, pinnable in tests), DateFormat
+  core/design/        PaletteSpec — colours shared by both platforms
+  core/testing/       UiTestTags — ids the UI tests find elements by
   data/local/         KeyValueStore, PersistedState, OddlyRepository
-  data/seed/          ChallengeSeed (120 bilingual challenges), QuoteSeed
+  data/seed/          ChallengeSeed (216 bilingual challenges), QuoteSeed
   domain/model/       Category, Challenge, Difficulty, ChallengeCompletion,
                       DailyChallenge, UserProfile, StreakInfo, Quote, AppSettings,
-                      LocalizedText
-  domain/usecase/     ChallengeSelector, StreakCalculator, StatsCalculator
+                      LocalizedText, Reward, DayChangeNotice
+  domain/usecase/     ChallengeSelector, DailyChallengeRules, StreakCalculator,
+                      StatsCalculator, ReminderPlanner, QuoteFavorites,
+                      FeedbackRules
 
 androidApp/src/main/kotlin/dev/lildua/oddly/
   MainActivity.kt     Edge-to-edge host activity
@@ -39,6 +47,8 @@ androidApp/src/main/kotlin/dev/lildua/oddly/
   ui/theme/           Colors, gradients, typography, shapes, OddlyTheme
   ui/components/      Buttons, surfaces, icons, illustrations, challenge widgets
   ui/navigation/      Destination, Navigator, bottom bar
+  ui/feedback/        Sound and haptics
+  notifications/      ReminderScheduler (AlarmManager), receivers, ReminderStore
   ui/state/           OddlyAppState — app state, loaded from and saved to
                       OddlyRepository on every mutation
   ui/screens/         onboarding · home · challenge · journey · statistics ·
@@ -50,11 +60,14 @@ iosApp/iosApp/
   Theme/              Colours, gradients, fonts, palette, status-bar scrim
   Components/         Buttons, surfaces, icons, illustrations, challenge widgets
   Navigation/         Destination, MainShell, bottom bar, swipe-back shim
+  Feedback/           Sound and haptics
+  Notifications/      ReminderScheduler (UNUserNotificationCenter)
   State/              OddlyAppState — the SwiftUI twin of the Android one,
                       plus the bridging helpers for the Kotlin framework
   PrivacyInfo.xcprivacy  App Store privacy manifest
   Screens/            Onboarding · Home · Challenge · Journey · Statistics ·
                       Quotes · Settings · Share
+iosApp/iosAppUITests/ XCUITest smoke flows
 ```
 
 Everything both apps need — challenge selection, streak maths, statistics, date
@@ -70,7 +83,7 @@ platform surfaces (S16 notification, S17 widget).
 
 | | Screen | | Screen |
 |---|---|---|---|
-| S01 | Splash | S11 | Journey / Progress |
+| S01 | Splash (Android: the system splash via `core-splashscreen`) | S11 | Journey / Progress |
 | S02 | Onboarding | S12 | Statistics |
 | S03 | Choose Interests | S13 | Streak |
 | S04 | Notification Permission | S14 | Quotes |
@@ -84,18 +97,19 @@ platform surfaces (S16 notification, S17 widget).
 ## Persistence
 
 Everything the app remembers is one JSON document in the platform key-value
-store — `SharedPreferences` on Android, `NSUserDefaults` on iOS — behind
-`OddlyRepository`.
+store — `SharedPreferences` on Android, `NSUserDefaults` on iOS — under the key
+`oddly.state.v1`, behind `OddlyRepository`.
 
 ```
 KeyValueStore          read/write/remove a string. An interface, not
                        expect/actual, so Android's implementation can take a
                        Context and iOS's can take nothing.
 PersistedState         profile · settings · completions · today's pick ·
-                       skipped count · onboarding flag, plus a version field.
-OddlyRepository        encode/decode, and the two decisions that have to happen
-                       before the first frame: freshState() and
-                       resolveDailyChallenge().
+                       skipped count · onboarding flag · favourite quotes,
+                       plus a version field (currently 3).
+OddlyRepository        encode/decode, migration, export/import, and the two
+                       decisions that have to happen before the first frame:
+                       freshState() and resolveDailyChallenge().
 ```
 
 Not a database, deliberately. The whole data set is one profile, one settings
@@ -103,7 +117,16 @@ record and a completion list the app already holds in memory to derive the
 streak, calendar and statistics from — there is nothing to query, so a schema
 and a query engine would buy nothing. Seed content is not persisted either: a
 completion stores only the challenge id, so new content in a later release needs
-no migration.
+no migration (published ids must never change).
+
+**Versioning.** Changing the shape of `PersistedState` means bumping
+`CURRENT_VERSION`, giving new fields defaults, adding a step to
+`OddlyRepository`'s migration and a test that reads an old document
+(`LegacyDocuments.kt` holds the fixtures). A document from a *newer* version is
+refused rather than guessed at.
+
+**Backup.** Settings can export the document as JSON and import one back; import
+runs through the same decode and migration, so an old backup still loads.
 
 Writes happen on every mutation rather than on a timer, and Android's store uses
 `commit()` rather than `apply()` — a write still in flight when the process is
@@ -113,9 +136,10 @@ Today's challenge is resolved and written back during load, so reopening the app
 at lunchtime shows the challenge it showed at breakfast. A saved pick from
 another day, or one whose challenge no longer exists, is replaced.
 
-Everything else is **derived, not stored**: completing a challenge advances XP,
-level, streak, calendar and statistics from the completion list alone, so there
-is only one source of truth to keep consistent. Reset in Settings clears it.
+Streak, week strip and explored-category count are **derived, not stored**:
+they come from the completion list and today's date alone, and each
+`OddlyAppState` caches them until one of those changes. "Erase all data" in
+Settings clears everything.
 
 ## Tests
 
@@ -123,16 +147,22 @@ is only one source of truth to keep consistent. Reset in Settings clears it.
 ./gradlew :sharedLogic:iosSimulatorArm64Test :sharedLogic:testAndroidHostTest
 ```
 
-67 tests in `sharedLogic/src/commonTest`, run against both Kotlin/Native and the
+303 tests in `sharedLogic/src/commonTest`, run against both Kotlin/Native and the
 JVM: streak edges (a run ending yesterday is still current), the selector's
 cooldown, interest and difficulty weighting, the statistics windows and the
-invariant that chart bars sum to the headline total, repository round-trips and
-the refusal to load a document from a future version, and integrity checks on
-the shipped content — unique ids, both languages present, no category too thin
-to reroll within.
+invariant that chart bars sum to the headline total, repository round-trips,
+migration from old documents and the refusal to load one from a future version,
+the reminder planner, and integrity checks on the shipped content — unique ids,
+both languages present, no category too thin to reroll within.
 
 Test names use backticks; note that Kotlin/Native rejects a comma inside one,
 so the JVM-only habit of writing prose titles does not port.
+
+UI smoke tests drive the real app on each platform (onboarding, complete a
+challenge, reward, Journey, day change, one completion per day): Compose UI
+tests in `androidApp/src/androidTest` on an emulator, XCUITest in
+`iosApp/iosAppUITests` on a simulator. Elements are found by the ids in
+`UiTestTags`, not by text. The commands are in [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
 ## Design system
 
@@ -150,7 +180,7 @@ Dark-first, per the spec: near-black space backdrop with sparing neon accents.
 Requires a JDK. If `JAVA_HOME` is unset, Android Studio's bundled JBR works:
 
 ```bash
-export JAVA_HOME="F:/App/Android/jbr"     # adjust to your install
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"   # macOS; adjust to your install
 ./gradlew :androidApp:installDebug
 ```
 
@@ -216,29 +246,23 @@ Decisions already baked in:
 
 - [`docs/privacy-policy.html`](docs/privacy-policy.html) — a self-contained
   bilingual page. Both stores require a live URL for it; GitHub Pages serving
-  `/docs` is the cheapest route. Fill in the developer name and contact address
-  placeholders first.
+  `/docs` is the cheapest route. It is hosted at `Brand.PRIVACY_POLICY_URL`
+  (`lil-dua.github.io`); after editing the file, republish that site or the live
+  page stays out of date.
 - [`docs/store-listing.md`](docs/store-listing.md) — paste-ready titles,
   descriptions, keywords and release notes in both languages, within each
   store's character limits, plus the Data Safety and privacy-label answers and
   a screenshot plan.
 
-## Not built yet
+## What is left
 
-Deliberate gaps, in the order the spec's roadmap tackles them:
-
-1. **Content.** 120 seed challenges of the ~240 the spec targets for beta —
-   twenty per category, which is what `ChallengeSelector`'s 30-day cooldown
-   needs so nothing repeats inside a month even when a user's interests narrow
-   the pool to two categories. Adding more needs no migration: completions
-   store only the challenge id.
-2. **Real share link.** `Brand.SHORT_LINK` is a placeholder until the domain
-   exists.
-3. **Crash reporting.** None wired up. Adding one means revisiting the Play Data
-   Safety answers and the App Store privacy labels, which currently declare that
-   nothing is collected.
-4. **Import.** `OddlyRepository.importJson` restores an exported document, but
-   no screen calls it yet — export is one-way in the UI.
+Release tasks (store assets, accounts, QA passes) are tracked in
+[`docs/release-todo.xlsx`](docs/release-todo.xlsx); the release routine —
+versioning, notes, build checklist, crash monitoring through Play Console and
+App Store Connect rather than an SDK — is in
+[`docs/release-process.md`](docs/release-process.md). Adding any SDK or network
+access means revisiting the privacy policy, the store Data Safety / App Privacy
+answers and `PrivacyInfo.xcprivacy`, which all state that nothing is collected.
 
 ## Localization
 
@@ -264,7 +288,7 @@ Screens never thread the language through their own bodies. Android reads
 resolved once at the navigation boundary — `challenge.localized(language)`
 returns a `LocalizedChallenge` whose every field is already a plain `String`.
 
-The English side of the 120 seed challenges is written, not machine-translated,
+The English side of the 216 seed challenges is written, not machine-translated,
 and quotes with a known original use that original rather than a round trip.
 
 ## Share export
@@ -282,9 +306,10 @@ aggregate achievements the card shows, never notes or dates.
 
 The card and the share caption both carry a call to action, because the card is
 the app's only growth surface and an image with no attribution leaves the
-recipient with nothing to act on. The wording lives in `core/text/Brand.kt` —
-**its `SHORT_LINK` and `HANDLE` are placeholders and need replacing with the
-real landing page and account before release.**
+recipient with nothing to act on. The wording and the landing-page link
+(`lil-dua.github.io/projects/oddly`, source in `docs/landing`) live in
+`core/text/Brand.kt`; there is deliberately no social handle until the developer
+holds a real account.
 
 ## App icon
 
@@ -324,10 +349,14 @@ have the side benefit of being pixel-identical to the iOS tile.
 ## Daily reminder
 
 Local notifications (spec §S16), scheduled from `reminderEnabled` and
-`reminderTime` and re-derived whenever either changes. Copy comes from
-`ReminderSeed` and rotates by day so the reminder does not read as the same
-sentence forever; it deliberately never names today's challenge, because the
-daily pick is not persisted yet and naming one would be a guess.
+`reminderTime` and re-derived whenever either changes. `ReminderPlanner` decides
+what each fire date shows: nothing once that day's challenge is done, a
+"come back" message on the last scheduled day, streak copy once the run before
+that day is at least three, otherwise the rotating `ReminderSeed` copy, which
+cycles by day so the reminder does not read as the same sentence forever. It
+never names today's challenge: reminders are scheduled days ahead and the pick
+can be swapped afterwards, so a named one would often be wrong. Completing the
+day also removes a reminder already showing in the notification shade.
 
 | | Android | iOS |
 |---|---|---|
@@ -340,9 +369,9 @@ The status-bar icon is the same **1%** mark as a white silhouette, so a reminder
 is recognisably from this app at a glance.
 
 `ReminderStore` is a small `SharedPreferences` mirror of the reminder time.
-It exists only because an Android alarm does not survive a reboot; it is
-scheduler state, not the app's data layer, and folds into the Room repositories
-when those land.
+It exists because an Android alarm does not survive a reboot, and `BootReceiver`
+can re-arm from three small values without decoding the whole saved document at
+boot; it is scheduler state, not the app's data layer.
 
 If the OS permission is refused while the in-app toggle is on, Settings shows a
 notice that links straight to the system settings page — otherwise the toggle

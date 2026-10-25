@@ -38,9 +38,13 @@ object ChallengeSelector {
             .toSet()
 
         val recentCutoff = today.toEpochDays() - RECENT_WINDOW_DAYS
+        // Built from `library` (not ChallengeSeed) because callers pass their own;
+        // the first entry wins on a duplicate id, like the old firstOrNull.
+        val categoryById = HashMap<String, Category>(library.size * 2)
+        for (challenge in library) categoryById.getOrPut(challenge.id) { challenge.category }
         val recentCategoryCounts = completions
             .filter { it.date.toEpochDays() >= recentCutoff }
-            .mapNotNull { completion -> library.firstOrNull { it.id == completion.challengeId }?.category }
+            .mapNotNull { completion -> categoryById[completion.challengeId] }
             .groupingBy { it }
             .eachCount()
 

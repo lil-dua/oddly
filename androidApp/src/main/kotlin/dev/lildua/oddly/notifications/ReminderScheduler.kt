@@ -24,7 +24,7 @@ import java.util.Calendar
  *
  * The alarm survives the app being killed but not a reboot, so the chosen time
  * is mirrored into [ReminderStore] and re-armed by [BootReceiver]. That store
- * is scheduler state only; app data is still in memory, per the roadmap.
+ * is scheduler state only; the app's data lives in OddlyRepository.
  */
 object ReminderScheduler {
 

@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.data.seed.QuoteSeed
-import dev.lildua.oddly.domain.model.Quote
 import dev.lildua.oddly.ui.components.GradientButton
 import dev.lildua.oddly.ui.components.OddlyChip
 import dev.lildua.oddly.ui.components.OddlyIcon
@@ -72,10 +72,16 @@ fun QuotesScreen(
     val strings = LocalStrings.current
     val allQuotes = QuoteSeed.all
     val todayIndex = remember { ((state.today.toEpochDays() % allQuotes.size) + allQuotes.size) % allQuotes.size }
-    var showFavorites by remember { mutableStateOf(false) }
-    var favoriteSnapshot by remember { mutableStateOf<List<Quote>>(emptyList()) }
-    var index by remember { mutableIntStateOf(todayIndex) }
+    // Saveable because OddlyApp keeps this screen's saved state across Share and
+    // Back. The snapshot is kept as ids (Bundle-friendly) and mapped back to quotes.
+    var showFavorites by rememberSaveable { mutableStateOf(false) }
+    var favoriteSnapshotIds by rememberSaveable { mutableStateOf(ArrayList<String>()) }
+    var index by rememberSaveable { mutableIntStateOf(todayIndex) }
 
+    val favoriteSnapshot = remember(favoriteSnapshotIds) {
+        val byId = allQuotes.associateBy { it.id }
+        favoriteSnapshotIds.mapNotNull { byId[it] }
+    }
     val quotes = if (showFavorites) favoriteSnapshot else allQuotes
     val quote = quotes.getOrNull(index)?.localized()
     val isFavorite = quote != null && state.isFavorite(quote.id)
@@ -123,7 +129,7 @@ fun QuotesScreen(
                         accent = OddlyColors.Pink,
                         selected = showFavorites,
                         onClick = {
-                            favoriteSnapshot = state.favoriteQuotes
+                            favoriteSnapshotIds = ArrayList(state.favoriteQuotes.map { it.id })
                             showFavorites = true
                             index = 0
                         },

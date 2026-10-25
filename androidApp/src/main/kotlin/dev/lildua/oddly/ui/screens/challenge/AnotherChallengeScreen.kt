@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AnotherChallengeScreen(
     swapsLeft: Int,
+    completedToday: Boolean,
     onBack: () -> Unit,
     onSurpriseMe: () -> Unit,
     onChooseCategory: () -> Unit,
@@ -130,7 +131,12 @@ fun AnotherChallengeScreen(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text = strings.swapsLeftToday(swapsLeft),
+                    // Same three states as the Home card; never "0 swaps left".
+                    text = when {
+                        completedToday -> strings.wantAnotherChallengeDoneBody
+                        swapsLeft == 0 -> strings.noSwapsLeftToday
+                        else -> strings.swapsLeftToday(swapsLeft)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textTertiary,
                     textAlign = TextAlign.Center,

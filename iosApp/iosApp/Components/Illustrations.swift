@@ -249,13 +249,12 @@ struct StarryBox<Content: View>: View {
     var seed: UInt64 = 11
     @ViewBuilder var content: () -> Content
 
+    // Only the stars are decoration; `content()` stays visible to VoiceOver
+    // unless the caller hides it.
     var body: some View {
-        drawing.accessibilityHidden(true)
-    }
-
-    @ViewBuilder private var drawing: some View {
         ZStack {
             StarField(starCount: starCount, seed: seed)
+                .accessibilityHidden(true)
             content()
         }
     }

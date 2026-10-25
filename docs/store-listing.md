@@ -14,7 +14,7 @@ Placeholders in `[SQUARE BRACKETS]` are the only things that still need filling 
 | --- | --- |
 | Android application ID | `dev.lildua.oddly` |
 | iOS bundle identifier | `dev.lildua.oddly` |
-| Version | See `iosApp/Configuration/Version.xcconfig` (currently `1.0`, build `1`) |
+| Version | See `iosApp/Configuration/Version.xcconfig` (`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`; bump with `tools/bump-version.sh`) |
 | Minimum OS | Android 7.0 (API 24), iOS 17.0 |
 | Default / primary language | Vietnamese (`vi-VN`) |
 | Additional language | English (`en-US`) |
@@ -149,7 +149,7 @@ Expected result: **Everyone / PEGI 3 / 3+**.
 | --- | --- |
 | Does your app collect or share any of the required user data types? | **No** |
 | Is all user data encrypted in transit? | N/A — nothing is transmitted |
-| Do you provide a way for users to request data deletion? | N/A — but note in the description that Settings → Reset all data erases everything locally |
+| Do you provide a way for users to request data deletion? | N/A — but note in the description that Settings → Erase all data erases everything locally |
 
 This is verifiable from the manifest: the app declares only `POST_NOTIFICATIONS`
 and `RECEIVE_BOOT_COMPLETED`, and has no `INTERNET` permission at all. Do not

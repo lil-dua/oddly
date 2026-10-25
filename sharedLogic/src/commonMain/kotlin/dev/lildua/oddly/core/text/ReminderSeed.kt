@@ -12,9 +12,10 @@ data class ReminderContent(
  * Rotating copy for the daily reminder (spec §S16).
  *
  * The spec asks for content that varies so the reminder does not feel spammy,
- * and the wording deliberately never claims to know which challenge is waiting:
- * the daily pick is not persisted yet, so a notification that named one would
- * be guessing.
+ * and the wording deliberately never names a challenge: reminders are scheduled
+ * days ahead, and the pick can be swapped after that, so a notification
+ * that named one would often be wrong. It also never mentions the streak —
+ * ReminderPlanner has its own streak copy for when there is one worth protecting.
  *
  * Selection is by day index rather than random, so the same device shows the
  * same message on a given day however many times it is rescheduled.
@@ -31,8 +32,8 @@ object ReminderSeed {
             body = "Mở app và xem thử thách nhỏ dành cho bạn.",
         ),
         ReminderContent(
-            title = "Giữ chuỗi ngày của bạn nhé",
-            body = "Một hành động nhỏ là đủ để không bị gián đoạn.",
+            title = "Hôm nay vẫn còn chỗ cho 1%",
+            body = "Một hành động nhỏ là đủ để thêm một ngày vào hành trình.",
         ),
         ReminderContent(
             title = "Một điều nhỏ, ngay bây giờ",
@@ -58,8 +59,8 @@ object ReminderSeed {
             body = "Open the app and see the small thing waiting for you.",
         ),
         ReminderContent(
-            title = "Keep your streak going",
-            body = "One small action is all it takes to stay unbroken.",
+            title = "There's still room for today's 1%",
+            body = "One small action is enough to add a day to your journey.",
         ),
         ReminderContent(
             title = "One small thing, right now",

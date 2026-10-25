@@ -52,13 +52,14 @@ object StatsCalculator {
     ): StatsSummary {
         val windowed = filterTo(completions, today, range)
         val previous = previousPeriod(completions, today, range)
+        val distribution = distribution(windowed)
 
         return StatsSummary(
             totalCompleted = windowed.size,
             deltaVsPreviousPeriod = windowed.size - previous.size,
             bars = buildBars(completions, today, range, language),
-            distribution = distribution(windowed),
-            mostActiveCategory = distribution(windowed).maxByOrNull { it.count }?.category,
+            distribution = distribution,
+            mostActiveCategory = distribution.maxByOrNull { it.count }?.category,
         )
     }
 

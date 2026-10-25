@@ -28,8 +28,8 @@ dependencies {
     implementation(libs.compose.ui.toolingPreview)
     implementation(libs.androidx.activity.compose)
     // androidx.core (FileProvider, used by the share export) arrives transitively
-    // with Compose. It is not declared explicitly because the catalogue's
-    // core-ktx 1.19 needs AGP 9.1 / compileSdk 37 — see the toolchain note.
+    // with Compose. It is not declared explicitly: core-ktx 1.19 needs
+    // AGP 9.1 / compileSdk 37, which the pinned toolchain does not have.
     // One splash on every API level (installSplashScreen). Version is checked
     // against the toolchain pin; it must not drag androidx.core up to 1.19.
     implementation(libs.androidx.core.splashscreen)

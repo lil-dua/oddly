@@ -687,4 +687,37 @@ class DailyChallengeRulesTest {
 
         assertEquals(0, DailyChallengeRules.swapsLeft(completed.state, TODAY))
     }
+
+    @Test
+    fun `swapsLeft from parts matches swapsLeft from state`() {
+        val states = listOf(
+            withSwaps(0), withSwaps(1), withSwaps(2), withSwaps(3), withSwaps(9),
+            withSwaps(3, daysAgo(1)), withSwaps(2, daysAgo(5)),
+            state().copy(dailyChallenge = null),
+            state().copy(completions = listOf(completion(TODAY, challengeId = "x"))),
+            withSwaps(1).copy(completions = listOf(completion(TODAY, challengeId = "x"))),
+        )
+        for (s in states) {
+            val fromParts = DailyChallengeRules.swapsLeft(
+                dayDone = DailyChallengeRules.isDayDone(s.completions, TODAY),
+                pickDate = s.dailyChallenge?.date,
+                swapsUsed = s.dailyChallenge?.swapsUsed ?: 0,
+                today = TODAY,
+            )
+            assertEquals(DailyChallengeRules.swapsLeft(s, TODAY), fromParts)
+        }
+    }
+
+    @Test
+    fun `swapsLeft from parts is zero once the day is done`() {
+        assertEquals(0, DailyChallengeRules.swapsLeft(true, TODAY, 0, TODAY))
+        assertEquals(0, DailyChallengeRules.swapsLeft(true, null, 0, TODAY))
+    }
+
+    @Test
+    fun `swapsLeft from parts ignores swaps used on another day`() {
+        assertEquals(3, DailyChallengeRules.swapsLeft(false, daysAgo(1), 3, TODAY))
+        assertEquals(1, DailyChallengeRules.swapsLeft(false, TODAY, 2, TODAY))
+        assertEquals(0, DailyChallengeRules.swapsLeft(false, TODAY, 7, TODAY))
+    }
 }

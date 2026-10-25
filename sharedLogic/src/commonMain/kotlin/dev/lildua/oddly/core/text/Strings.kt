@@ -50,7 +50,6 @@ interface Strings {
     val streak: String
     val dailyInspiration: String
     val wantAnotherChallenge: String
-    val wantAnotherChallengeBody: String
     val challengesCompletedLabel: String
 
     // --- Challenge detail (S06) ---
@@ -288,7 +287,6 @@ object VietnameseStrings : Strings {
     override val streak = "Streak"
     override val dailyInspiration = "Cảm hứng mỗi ngày"
     override val wantAnotherChallenge = "Muốn thử thách khác?"
-    override val wantAnotherChallengeBody = "Để chúng tôi chọn ngẫu nhiên cho bạn."
     override val challengesCompletedLabel = "Thử thách\nđã hoàn thành"
 
     override val whyItMatters = "Vì sao điều này quan trọng"
@@ -525,7 +523,6 @@ object EnglishStrings : Strings {
     override val streak = "Streak"
     override val dailyInspiration = "Daily inspiration"
     override val wantAnotherChallenge = "Want a different challenge?"
-    override val wantAnotherChallengeBody = "Let us pick one at random for you."
     override val challengesCompletedLabel = "Challenges\ncompleted"
 
     override val whyItMatters = "Why it matters"

@@ -68,7 +68,9 @@ fun StatisticsScreen(
     val palette = OddlyTheme.palette
     val strings = LocalStrings.current
     var range by remember { mutableStateOf(StatsRange.WEEK) }
-    val summary = StatsCalculator.summarize(state.completions, state.today, range, strings.language)
+    val summary = remember(state.completions, state.today, range, strings.language) {
+        StatsCalculator.summarize(state.completions, state.today, range, strings.language)
+    }
 
     Column(
         Modifier
