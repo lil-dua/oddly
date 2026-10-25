@@ -413,9 +413,13 @@ fun SettingsRow(
     title: String,
     modifier: Modifier = Modifier,
     value: String? = null,
+    /** Second line under [title], read together with it by screen readers. */
+    subtitle: String? = null,
     tint: Color = OddlyTheme.palette.textSecondary,
     showChevron: Boolean = true,
     onClick: (() -> Unit)? = null,
+    /** Spoken after the role ("double tap to <label>") so leaving the app is announced. */
+    onClickLabel: String? = null,
     /**
      * Makes the whole row a switch target ("title, switch, on"); the [trailing] Switch
      * must then pass `onCheckedChange = null` and only draw the state.
@@ -432,7 +436,7 @@ fun SettingsRow(
                 when {
                     toggled != null && onToggle != null ->
                         Modifier.toggleableNoRipple(toggled, Role.Switch, onToggle)
-                    onClick != null -> Modifier.clickableNoRipple(onClick = onClick)
+                    onClick != null -> Modifier.clickableNoRipple(onClickLabel = onClickLabel, onClick = onClick)
                     else -> Modifier
                 },
             )
@@ -441,12 +445,20 @@ fun SettingsRow(
     ) {
         OddlyIcon(icon, size = 20.dp, tint = tint)
         Spacer(Modifier.width(14.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (tint == palette.textSecondary) palette.textPrimary else tint,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (tint == palette.textSecondary) palette.textPrimary else tint,
+            )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textTertiary,
+                )
+            }
+        }
         value?.let {
             Text(
                 text = it,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,9 +42,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.lildua.oddly.BuildConfig
+import dev.lildua.oddly.core.testing.UiTestTags
+import dev.lildua.oddly.core.text.Brand
+import dev.lildua.oddly.core.text.ExternalLinks
 import dev.lildua.oddly.core.text.Strings
 import dev.lildua.oddly.core.time.DateFormat
 import dev.lildua.oddly.data.local.PersistedState
@@ -72,6 +77,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 
 private enum class ImportNotice { FAILED, SUCCEEDED }
+
+/** What the "couldn't open" dialog shows: an explanation and the address to copy. */
+private data class LinkFallback(val body: String, val address: String)
 
 /**
  * S15 — configuration and local-data controls. Reset is confirmation-gated per
@@ -113,6 +121,13 @@ fun SettingsScreen(state: OddlyAppState) {
         }
     }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var linkFallback by remember { mutableStateOf<LinkFallback?>(null) }
+    var addressCopied by remember { mutableStateOf(false) }
+    val resetNotices = {
+        addressCopied = false
+        importNotice = null
+        exportFailed = false
+    }
     var showThemePicker by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -288,6 +303,7 @@ fun SettingsScreen(state: OddlyAppState) {
                 icon = OddlyIcon.Download,
                 title = strings.exportData,
                 onClick = {
+                    addressCopied = false
                     importNotice = null
                     exportFailed = false
                     val intent = DataExport.chooserIntent(context, state.exportJson())
@@ -298,15 +314,11 @@ fun SettingsScreen(state: OddlyAppState) {
                 icon = OddlyIcon.Upload,
                 title = strings.importData,
                 onClick = {
+                    addressCopied = false
                     importNotice = null
                     exportFailed = false
                     importLauncher.launch(DataImport.MIME_TYPES)
                 },
-            )
-            SettingsRow(
-                icon = OddlyIcon.Info,
-                title = strings.about,
-                onClick = { showAboutDialog = true },
             )
         }
 
@@ -336,6 +348,75 @@ fun SettingsScreen(state: OddlyAppState) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(color.copy(alpha = 0.12f))
+                    .a11yLiveRegion()
+                    .padding(14.dp),
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        SectionLabel(strings.sectionSupport)
+        Spacer(Modifier.height(8.dp))
+        SettingsGroup {
+            SettingsRow(
+                icon = OddlyIcon.Star,
+                title = strings.rateApp,
+                modifier = Modifier.testTag(UiTestTags.SETTINGS_RATE),
+                onClickLabel = strings.a11yOpensStore,
+                onClick = {
+                    resetNotices()
+                    if (!LinkLauncher.openPlayStore(context)) {
+                        linkFallback = LinkFallback(
+                            strings.browserFallbackBody,
+                            ExternalLinks.playStoreWeb(context.packageName),
+                        )
+                    }
+                },
+            )
+            SettingsRow(
+                icon = OddlyIcon.Mail,
+                title = strings.contactSupport,
+                subtitle = Brand.SUPPORT_EMAIL,
+                modifier = Modifier.testTag(UiTestTags.SETTINGS_CONTACT),
+                onClickLabel = strings.a11yOpensEmail,
+                onClick = {
+                    resetNotices()
+                    val subject = strings.supportEmailSubject(BuildConfig.VERSION_NAME, "Android")
+                    if (!LinkLauncher.openEmail(context, Brand.SUPPORT_EMAIL, subject)) {
+                        linkFallback = LinkFallback(strings.emailFallbackBody, Brand.SUPPORT_EMAIL)
+                    }
+                },
+            )
+            SettingsRow(
+                icon = OddlyIcon.Shield,
+                title = strings.privacyPolicy,
+                modifier = Modifier.testTag(UiTestTags.SETTINGS_PRIVACY),
+                onClickLabel = strings.a11yOpensBrowser,
+                onClick = {
+                    resetNotices()
+                    if (!LinkLauncher.openUrl(context, Brand.PRIVACY_POLICY_URL)) {
+                        linkFallback = LinkFallback(strings.browserFallbackBody, Brand.PRIVACY_POLICY_URL)
+                    }
+                },
+            )
+            SettingsRow(
+                icon = OddlyIcon.Info,
+                title = strings.about,
+                modifier = Modifier.testTag(UiTestTags.SETTINGS_ABOUT),
+                onClick = { showAboutDialog = true },
+            )
+        }
+
+        if (addressCopied) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = strings.addressCopied,
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.success,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(palette.success.copy(alpha = 0.12f))
                     .a11yLiveRegion()
                     .padding(14.dp),
             )
@@ -470,6 +551,51 @@ fun SettingsScreen(state: OddlyAppState) {
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
                     Text(strings.cancel, color = palette.textSecondary)
+                }
+            },
+        )
+    }
+
+    linkFallback?.let { fallback ->
+        AlertDialog(
+            onDismissRequest = { linkFallback = null },
+            containerColor = palette.surfaceElevated,
+            title = {
+                Text(
+                    strings.linkFallbackTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = palette.textPrimary,
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        fallback.body,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textSecondary,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    SelectionContainer {
+                        Text(
+                            fallback.address,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = palette.textPrimary,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    LinkLauncher.copy(context, fallback.address)
+                    addressCopied = true
+                    linkFallback = null
+                }) {
+                    Text(strings.copy, color = OddlyColors.Purple)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { linkFallback = null }) {
+                    Text(strings.close, color = palette.textSecondary)
                 }
             },
         )

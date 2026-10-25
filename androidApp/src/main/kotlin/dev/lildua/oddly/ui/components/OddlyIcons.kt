@@ -56,6 +56,9 @@ enum class OddlyIcon {
     Refresh,
     Target,
     Dice,
+    Star,
+    Mail,
+    Shield,
 }
 
 @Composable
@@ -252,6 +255,20 @@ private fun DrawScope.drawOddlyIcon(icon: OddlyIcon, s: Float, tint: Color, stro
             poly(0.28f to 0.3f, 0.33f to 0.82f, 0.67f to 0.82f, 0.72f to 0.3f)
             line(0.44f, 0.42f, 0.46f, 0.7f)
             line(0.56f, 0.42f, 0.54f, 0.7f)
+        }
+
+        OddlyIcon.Star -> {
+            poly(0.5f to 0.2f, 0.588f to 0.419f, 0.823f to 0.435f, 0.643f to 0.586f, 0.7f to 0.815f, 0.5f to 0.69f, 0.3f to 0.815f, 0.357f to 0.586f, 0.177f to 0.435f, 0.412f to 0.419f, 0.5f to 0.2f)
+        }
+
+        OddlyIcon.Mail -> {
+            poly(0.18f to 0.28f, 0.82f to 0.28f, 0.82f to 0.72f, 0.18f to 0.72f, 0.18f to 0.28f)
+            poly(0.18f to 0.3f, 0.5f to 0.54f, 0.82f to 0.3f)
+        }
+
+        OddlyIcon.Shield -> {
+            poly(0.5f to 0.18f, 0.78f to 0.28f, 0.78f to 0.52f, 0.5f to 0.84f, 0.22f to 0.52f, 0.22f to 0.28f, 0.5f to 0.18f)
+            poly(0.38f to 0.5f, 0.47f to 0.6f, 0.64f to 0.4f)
         }
 
         OddlyIcon.Info -> {

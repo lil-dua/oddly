@@ -332,19 +332,23 @@ private fun SharePreviewContent(
 
             Spacer(Modifier.height(6.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            // Two centred lines: the link is too long to share a row with the
+            // lead at 312dp, and this does not depend on how long it gets.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = strings.shareCtaLead,
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textTertiary,
+                    textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = Brand.SHORT_LINK,
+                    text = Brand.WEBSITE_DISPLAY,
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textPrimary,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

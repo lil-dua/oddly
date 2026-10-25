@@ -288,19 +288,17 @@ adb exec-out screencap -p > ~/Desktop/android-01.png
 
 | URL | Store | Status |
 | --- | --- | --- |
-| Privacy policy | Both (required) | `docs/privacy-policy.html` is written — needs hosting, see below |
-| Support URL | App Store (required) | **[NEEDED]** — a page or a mailto: with a contact address |
-| Marketing URL | App Store (optional) | Optional |
-| Contact email | Play (required, shown publicly) | **[NEEDED]** |
+| Privacy policy | Both (required) | https://lil-dua.github.io/projects/oddly/privacy/privacy-policy.html (source: `docs/privacy-policy.html` — re-upload after every edit) |
+| Support URL | App Store (required) | https://lil-dua.github.io/projects/oddly/ — publish `docs/landing/index.html` first; App Store does not accept `mailto:` |
+| Marketing URL | App Store (optional) | https://lil-dua.github.io/projects/oddly/ (same page) |
+| Landing page (link on share card + caption) | In-app | Source `docs/landing/index.html` — not yet published (404 on 25/10/2026) |
+| Contact email | Play (required, shown publicly) | huuthom.it@gmail.com |
 
-Hosting the policy on GitHub Pages is the cheapest route: push `docs/` to the
-repo, then in GitHub → Settings → Pages select the `master` branch and the
-`/docs` folder. The policy is then at
-`https://<user>.github.io/<repo>/privacy-policy.html`.
-
-Before publishing it, replace `[TÊN NHÀ PHÁT TRIỂN]` / `[DEVELOPER NAME]` and
-both `[EMAIL LIÊN HỆ]` / `[CONTACT EMAIL]` placeholders. Use an address you are
-willing to publish — a store listing's contact email is visible to everyone.
+The policy is hosted on GitHub Pages at the URL above (site repo `lil-dua.github.io`,
+path `projects/oddly/privacy/`). `docs/privacy-policy.html` in this repo is the source:
+after editing it, copy it to the site repo so the live page and the app stay in sync
+(the stores review the live page). The same applies to the landing page: copy
+`docs/landing/index.html` to `projects/oddly/index.html` and re-upload after every edit.
 
 ---
 

@@ -3,7 +3,7 @@
 Điểm vào cho phiên mới: đọc file này + `docs/release-todo.xlsx` (nguồn sự thật về task) trước khi làm tiếp.
 Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE được chuyển vào thư mục này.
 
-## Đã làm (cập nhật 24/10/2026, sau đợt T-24)
+## Đã làm (cập nhật 25/10/2026, sau đợt T-10/T-12)
 | Task | Trạng thái | Kế hoạch / báo cáo | Còn lại |
 |---|---|---|---|
 | T-01 Giờ hoàn thành thật | Xong | (làm cùng Bước 0, trước khi có quy trình PLAN.md) | — |
@@ -28,7 +28,9 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 | T-23B Cỡ chữ lớn + tương phản | Code xong, APPROVE (1 vòng sửa) | `T-23B.md` | QA tay Android font scale 1.3/1.5/2.0 (có máy API ≤ 33), iOS 5 màn còn lại + iPhone SE + đổi cỡ chữ khi app mở + Large Content Viewer; ảnh share giống nhau ở mọi cỡ chữ; theme Sáng |
 | T-24 UI test smoke Android + iOS | Xong, APPROVE (A: 0 vòng sửa; B: 3 vòng sửa — flaky qua nửa đêm + chạm sớm lúc splash cross-fade) | `T-24.md` | QA tay: TalkBack/VoiceOver nhãn không đổi; Archive thiết bị không chứa `UITestHooks`; chạy UI test trên Android API ≤ 33 khi có AVD |
 | T-23C Neon thương hiệu/lĩnh vực làm chữ trên theme Sáng (1.35–2.72) | Chưa làm — cần người duyệt bảng màu thương hiệu | — | — |
-| T-12 Pháp lý / Hỗ trợ | Một phần: version lấy từ build | `T-28_T-18_T-22.md` | Row policy / liên hệ / đánh giá — chờ URL, email, link store (T-10/T-11) |
+| T-11 Privacy policy | Xong | — | Live: https://lil-dua.github.io/projects/oddly/privacy/privacy-policy.html (nguồn `docs/privacy-policy.html`, sửa xong phải đăng lại site repo `lil-dua.github.io`) |
+| T-12 Pháp lý / Hỗ trợ | Code xong, APPROVE (2 vòng sửa) | `T-28_T-18_T-22.md`, `T-10_T-12.md` | QA tay: TalkBack/VoiceOver, alert fallback iOS; hàng Đánh giá iOS ẩn tới khi điền `Brand.APP_STORE_ID` (T-17) |
+| T-10 Link thương hiệu share card | Code xong, APPROVE | `T-10_T-12.md` | Landing đã đăng (bản thiết kế mới trong `docs/landing/index.html` cần đăng lại); QA thẻ share 9:16/1:1 |
 
 `T-01_T-02_T-03.md` là kế hoạch tổng ban đầu — chỉ để tham khảo lịch sử.
 
@@ -92,7 +94,11 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
   đổi ngày ×2, một hoàn thành/ngày ×2). iOS `iosApp/iosAppUITests/` (5 XCUITest, `OddlyAppLauncher.tap(_:expecting:)`), hook
   `State/UITestHooks.swift` (`#if DEBUG` + env `ODDLY_UI_TEST*`), scheme dùng chung `xcshareddata/xcschemes/iosApp.xcscheme`.
   Test qua nửa đêm iOS chờ giờ thật (~70 s / ~45 s) — mốc `launchedAt` lấy SAU `app.launch()`. Lệnh chạy trong `.claude/CLAUDE.md`.
-- Test shared: 274 test mỗi nền tảng (JVM + iosSimulatorArm64).
+- Link/hỗ trợ (đợt T-10/T-12): `core/text/Brand.kt` (DEVELOPER, WEBSITE_URL/DISPLAY, PRIVACY_POLICY_URL, SUPPORT_EMAIL,
+  `APP_STORE_ID: String? = null`) + `core/text/ExternalLinks.kt` (mailto, Play market/https, App Store review, percentEncode).
+  Android `screens/settings/LinkLauncher.kt` (try/catch, không `<queries>`); iOS `openURL` có completion; fallback hộp thoại hiện
+  địa chỉ + Sao chép. `SettingsRow(subtitle, onClickLabel)`. Nguồn landing `docs/landing/index.html`.
+- Test shared: 295 test mỗi nền tảng (JVM + iosSimulatorArm64); UI test Android 7, iOS 6.
 
 ## Ghi nhận để sau (không thuộc task nào đang mở)
 - iOS `ChallengeDetailScreen.swift`: `.dayAlreadyDone` rơi vào `default` (hành vi đúng).
@@ -125,5 +131,5 @@ Kế hoạch đang chạy luôn ở `docs/PLAN.md`; kế hoạch đã APPROVE đ
 - Fixture `V1_DOCUMENT` viết tay (chỉ 1 completion có `"note": null`); fixture `V2_DOCUMENT` sau này nên sinh bằng `OddlyRepository.save`.
 
 ## Gợi ý thứ tự tiếp theo
-- **P0 còn lại (chủ yếu việc store, cần thông tin từ người dùng):** T-10, T-11, T-14, T-15, T-16, T-17, T-19, T-20, T-21.
+- **P0 còn lại (chủ yếu việc store, cần thông tin từ người dùng):** T-14, T-15, T-16, T-17, T-19, T-20, T-21.
 - **P1 code làm được ngay bằng `team-run`:** T-23C nếu người dùng duyệt bảng màu; T-27 (rà nội dung/bản quyền — cần người). Phần còn lại của T-12 chờ T-10/T-11.

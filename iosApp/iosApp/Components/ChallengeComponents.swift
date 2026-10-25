@@ -295,6 +295,8 @@ struct SettingsRow<Trailing: View>: View {
     let icon: OddlyIcon
     let title: String
     var value: String?
+    /// Second line under the title, read together with it by VoiceOver.
+    var subtitle: String?
     var tint: Color?
     var showChevron: Bool = true
     var action: (() -> Void)?
@@ -308,12 +310,19 @@ struct SettingsRow<Trailing: View>: View {
 
         let row = HStack(spacing: 0) {
             OddlyIconView(icon, size: 20, tint: iconTint)
-            Text(title)
-                .oddlyFont(OddlyFont.bodyLarge)
-                .foregroundStyle(tint ?? palette.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .accessibilityHidden(hidesTitleFromVoiceOver)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title)
+                    .oddlyFont(OddlyFont.bodyLarge)
+                    .foregroundStyle(tint ?? palette.textPrimary)
+                if let subtitle {
+                    Text(subtitle)
+                        .oddlyFont(OddlyFont.bodySmall)
+                        .foregroundStyle(palette.textTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 14)
+            .accessibilityHidden(hidesTitleFromVoiceOver)
             if let value {
                 Text(value)
                     .oddlyFont(OddlyFont.bodyMedium)
@@ -344,6 +353,7 @@ extension SettingsRow where Trailing == EmptyView {
         icon: OddlyIcon,
         title: String,
         value: String? = nil,
+        subtitle: String? = nil,
         tint: Color? = nil,
         showChevron: Bool = true,
         action: (() -> Void)? = nil
@@ -352,6 +362,7 @@ extension SettingsRow where Trailing == EmptyView {
             icon: icon,
             title: title,
             value: value,
+            subtitle: subtitle,
             tint: tint,
             showChevron: showChevron,
             action: action,

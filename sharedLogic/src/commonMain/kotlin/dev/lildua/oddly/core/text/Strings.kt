@@ -158,6 +158,17 @@ interface Strings {
     /** [version] is supplied by the platform from the build (never hardcoded here). */
     fun settingsFooter(version: String): String
     fun aboutBody(version: String): String
+    val sectionSupport: String
+    val rateApp: String
+    val contactSupport: String
+    val privacyPolicy: String
+    /** [platform] is a proper noun ("Android"/"iOS") passed by the platform. */
+    fun supportEmailSubject(version: String, platform: String): String
+    val linkFallbackTitle: String
+    val emailFallbackBody: String
+    val browserFallbackBody: String
+    val copy: String
+    val addressCopied: String
 
     // --- Share card (S18) ---
     val shareCardTitle: String
@@ -223,6 +234,9 @@ interface Strings {
     val a11yToday: String
     val a11yMostActiveCategory: String
     val a11yChartTitle: String
+    val a11yOpensBrowser: String
+    val a11yOpensEmail: String
+    val a11yOpensStore: String
     fun a11yQuotePosition(index: Int, total: Int): String
     fun a11yLevel(level: Int): String
     /** [doneDays] are already-formatted day names, oldest first ("today" included). */
@@ -377,6 +391,19 @@ object VietnameseStrings : Strings {
     override val cancel = "Hủy"
     override val close = "Đóng"
     override val save = "Lưu"
+    override val sectionSupport = "Hỗ trợ & pháp lý"
+    override val rateApp = "Đánh giá ứng dụng"
+    override val contactSupport = "Liên hệ & góp ý"
+    override val privacyPolicy = "Chính sách quyền riêng tư"
+    override fun supportEmailSubject(version: String, platform: String) =
+        "Góp ý 1% HUMAN $version ($platform)"
+    override val linkFallbackTitle = "Không mở được"
+    override val emailFallbackBody =
+        "Máy chưa có ứng dụng email. Bạn có thể chép địa chỉ bên dưới để gửi thư cho chúng tôi."
+    override val browserFallbackBody =
+        "Máy chưa có trình duyệt hoặc cửa hàng để mở liên kết này. Bạn có thể chép địa chỉ bên dưới."
+    override val copy = "Sao chép"
+    override val addressCopied = "Đã sao chép địa chỉ."
     override fun settingsFooter(version: String) =
         "1% HUMAN · phiên bản $version\nDữ liệu của bạn được lưu an toàn trên thiết bị."
     override fun aboutBody(version: String) = "Phiên bản $version\n\n" +
@@ -421,7 +448,7 @@ object VietnameseStrings : Strings {
     override fun swapsLeftToday(count: Int) = "Còn $count lượt đổi hôm nay"
     override fun keptStreakFor(count: Int) = "và duy trì chuỗi ngày\n$count ngày liên tiếp!"
     override fun shareCaption(count: Int) =
-        "Tôi đã hoàn thành $count thử thách cùng ${Brand.NAME}. Thử xem: ${Brand.SHORT_LINK}"
+        "Tôi đã hoàn thành $count thử thách cùng ${Brand.NAME}. Thử xem: ${Brand.WEBSITE_URL}"
 
     // --- Daily reminder copy ---
     override fun reminderStreakTitle(days: Int) = "Chuỗi $days ngày đang chờ bạn"
@@ -446,6 +473,9 @@ object VietnameseStrings : Strings {
     override val a11yToday = "hôm nay"
     override val a11yMostActiveCategory = "Lĩnh vực làm nhiều nhất"
     override val a11yChartTitle = "Biểu đồ số thử thách đã làm"
+    override val a11yOpensBrowser = "Mở trong trình duyệt"
+    override val a11yOpensEmail = "Viết email"
+    override val a11yOpensStore = "Mở cửa hàng ứng dụng"
     override fun a11yQuotePosition(index: Int, total: Int) = "Câu $index trên $total"
     override fun a11yLevel(level: Int) = "Cấp $level"
     override fun a11yWeekStrip(total: Int, doneDays: List<String>) =
@@ -599,6 +629,19 @@ object EnglishStrings : Strings {
     override val cancel = "Cancel"
     override val close = "Close"
     override val save = "Save"
+    override val sectionSupport = "Support & legal"
+    override val rateApp = "Rate the app"
+    override val contactSupport = "Contact & feedback"
+    override val privacyPolicy = "Privacy policy"
+    override fun supportEmailSubject(version: String, platform: String) =
+        "1% HUMAN $version feedback ($platform)"
+    override val linkFallbackTitle = "Couldn't open this"
+    override val emailFallbackBody =
+        "There's no email app set up on this device. Copy the address below to write to us."
+    override val browserFallbackBody =
+        "There's no browser or store app to open this link. You can copy the address below."
+    override val copy = "Copy"
+    override val addressCopied = "Address copied."
     override fun settingsFooter(version: String) =
         "1% HUMAN · version $version\nYour data is stored safely on this device."
     override fun aboutBody(version: String) = "Version $version\n\n" +
@@ -648,9 +691,9 @@ object EnglishStrings : Strings {
         if (count == 1) "and kept a streak going\nfor 1 day!" else "and kept a streak going\nfor $count days!"
     override fun shareCaption(count: Int) =
         if (count == 1) {
-            "I've completed 1 challenge with ${Brand.NAME}. Try it: ${Brand.SHORT_LINK}"
+            "I've completed 1 challenge with ${Brand.NAME}. Try it: ${Brand.WEBSITE_URL}"
         } else {
-            "I've completed $count challenges with ${Brand.NAME}. Try it: ${Brand.SHORT_LINK}"
+            "I've completed $count challenges with ${Brand.NAME}. Try it: ${Brand.WEBSITE_URL}"
         }
 
     // --- Daily reminder copy ---
@@ -677,6 +720,9 @@ object EnglishStrings : Strings {
     override val a11yToday = "today"
     override val a11yMostActiveCategory = "Most active category"
     override val a11yChartTitle = "Challenges completed chart"
+    override val a11yOpensBrowser = "Open in browser"
+    override val a11yOpensEmail = "Write an email"
+    override val a11yOpensStore = "Open the app store"
     override fun a11yQuotePosition(index: Int, total: Int) = "Quote $index of $total"
     override fun a11yLevel(level: Int) = "Level $level"
     override fun a11yWeekStrip(total: Int, doneDays: List<String>) =

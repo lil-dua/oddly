@@ -46,6 +46,7 @@ private val TabDestination.testTag: String?
     get() = when (this) {
         TabDestination.HOME -> UiTestTags.TAB_HOME
         TabDestination.JOURNEY -> UiTestTags.TAB_JOURNEY
+        TabDestination.SETTINGS -> UiTestTags.TAB_SETTINGS
         else -> null
     }
 

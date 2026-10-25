@@ -12,6 +12,9 @@ import SharedLogic
 struct SettingsScreen: View {
     @Environment(\.palette) private var palette
     @Environment(\.strings) private var strings
+    // No canOpenURL: it would need LSApplicationQueriesSchemes. The completion
+    // reports whether anything handled the URL.
+    @Environment(\.openURL) private var openURL
 
     let state: OddlyAppState
 
@@ -25,6 +28,14 @@ struct SettingsScreen: View {
     @State private var importNotice: ImportNotice?
     @State private var sheet: SettingsSheet?
     @State private var feedback = FeedbackTrigger()
+    @State private var linkFallback: LinkFallback?
+    @State private var addressCopied = false
+
+    /// What the "couldn't open" alert shows: an explanation and the address to copy.
+    private struct LinkFallback {
+        let body: String
+        let address: String
+    }
 
     /// A decoded file waiting for the user to confirm replacing their data.
     private struct PendingImport {
@@ -153,11 +164,11 @@ struct SettingsScreen: View {
                 SettingsGroup {
                     SettingsRow(icon: .download, title: strings.exportData, action: { exportBackup() })
                     SettingsRow(icon: .upload, title: strings.importData, action: {
+                        addressCopied = false
                         importNotice = nil
                         exportFailed = false
                         showImporter = true
                     })
-                    SettingsRow(icon: .info, title: strings.about, action: { showAboutDialog = true })
                 }
 
                 if exportFailed {
@@ -182,6 +193,66 @@ struct SettingsScreen: View {
                         .padding(14)
                         .background(
                             color.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .padding(.top, 10)
+                }
+
+                SectionLabel(strings.sectionSupport)
+                    .padding(.top, 20)
+                    .padding(.bottom, 8)
+
+                SettingsGroup {
+                    // Hidden until Brand.APP_STORE_ID is filled in (T-17).
+                    if let reviewUrl = ExternalLinks.shared.appStoreReviewUrl {
+                        SettingsRow(
+                            icon: .star,
+                            title: strings.rateApp,
+                            action: { open(reviewUrl, fallbackBody: strings.browserFallbackBody, address: reviewUrl) }
+                        )
+                        .accessibilityHint(strings.a11yOpensStore)
+                        .accessibilityIdentifier(UiTestTags.shared.SETTINGS_RATE)
+                    }
+                    SettingsRow(
+                        icon: .mail,
+                        title: strings.contactSupport,
+                        subtitle: Brand.shared.SUPPORT_EMAIL,
+                        action: {
+                            let subject = strings.supportEmailSubject(version: AppVersion.marketing, platform: "iOS")
+                            open(
+                                ExternalLinks.shared.mailto(address: Brand.shared.SUPPORT_EMAIL, subject: subject),
+                                fallbackBody: strings.emailFallbackBody,
+                                address: Brand.shared.SUPPORT_EMAIL
+                            )
+                        }
+                    )
+                    .accessibilityHint(strings.a11yOpensEmail)
+                    .accessibilityIdentifier(UiTestTags.shared.SETTINGS_CONTACT)
+                    SettingsRow(
+                        icon: .shield,
+                        title: strings.privacyPolicy,
+                        action: {
+                            open(
+                                Brand.shared.PRIVACY_POLICY_URL,
+                                fallbackBody: strings.browserFallbackBody,
+                                address: Brand.shared.PRIVACY_POLICY_URL
+                            )
+                        }
+                    )
+                    .accessibilityHint(strings.a11yOpensBrowser)
+                    .accessibilityIdentifier(UiTestTags.shared.SETTINGS_PRIVACY)
+                    SettingsRow(icon: .info, title: strings.about, action: { showAboutDialog = true })
+                        .accessibilityIdentifier(UiTestTags.shared.SETTINGS_ABOUT)
+                }
+
+                if addressCopied {
+                    Text(strings.addressCopied)
+                        .oddlyFont(OddlyFont.bodySmall)
+                        .foregroundStyle(palette.success)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(
+                            palette.success.opacity(0.12),
                             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                         )
                         .padding(.top, 10)
@@ -215,6 +286,9 @@ struct SettingsScreen: View {
         // Android uses live regions on these notices; here each is announced when it appears.
         .onChange(of: exportFailed) { _, failed in
             if failed { announce(strings.exportFailed) }
+        }
+        .onChange(of: addressCopied) { _, copied in
+            if copied { announce(strings.addressCopied) }
         }
         .onChange(of: importNotice) { _, notice in
             guard let notice else { return }
@@ -250,10 +324,41 @@ struct SettingsScreen: View {
         } message: {
             Text(strings.eraseAllDataBody)
         }
+        .alert(
+            strings.linkFallbackTitle,
+            isPresented: Binding(
+                get: { linkFallback != nil },
+                set: { if !$0 { linkFallback = nil } }
+            ),
+            presenting: linkFallback
+        ) { fallback in
+            Button(strings.copy) {
+                UIPasteboard.general.string = fallback.address
+                addressCopied = true
+            }
+            Button(strings.close, role: .cancel) {}
+        } message: { fallback in
+            Text(fallback.body + "\n\n" + fallback.address)
+        }
         .alert("1% HUMAN", isPresented: $showAboutDialog) {
             Button(strings.close, role: .cancel) {}
         } message: {
             Text(strings.aboutBody(version: AppVersion.marketing))
+        }
+    }
+
+    /// Opens [urlString] with the system; when nothing handles it, offers the address as text instead.
+    private func open(_ urlString: String, fallbackBody: String, address: String) {
+        addressCopied = false
+        importNotice = nil
+        exportFailed = false
+        let fallback = LinkFallback(body: fallbackBody, address: address)
+        guard let url = URL(string: urlString) else {
+            linkFallback = fallback
+            return
+        }
+        openURL(url) { accepted in
+            if !accepted { linkFallback = fallback }
         }
     }
 
@@ -300,6 +405,7 @@ struct SettingsScreen: View {
     /// (spec §S22). The exported file is exactly what the app reads back on
     /// launch, so there is no separate backup format to keep in step.
     private func exportBackup() {
+        addressCopied = false
         importNotice = nil
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("one-percent-human-backup.json")

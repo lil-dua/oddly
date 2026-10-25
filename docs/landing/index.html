@@ -1,0 +1,627 @@
+<!doctype html>
+<!--
+  Landing page source for 1% HUMAN.
+  Publish as projects/oddly/index.html in the repo lil-dua.github.io.
+  The published URL must match Brand.WEBSITE_URL (https://lil-dua.github.io/projects/oddly/):
+  it is printed on share cards and in share captions, the Support URL and Marketing URL.
+  TODO (T-17): replace the "Coming soon" App Store button with the real link once the app has an ID.
+
+  Self-contained on purpose: no web fonts, scripts, images or analytics from other hosts, so the
+  page keeps the app's "no data collection" promise. The mark, astronaut, ring and colours mirror
+  tools/IconRenderer.swift, ui/components/Illustrations.kt and core/design/PaletteSpec.kt.
+  Bilingual: every visible string exists as a vi/en pair; the toggle only switches which one shows.
+-->
+<html lang="vi" data-lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07070C">
+<meta name="description" content="1% HUMAN — mỗi ngày một thử thách nhỏ. Ứng dụng thói quen hoạt động ngoại tuyến, không tài khoản, không thu thập dữ liệu.">
+<meta property="og:title" content="1% HUMAN">
+<meta property="og:description" content="Mỗi bước chân nhỏ tạo nên thay đổi lớn. Every tiny step makes a huge change.">
+<meta property="og:url" content="https://lil-dua.github.io/projects/oddly/">
+<title>1% HUMAN — Mỗi ngày tốt hơn 1%</title>
+<style>
+  :root {
+    --bg: #07070C; --surface: #12121B; --surface-2: #1A1A26; --surface-3: #23232F; --outline: #2C2C3A;
+    --text: #F4F4F7; --text-2: #A0A0B0; --text-3: #8A8A9C;
+    --pink: #FF7EB3; --magenta: #E879F9; --purple: #A78BFA; --indigo: #818CF8; --blue: #60A5FA;
+    --flame: #FF7A45; --flame-2: #FFB067; --success: #34D399;
+    --brand: linear-gradient(100deg, var(--pink), var(--magenta) 35%, var(--purple) 70%, var(--blue));
+    --radius: 22px;
+    --pad: max(20px, env(safe-area-inset-left));
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--bg); }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); overflow-x: hidden;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Bilingual switch: hide whichever language is not active. */
+  html[data-lang="vi"] [lang="en"]:not(html), html[data-lang="en"] [lang="vi"]:not(html) { display: none !important; }
+
+  a { color: var(--purple); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--pink); }
+  :focus-visible { outline: 2px solid var(--pink); outline-offset: 3px; border-radius: 8px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--pad); }
+  .grad-text { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* ---------- Sky ---------- */
+  #sky { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; }
+  .orb { position: fixed; z-index: -1; border-radius: 50%; filter: blur(70px); opacity: .45; pointer-events: none; }
+  .orb.a { width: 520px; height: 520px; background: radial-gradient(circle, rgba(232,121,249,.55), transparent 65%); top: -160px; right: -120px; animation: drift 18s ease-in-out infinite alternate; }
+  .orb.b { width: 460px; height: 460px; background: radial-gradient(circle, rgba(96,165,250,.40), transparent 65%); bottom: -180px; left: -140px; animation: drift 22s ease-in-out infinite alternate-reverse; }
+  @keyframes drift { to { transform: translate(-60px, 50px) scale(1.08); } }
+
+  /* ---------- Nav ---------- */
+  nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: rgba(7,7,12,.62); border-bottom: 1px solid rgba(44,44,58,.6); padding-top: env(safe-area-inset-top); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 800; letter-spacing: .02em; }
+  .logo svg { width: 34px; height: 34px; }
+  .lang { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--outline); border-radius: 999px; padding: 3px; }
+  .lang button { font: 600 13px/1 inherit; font-family: inherit; color: var(--text-2); background: none; border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer; min-width: 44px; min-height: 32px; }
+  .lang button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+
+  /* ---------- Hero ---------- */
+  .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 72px 0 56px; min-height: min(calc(100svh - 64px), 860px); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-2);
+    background: var(--surface); border: 1px solid var(--outline); border-radius: 999px; padding: 6px 14px 6px 10px; }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 0 rgba(52,211,153,.6); animation: ping 2.4s infinite; }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.55); } 80%,100% { box-shadow: 0 0 0 10px rgba(52,211,153,0); } }
+  h1 { text-wrap: balance; font-size: clamp(36px, 5.2vw, 64px); line-height: 1.04; letter-spacing: -.035em; margin: 22px 0 18px; font-weight: 800; }
+  h1 .line { display: block; }
+  .lead { font-size: clamp(17px, 1.6vw, 20px); color: var(--text-2); max-width: 34em; margin: 0 0 30px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 22px; border-radius: 16px;
+    font-weight: 700; font-size: 16px; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease; }
+  .btn svg { width: 22px; height: 22px; flex: none; }
+  .btn.primary { color: #14101C; background: linear-gradient(90deg, var(--pink), var(--magenta), var(--purple)); background-size: 200% 100%;
+    box-shadow: 0 10px 30px -10px rgba(232,121,249,.7); animation: sheen 6s ease-in-out infinite; }
+  .btn.primary:hover { color: #14101C; transform: translateY(-2px); box-shadow: 0 16px 40px -12px rgba(232,121,249,.85); }
+  @keyframes sheen { 50% { background-position: 100% 0; } }
+  .btn.ghost { color: var(--text-2); background: var(--surface); border: 1px solid var(--outline); cursor: default; }
+  .btn small { display: block; font-size: 11px; font-weight: 600; opacity: .75; letter-spacing: .04em; text-transform: uppercase; }
+  .btn span.two { display: flex; flex-direction: column; line-height: 1.15; }
+  .trust { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 26px; padding: 0; list-style: none; color: var(--text-3); font-size: 14px; }
+  .trust li::before { content: "✦"; margin-right: 8px; background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  .stage { position: relative; aspect-ratio: 1; width: min(100%, 460px); justify-self: center; }
+  .ring { position: absolute; inset: 6%; border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--pink), var(--magenta), var(--purple), var(--indigo), var(--blue), var(--pink));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+    animation: spin 4.2s linear infinite; filter: drop-shadow(0 0 18px rgba(167,139,250,.45)); }
+  .bead { position: absolute; inset: 6%; animation: spin 4.2s linear infinite; }
+  .bead::after { content: ""; position: absolute; top: -1px; left: 50%; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 16px 4px rgba(255,255,255,.7); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .halo { position: absolute; inset: 18%; border-radius: 50%; background: radial-gradient(circle, rgba(167,139,250,.30), transparent 70%); animation: breathe 5s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scale(1.08); opacity: .7; } }
+  .mark { position: absolute; left: 27%; top: 27%; width: 46%; height: 46%; filter: drop-shadow(0 8px 28px rgba(232,121,249,.45)); }
+  .astro { position: absolute; width: 34%; height: 34%; right: -2%; top: 2%; animation: bob 2.6s ease-in-out infinite alternate; }
+  @keyframes bob { from { transform: translateY(-6px) rotate(-6deg); } to { transform: translateY(6px) rotate(4deg); } }
+  .planet { position: absolute; width: 26%; height: 26%; left: -2%; bottom: 4%; animation: float 7s ease-in-out infinite alternate; }
+  @keyframes float { to { transform: translate(10px, -14px) rotate(8deg); } }
+  .spark { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 12px var(--c); animation: orbit var(--d) linear infinite; top: 50%; left: 50%; }
+  @keyframes orbit { from { transform: rotate(0deg) translateX(var(--r)) rotate(0deg); } to { transform: rotate(360deg) translateX(var(--r)) rotate(-360deg); } }
+
+  /* ---------- Sections ---------- */
+  section { padding: 88px 0; }
+  .kicker { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--purple); margin: 0 0 12px; }
+  h2 { font-size: clamp(30px, 4vw, 46px); line-height: 1.1; letter-spacing: -.025em; margin: 0 0 16px; }
+  .sub { color: var(--text-2); font-size: 18px; max-width: 36em; margin: 0; }
+  .center { text-align: center; } .center .sub { margin: 0 auto; }
+
+  /* Phone */
+  .showcase { display: grid; grid-template-columns: .9fr 1.1fr; gap: 56px; align-items: center; }
+  .phone { position: relative; width: min(100%, 320px); justify-self: center; aspect-ratio: 9 / 19; border-radius: 46px; padding: 12px;
+    background: linear-gradient(160deg, #2a2a3a, #12121b); box-shadow: 0 40px 80px -30px rgba(0,0,0,.9), 0 0 0 1px #34344a inset, 0 0 90px -30px rgba(167,139,250,.6); }
+  .screen { position: relative; height: 100%; border-radius: 36px; overflow: hidden; background: var(--bg); padding: 46px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .screen::before { content: ""; position: absolute; top: 12px; left: 50%; width: 92px; height: 24px; margin-left: -46px; border-radius: 14px; background: #000; }
+  .screen .stars { position: absolute; inset: 0; background-image:
+      radial-gradient(1.2px 1.2px at 12% 18%, #fff8, transparent), radial-gradient(1px 1px at 78% 9%, #fff6, transparent),
+      radial-gradient(1.4px 1.4px at 64% 32%, #fff5, transparent), radial-gradient(1px 1px at 30% 52%, #fff5, transparent),
+      radial-gradient(1.2px 1.2px at 88% 66%, #fff6, transparent), radial-gradient(1px 1px at 18% 86%, #fff4, transparent); }
+  .greet { position: relative; font-size: 13px; color: var(--text-2); }
+  .greet b { display: block; color: var(--text); font-size: 20px; letter-spacing: -.01em; }
+  .card { position: relative; background: var(--surface); border: 1px solid var(--outline); border-radius: 22px; padding: 14px; }
+  .card.today { background: linear-gradient(160deg, rgba(52,211,153,.12), var(--surface) 55%); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--success); background: rgba(52,211,153,.12); padding: 4px 10px; border-radius: 999px; }
+  .card h3 { font-size: 16px; line-height: 1.25; margin: 10px 0 4px; }
+  .card p { font-size: 12px; color: var(--text-2); margin: 0 0 12px; }
+  .meta { display: flex; gap: 8px; font-size: 11px; color: var(--text-3); margin-bottom: 12px; }
+  .meta span { background: var(--surface-2); padding: 3px 8px; border-radius: 8px; }
+  .meta .xp { color: var(--purple); background: rgba(167,139,250,.14); font-weight: 700; }
+  .go { display: block; text-align: center; font-weight: 800; font-size: 13px; color: #14101C; border-radius: 12px; padding: 10px; background: linear-gradient(90deg, var(--pink), var(--magenta), var(--purple)); position: relative; overflow: hidden; }
+  .go::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.55), transparent 70%); transform: translateX(-120%); animation: glint 3.2s ease-in-out infinite 1s; }
+  @keyframes glint { 40%,100% { transform: translateX(120%); } }
+  .streak { display: flex; align-items: center; justify-content: space-between; }
+  .streak .n { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  .streak .n .fire { display: inline-block; animation: flick 1.4s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+  @keyframes flick { to { transform: scale(1.12) rotate(-4deg); } }
+  .streak small { color: var(--text-2); font-size: 11px; }
+  .week { display: flex; justify-content: space-between; margin-top: 12px; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; color: var(--text-3); }
+  .day i { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--outline); display: grid; place-items: center; font-style: normal; font-size: 11px; color: #14101C; font-weight: 800; transition: background .4s, border-color .4s, transform .4s; }
+  .day i.on { background: linear-gradient(135deg, var(--flame-2), var(--flame)); border-color: transparent; transform: scale(1.06); }
+  .day i.today { border-color: var(--purple); }
+  .level { position: relative; }
+  .level .row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
+  .level .row b { color: var(--text); }
+  .bar { height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 12%; border-radius: inherit; background: var(--brand); transition: width 1.6s cubic-bezier(.2,.8,.2,1); }
+  .xp-pop { position: absolute; right: 14px; top: -12px; padding: 2px 8px; border-radius: 8px; background: var(--surface-2); font-weight: 800; font-size: 13px; color: var(--purple); opacity: 0; }
+  .xp-pop.go-up { animation: pop 1.6s ease-out; }
+  @keyframes pop { 0% { opacity: 0; transform: translateY(8px) scale(.8); } 20% { opacity: 1; transform: translateY(0) scale(1.1); } 100% { opacity: 0; transform: translateY(-22px); } }
+
+  .features { display: grid; gap: 14px; margin-top: 28px; padding: 0; list-style: none; }
+  .features li { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: start; background: rgba(18,18,27,.7); border: 1px solid var(--outline); border-radius: 18px; padding: 16px; transition: border-color .25s, transform .25s; }
+  .features li:hover { border-color: #45455c; transform: translateX(4px); }
+  .features .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--surface-2); }
+  .features b { display: block; margin-bottom: 2px; }
+  .features span { color: var(--text-2); font-size: 15px; }
+
+  /* 1% math */
+  .math { position: relative; overflow: hidden; border-radius: 32px; padding: 64px 28px; text-align: center; border: 1px solid var(--outline);
+    background: radial-gradient(120% 90% at 50% 0%, rgba(232,121,249,.16), transparent 60%), var(--surface); }
+  .big { font-size: clamp(84px, 16vw, 180px); font-weight: 900; line-height: .95; letter-spacing: -.05em; margin: 10px 0; font-variant-numeric: tabular-nums; }
+  .formula { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 15px; color: var(--text-2); margin-top: 18px; }
+  .formula code { font: 600 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); background: var(--surface-2); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 10px; }
+  .math blockquote { margin: 26px auto 0; max-width: 30em; font-size: 18px; color: var(--text); }
+  .math cite { display: block; margin-top: 8px; font-style: normal; font-size: 14px; color: var(--text-3); }
+
+  /* Categories */
+  .cats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+  .cat { position: relative; overflow: hidden; border-radius: var(--radius); padding: 22px; background: var(--surface); border: 1px solid var(--outline); transition: transform .3s, border-color .3s, box-shadow .3s; }
+  .cat::before { content: ""; position: absolute; width: 180px; height: 180px; right: -60px; top: -70px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 45%, transparent), transparent 70%); transition: transform .4s; }
+  .cat:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--c) 55%, var(--outline)); box-shadow: 0 18px 40px -24px var(--c); }
+  .cat:hover::before { transform: scale(1.25); }
+  .cat .em { position: relative; font-size: 34px; display: inline-block; transition: transform .4s; }
+  .cat:hover .em { transform: scale(1.15) rotate(-8deg); }
+  .cat h3 { position: relative; margin: 14px 0 4px; font-size: 19px; color: var(--c); }
+  .cat p { position: relative; margin: 0; color: var(--text-2); font-size: 15px; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; counter-reset: step; position: relative; }
+  .step { position: relative; background: var(--surface); border: 1px solid var(--outline); border-radius: var(--radius); padding: 26px 22px; }
+  .step .num { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-weight: 900; font-size: 18px; color: #14101C; background: var(--brand); margin-bottom: 16px; }
+  .step h3 { margin: 0 0 6px; font-size: 19px; }
+  .step p { margin: 0; color: var(--text-2); font-size: 15px; }
+  .xpline { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .xpline span { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
+
+  /* Privacy */
+  .privacy { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; border-radius: 32px; padding: 48px; border: 1px solid var(--outline);
+    background: linear-gradient(140deg, rgba(96,165,250,.10), transparent 50%), var(--surface); }
+  .shield { width: 120px; height: 120px; justify-self: center; position: relative; }
+  .shield svg { width: 100%; height: 100%; }
+  .shield::after { content: ""; position: absolute; inset: -16px; border-radius: 50%; border: 1px dashed rgba(167,139,250,.4); animation: spin 26s linear infinite; }
+  .pills { display: grid; gap: 12px; padding: 0; margin: 24px 0 0; list-style: none; }
+  .pills li { display: flex; align-items: center; gap: 12px; color: var(--text); }
+  .pills li::before { content: "✓"; flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 13px; color: #04120c; background: var(--success); }
+
+  /* Final CTA + footer */
+  .final { text-align: center; }
+  .final .ctas { justify-content: center; margin-top: 30px; }
+  footer { border-top: 1px solid var(--outline); padding: 34px 0 calc(40px + env(safe-area-inset-bottom)); color: var(--text-3); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: space-between; align-items: center; }
+  footer nav { all: unset; display: flex; flex-wrap: wrap; gap: 8px 22px; }
+  footer a { color: var(--text-2); }
+
+  /* Scroll reveal — only when JS is on, so the page is complete without it. */
+  .js .reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1); transition-delay: var(--delay, 0s); }
+  .js .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .hero, .showcase, .privacy { grid-template-columns: 1fr; }
+    .hero { padding-top: 40px; text-align: center; min-height: 0; }
+    .hero .lead { margin-left: auto; margin-right: auto; }
+    .ctas, .trust { justify-content: center; }
+    .stage { order: -1; width: min(82%, 380px); }
+    .showcase .phone { order: 2; }
+    .cats, .steps { grid-template-columns: 1fr 1fr; }
+    .privacy { padding: 32px 22px; text-align: center; }
+    .pills { justify-items: start; text-align: left; width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+  }
+  @media (max-width: 560px) {
+    section { padding: 64px 0; }
+    .cats, .steps { grid-template-columns: 1fr; }
+    .btn { width: 100%; justify-content: center; }
+    .logo span { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    .js .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="orb a" aria-hidden="true"></div>
+<div class="orb b" aria-hidden="true"></div>
+
+<!-- Reusable artwork. Paths mirror tools/IconRenderer.swift (108-unit space) and Illustrations.kt (100-unit space). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF7EB3"/><stop offset=".35" stop-color="#E879F9"/>
+      <stop offset=".7" stop-color="#A78BFA"/><stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+    <linearGradient id="visor" x1="36" y1="14" x2="64" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A78BFA"/><stop offset=".5" stop-color="#FF7EB3"/><stop offset="1" stop-color="#818CF8"/>
+    </linearGradient>
+    <linearGradient id="planetFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A78BFA"/><stop offset=".55" stop-color="#A78BFA" stop-opacity=".6"/><stop offset="1" stop-color="#818CF8"/>
+    </linearGradient>
+    <symbol id="mark" viewBox="22 31 66 46">
+      <path fill="url(#brand)" fill-rule="evenodd" d="M44 36V72H34V47.5L26 52V43L36 36Z
+        M50 44a8 8 0 1 0 16 0a8 8 0 1 0-16 0Z M54.4 44a3.6 3.6 0 1 0 7.2 0a3.6 3.6 0 1 0-7.2 0Z
+        M68 64a8 8 0 1 0 16 0a8 8 0 1 0-16 0Z M72.4 64a3.6 3.6 0 1 0 7.2 0a3.6 3.6 0 1 0-7.2 0Z
+        M52.06 68.92L57.94 73.08L81.94 39.08L76.06 34.92Z"/>
+    </symbol>
+    <symbol id="astronaut" viewBox="0 0 100 100">
+      <rect x="30" y="40" width="40" height="30" rx="10" fill="#C3BDDE"/>
+      <g stroke="#E9E6F7" stroke-width="11" stroke-linecap="round">
+        <line x1="36" y1="50" x2="18" y2="62"/><line x1="64" y1="50" x2="83" y2="58"/>
+        <line x1="43" y1="70" x2="38" y2="88"/><line x1="57" y1="70" x2="63" y2="88"/>
+      </g>
+      <rect x="34" y="42" width="32" height="30" rx="12" fill="#E9E6F7"/>
+      <rect x="43" y="50" width="14" height="9" rx="3" fill="#A78BFA" fill-opacity=".55"/>
+      <circle cx="50" cy="28" r="20" fill="#E9E6F7"/>
+      <circle cx="50" cy="28" r="14.5" fill="url(#visor)"/>
+      <circle cx="44" cy="22" r="3.5" fill="#fff" fill-opacity=".55"/>
+    </symbol>
+    <symbol id="planet" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="30" fill="url(#planetFill)"/>
+      <circle cx="42" cy="42" r="6" fill="#000" fill-opacity=".13"/>
+      <circle cx="60" cy="56" r="4" fill="#000" fill-opacity=".1"/>
+      <ellipse cx="50" cy="50" rx="42" ry="8" fill="none" stroke="#FF7EB3" stroke-opacity=".75" stroke-width="3.5" transform="rotate(-22 50 50)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<nav aria-label="Trang">
+  <div class="wrap">
+    <a class="logo" href="#top"><svg aria-hidden="true"><use href="#mark"/></svg><span>1% HUMAN</span></a>
+    <div class="lang" role="group" aria-label="Ngôn ngữ / Language">
+      <button type="button" data-set-lang="vi" aria-pressed="true">VI</button>
+      <button type="button" data-set-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+  <div class="wrap">
+    <!-- Hero -->
+    <header class="hero">
+      <div>
+        <span class="eyebrow reveal"><span class="dot" aria-hidden="true"></span>
+          <span lang="vi">Ứng dụng thói quen · hoạt động ngoại tuyến</span><span lang="en">Habit app · works fully offline</span></span>
+        <h1 class="reveal" style="--delay:.08s">
+          <span lang="vi"><span class="line">Mỗi bước chân nhỏ</span><span class="line grad-text">tạo nên thay đổi lớn.</span></span>
+          <span lang="en"><span class="line">Every tiny step</span><span class="line grad-text">makes a huge change.</span></span>
+        </h1>
+        <p class="lead reveal" style="--delay:.16s">
+          <span lang="vi">Mỗi ngày, 1% HUMAN gợi ý một thử thách nhỏ vừa sức. Làm xong để nhận XP, giữ chuỗi ngày và thấy mình tốt hơn từng chút một.</span>
+          <span lang="en">Every day, 1% HUMAN suggests one small, doable challenge. Finish it to earn XP, keep your streak going and watch yourself get a little better.</span>
+        </p>
+        <div class="ctas reveal" style="--delay:.24s">
+          <a class="btn primary" href="https://play.google.com/store/apps/details?id=dev.lildua.oddly">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.2 2.6c-.3.2-.5.6-.5 1.1v16.6c0 .5.2.9.5 1.1l9.3-9.4L4.2 2.6Zm10.6 9.9 2.6 2.6-11 6.3 8.4-8.9Zm0-1L6.4 2.6l11 6.3-2.6 2.6Zm3.7-1.8 3 1.7c.8.5.8 1.7 0 2.2l-3 1.7-2.8-2.8 2.8-2.8Z"/></svg>
+            <span class="two"><small lang="vi">Tải trên</small><small lang="en">Get it on</small>Google Play</span>
+          </a>
+          <span class="btn ghost" aria-disabled="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.7c0-2.4 2-3.5 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.4-.9-2.4-4ZM14 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4Z"/></svg>
+            <span class="two"><small lang="vi">Sắp có trên</small><small lang="en">Coming soon to</small>App Store</span>
+          </span>
+        </div>
+        <ul class="trust reveal" style="--delay:.32s">
+          <li><span lang="vi">Không tài khoản</span><span lang="en">No account</span></li>
+          <li><span lang="vi">Không thu thập dữ liệu</span><span lang="en">No data collected</span></li>
+          <li><span lang="vi">Tiếng Việt &amp; English</span><span lang="en">Vietnamese &amp; English</span></li>
+        </ul>
+      </div>
+      <div class="stage reveal" style="--delay:.2s" aria-hidden="true">
+        <div class="halo"></div>
+        <div class="ring"></div>
+        <div class="bead"></div>
+        <span class="spark" style="--c:#FF7EB3;--r:min(42vw,232px);--d:14s"></span>
+        <span class="spark" style="--c:#60A5FA;--r:min(36vw,196px);--d:19s;animation-direction:reverse"></span>
+        <svg class="mark"><use href="#mark"/></svg>
+        <svg class="astro"><use href="#astronaut"/></svg>
+        <svg class="planet"><use href="#planet"/></svg>
+      </div>
+    </header>
+  </div>
+
+  <!-- Showcase -->
+  <section aria-labelledby="h-show">
+    <div class="wrap showcase">
+      <div class="phone reveal" aria-hidden="true">
+        <div class="screen">
+          <div class="stars"></div>
+          <div class="greet"><span lang="vi">Chào buổi sáng</span><span lang="en">Good morning</span>
+            <b lang="vi">Thử thách hôm nay</b><b lang="en">Today's challenge</b></div>
+          <div class="card today">
+            <span class="chip">💪 <span lang="vi">Sức khỏe</span><span lang="en">Health</span></span>
+            <h3 lang="vi">Đi bộ 500m mà không dùng điện thoại</h3><h3 lang="en">Walk 500m without your phone</h3>
+            <p lang="vi">Để đầu óc được nghỉ, chỉ đi và nhìn xung quanh.</p><p lang="en">Let your head rest — just walk and look around.</p>
+            <div class="meta"><span lang="vi">Dễ</span><span lang="en">Easy</span><span lang="vi">10 phút</span><span lang="en">10 min</span><span class="xp">+10 XP</span></div>
+            <span class="go"><span lang="vi">Bắt đầu</span><span lang="en">Start</span></span>
+          </div>
+          <div class="card">
+            <div class="streak">
+              <span class="n"><span class="fire">🔥</span><span id="streakN">6</span></span>
+              <small lang="vi">ngày liên tiếp</small><small lang="en">day streak</small>
+            </div>
+            <div class="week" id="week"></div>
+          </div>
+          <div class="card level">
+            <span class="xp-pop" id="xpPop">+10 XP</span>
+            <div class="row"><b>Level 3</b><span id="xpText">70 / 300 XP</span></div>
+            <div class="bar"><span id="xpBar"></span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="kicker reveal" lang="vi">Mỗi ngày một việc nhỏ</p><p class="kicker reveal" lang="en">One small thing a day</p>
+        <h2 id="h-show" class="reveal" style="--delay:.06s">
+          <span lang="vi">Đủ nhỏ để bắt đầu.<br><span class="grad-text">Đủ đều để thay đổi.</span></span>
+          <span lang="en">Small enough to start.<br><span class="grad-text">Steady enough to change.</span></span>
+        </h2>
+        <ul class="features">
+          <li class="reveal" style="--delay:.1s"><span class="ic" aria-hidden="true">🎯</span>
+            <div><b lang="vi">Hơn 200 thử thách</b><b lang="en">200+ challenges</b>
+              <span lang="vi">Chia đều 6 lĩnh vực và 3 độ khó, tăng dần theo level của bạn.</span>
+              <span lang="en">Spread across 6 areas and 3 difficulty levels that grow with your level.</span></div></li>
+          <li class="reveal" style="--delay:.16s"><span class="ic" aria-hidden="true">🔥</span>
+            <div><b lang="vi">XP, level và chuỗi ngày</b><b lang="en">XP, levels and streaks</b>
+              <span lang="vi">Mỗi ngày làm xong là một ngọn lửa trên dải tuần. Lỡ một ngày cũng không sao.</span>
+              <span lang="en">Every finished day lights a flame on your week. Missing one is fine.</span></div></li>
+          <li class="reveal" style="--delay:.22s"><span class="ic" aria-hidden="true">🔔</span>
+            <div><b lang="vi">Nhắc nhẹ, đúng giờ bạn chọn</b><b lang="en">Gentle reminders, on your schedule</b>
+              <span lang="vi">Không nhắc khi bạn đã xong việc hôm nay.</span>
+              <span lang="en">It stays quiet once today is done.</span></div></li>
+          <li class="reveal" style="--delay:.28s"><span class="ic" aria-hidden="true">✨</span>
+            <div><b lang="vi">Chia sẻ thành tích</b><b lang="en">Share your wins</b>
+              <span lang="vi">Tạo thẻ ảnh đẹp để khoe chuỗi ngày với bạn bè.</span>
+              <span lang="en">Turn your streak into a card worth sharing.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1% math -->
+  <section aria-labelledby="h-math">
+    <div class="wrap">
+      <div class="math reveal">
+        <p class="kicker" lang="vi">Sức mạnh của 1%</p><p class="kicker" lang="en">The power of 1%</p>
+        <h2 id="h-math" class="sr" style="position:absolute;left:-9999px"><span lang="vi">Tốt hơn 37 lần sau một năm</span><span lang="en">37 times better after a year</span></h2>
+        <div class="big grad-text" aria-hidden="true">×<span id="count">1</span></div>
+        <div class="formula" aria-hidden="true"><code>1.01<sup>365</sup> ≈ 37.8</code><code>0.99<sup>365</sup> ≈ 0.03</code></div>
+        <blockquote>
+          <span lang="vi">“Tốt hơn 1% mỗi ngày nghĩa là tốt hơn 37 lần sau một năm.”</span>
+          <span lang="en">“1% better every day is 37 times better after a year.”</span>
+          <cite>— 1% HUMAN</cite>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section aria-labelledby="h-cats">
+    <div class="wrap center">
+      <p class="kicker reveal" lang="vi">6 lĩnh vực</p><p class="kicker reveal" lang="en">6 areas</p>
+      <h2 id="h-cats" class="reveal"><span lang="vi">Lớn lên ở mọi mặt</span><span lang="en">Grow in every direction</span></h2>
+      <p class="sub reveal"><span lang="vi">Chọn những lĩnh vực bạn quan tâm, ứng dụng sẽ ưu tiên chúng và nhắc bạn thử những mặt còn ít khám phá.</span>
+        <span lang="en">Pick the areas you care about. The app favours them and nudges you towards the ones you rarely explore.</span></p>
+      <div class="cats" style="text-align:left">
+        <div class="cat reveal" style="--c:#34D399;--delay:.0s"><span class="em" aria-hidden="true">💪</span><h3><span lang="vi">Sức khỏe</span><span lang="en">Health</span></h3>
+          <p lang="vi">Vận động nhẹ, ngủ đủ, ăn uống tử tế.</p><p lang="en">Move a little, sleep well, eat kindly.</p></div>
+        <div class="cat reveal" style="--c:#FB7BAA;--delay:.06s"><span class="em" aria-hidden="true">💗</span><h3><span lang="vi">Mối quan hệ</span><span lang="en">Relationships</span></h3>
+          <p lang="vi">Một lời hỏi thăm, một cái ôm, một lời cảm ơn.</p><p lang="en">A check-in, a hug, a thank-you.</p></div>
+        <div class="cat reveal" style="--c:#FBBF24;--delay:.12s"><span class="em" aria-hidden="true">🌱</span><h3><span lang="vi">Phát triển bản thân</span><span lang="en">Self Growth</span></h3>
+          <p lang="vi">Học điều mới, hiểu mình hơn mỗi ngày.</p><p lang="en">Learn something new, know yourself better.</p></div>
+        <div class="cat reveal" style="--c:#FB923C;--delay:.18s"><span class="em" aria-hidden="true">🎨</span><h3><span lang="vi">Sáng tạo</span><span lang="en">Creativity</span></h3>
+          <p lang="vi">Vẽ, viết, làm ra thứ gì đó của riêng bạn.</p><p lang="en">Draw, write, make something that's yours.</p></div>
+        <div class="cat reveal" style="--c:#22D3EE;--delay:.24s"><span class="em" aria-hidden="true">💰</span><h3><span lang="vi">Tài chính</span><span lang="en">Finance</span></h3>
+          <p lang="vi">Hiểu tiền đi đâu, giữ lại nhiều hơn một chút.</p><p lang="en">See where money goes, keep a bit more.</p></div>
+        <div class="cat reveal" style="--c:#A78BFA;--delay:.3s"><span class="em" aria-hidden="true">🌍</span><h3><span lang="vi">Trải nghiệm cuộc sống</span><span lang="en">Life Experience</span></h3>
+          <p lang="vi">Đi đường mới, thử món mới, ngắm bầu trời.</p><p lang="en">Take a new route, try a new dish, look up.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section aria-labelledby="h-how">
+    <div class="wrap center">
+      <p class="kicker reveal" lang="vi">Cách hoạt động</p><p class="kicker reveal" lang="en">How it works</p>
+      <h2 id="h-how" class="reveal"><span lang="vi">Ba bước, mỗi ngày</span><span lang="en">Three steps, every day</span></h2>
+      <div class="steps" style="text-align:left">
+        <div class="step reveal"><div class="num">1</div>
+          <h3 lang="vi">Nhận thử thách</h3><h3 lang="en">Get your challenge</h3>
+          <p lang="vi">Mỗi sáng có một thử thách hợp với bạn. Không thích? Đổi tối đa 3 lần mỗi ngày.</p>
+          <p lang="en">Each morning brings a challenge picked for you. Not feeling it? Swap up to 3 times a day.</p></div>
+        <div class="step reveal" style="--delay:.08s"><div class="num">2</div>
+          <h3 lang="vi">Làm trong ngày</h3><h3 lang="en">Do it today</h3>
+          <p lang="vi">Phần lớn chỉ mất 5 đến 20 phút, có hướng dẫn từng bước.</p>
+          <p lang="en">Most take 5 to 20 minutes, with step-by-step guidance.</p></div>
+        <div class="step reveal" style="--delay:.16s"><div class="num">3</div>
+          <h3 lang="vi">Nhận XP, lên level</h3><h3 lang="en">Earn XP, level up</h3>
+          <p lang="vi">Độ khó tăng dần theo level để bạn luôn tiến thêm một chút.</p>
+          <p lang="en">Difficulty grows with your level so there's always a little further to go.</p>
+          <div class="xpline"><span lang="vi">Dễ +10</span><span lang="en">Easy +10</span><span lang="vi">Vừa +20</span><span lang="en">Medium +20</span><span lang="vi">Khó +35</span><span lang="en">Hard +35</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy -->
+  <section aria-labelledby="h-priv">
+    <div class="wrap">
+      <div class="privacy reveal">
+        <div class="shield" aria-hidden="true">
+          <svg viewBox="0 0 100 100"><path d="M50 8 84 20v26c0 23-15 38-34 46C31 84 16 69 16 46V20Z" fill="none" stroke="url(#brand)" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M35 50 46 61 66 39" fill="none" stroke="#34D399" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="kicker" lang="vi">Quyền riêng tư</p><p class="kicker" lang="en">Privacy</p>
+          <h2 id="h-priv"><span lang="vi">Dữ liệu của bạn ở lại trên máy bạn</span><span lang="en">Your data stays on your phone</span></h2>
+          <ul class="pills">
+            <li><span lang="vi">Hoạt động hoàn toàn ngoại tuyến</span><span lang="en">Works completely offline</span></li>
+            <li><span lang="vi">Không tài khoản, không đăng nhập</span><span lang="en">No account, no sign-in</span></li>
+            <li><span lang="vi">Không thu thập hay gửi dữ liệu đi đâu</span><span lang="en">Nothing is collected or sent anywhere</span></li>
+            <li><span lang="vi">Tự xuất / nhập bản sao lưu khi đổi máy</span><span lang="en">Export and import your own backup</span></li>
+          </ul>
+          <p style="margin:22px 0 0"><a href="privacy/privacy-policy.html"><span lang="vi">Đọc chính sách quyền riêng tư →</span><span lang="en">Read the privacy policy →</span></a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final" aria-labelledby="h-final">
+    <div class="wrap">
+      <h2 id="h-final" class="reveal"><span lang="vi">Bắt đầu với <span class="grad-text">1%</span> hôm nay</span><span lang="en">Start with <span class="grad-text">1%</span> today</span></h2>
+      <p class="sub reveal" style="margin:0 auto"><span lang="vi">Không cần thay đổi cả cuộc đời. Chỉ cần một việc nhỏ, ngay hôm nay.</span>
+        <span lang="en">You don't need to change your whole life. Just one small thing, today.</span></p>
+      <div class="ctas reveal">
+        <a class="btn primary" href="https://play.google.com/store/apps/details?id=dev.lildua.oddly">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.2 2.6c-.3.2-.5.6-.5 1.1v16.6c0 .5.2.9.5 1.1l9.3-9.4L4.2 2.6Zm10.6 9.9 2.6 2.6-11 6.3 8.4-8.9Zm0-1L6.4 2.6l11 6.3-2.6 2.6Zm3.7-1.8 3 1.7c.8.5.8 1.7 0 2.2l-3 1.7-2.8-2.8 2.8-2.8Z"/></svg>
+          <span class="two"><small lang="vi">Tải trên</small><small lang="en">Get it on</small>Google Play</span>
+        </a>
+        <span class="btn ghost" aria-disabled="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.7c0-2.4 2-3.5 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.4-.9-2.4-4ZM14 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4Z"/></svg>
+          <span class="two"><small lang="vi">Sắp có trên</small><small lang="en">Coming soon to</small>App Store</span>
+        </span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Lil Dua · 1% HUMAN</span>
+    <nav aria-label="Liên kết">
+      <a href="privacy/privacy-policy.html"><span lang="vi">Chính sách quyền riêng tư</span><span lang="en">Privacy policy</span></a>
+      <span><span lang="vi">Liên hệ &amp; góp ý:</span><span lang="en">Contact &amp; feedback:</span> <a href="mailto:huuthom.it@gmail.com">huuthom.it@gmail.com</a></span>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  root.classList.add('js');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- Language: ?lang= > saved choice > browser language. Saved locally only. ---- */
+  var copy = {
+    vi: { title: '1% HUMAN — Mỗi ngày tốt hơn 1%', nav: 'Trang', foot: 'Liên kết' },
+    en: { title: '1% HUMAN — 1% better every day', nav: 'Page', foot: 'Links' }
+  };
+  function setLang(lang, save) {
+    if (lang !== 'vi' && lang !== 'en') return;
+    root.setAttribute('lang', lang); root.setAttribute('data-lang', lang);
+    document.title = copy[lang].title;
+    document.querySelector('body > nav').setAttribute('aria-label', copy[lang].nav);
+    document.querySelector('footer nav').setAttribute('aria-label', copy[lang].foot);
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang));
+    });
+    if (save) { try { localStorage.setItem('oddly.lang', lang); } catch (e) {} }
+  }
+  var initial = new URLSearchParams(location.search).get('lang');
+  if (!initial) { try { initial = localStorage.getItem('oddly.lang'); } catch (e) {} }
+  if (!initial) initial = /^vi\b/i.test(navigator.language || 'vi') ? 'vi' : 'en';
+  setLang(initial, false);
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-set-lang'), true); });
+  });
+
+  /* ---- Starfield: fixed seed like StarField(seed = 7) in the app, twinkling. ---- */
+  var sky = document.getElementById('sky'), ctx = sky.getContext('2d'), stars = [], seed = 7;
+  function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+  for (var i = 0; i < 140; i++) stars.push({ x: rand(), y: rand(), r: rand() * 1.4 + 0.4, a: rand() * 0.5 + 0.15, p: rand() * 6.28, s: 0.6 + rand() * 1.4 });
+  function size() { var d = Math.min(window.devicePixelRatio || 1, 2); sky.width = innerWidth * d; sky.height = innerHeight * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+  function draw(t) {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (var i = 0; i < stars.length; i++) {
+      var st = stars[i], tw = reduce ? 1 : 0.55 + 0.45 * Math.sin(t / 1000 * st.s + st.p);
+      ctx.globalAlpha = st.a * tw; ctx.beginPath();
+      ctx.arc(st.x * innerWidth, st.y * innerHeight, st.r, 0, 6.2832); ctx.fillStyle = '#fff'; ctx.fill();
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  size(); addEventListener('resize', function () { size(); if (reduce) draw(0); });
+  reduce ? draw(0) : requestAnimationFrame(draw);
+
+  /* ---- Scroll reveal ---- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
+    revealEls.forEach(function (el) { io.observe(el); });
+  } else { revealEls.forEach(function (el) { el.classList.add('in'); }); }
+
+  /* ---- Phone demo: the week fills in, the streak ticks up, XP lands on the level bar. ---- */
+  var labels = { vi: ['T2','T3','T4','T5','T6','T7','CN'], en: ['M','T','W','T','F','S','S'] };
+  var week = document.getElementById('week'), dots = [];
+  for (var d = 0; d < 7; d++) {
+    var col = document.createElement('span'); col.className = 'day';
+    var dot = document.createElement('i'); var lab = document.createElement('span');
+    col.appendChild(dot); col.appendChild(lab); week.appendChild(col); dots.push({ dot: dot, lab: lab });
+  }
+  function paintLabels() { var l = labels[root.getAttribute('data-lang')] || labels.vi; dots.forEach(function (o, k) { o.lab.textContent = l[k]; }); }
+  paintLabels();
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.addEventListener('click', paintLabels); });
+
+  var streakN = document.getElementById('streakN'), bar = document.getElementById('xpBar'),
+      xpText = document.getElementById('xpText'), pop = document.getElementById('xpPop');
+  function resetDemo() {
+    dots.forEach(function (o, k) { o.dot.className = k < 6 ? 'on' : 'today'; o.dot.textContent = ''; });
+    streakN.textContent = '6'; bar.style.width = '23%'; xpText.textContent = '70 / 300 XP';
+  }
+  function playDemo() {
+    resetDemo();
+    setTimeout(function () {
+      dots[6].dot.className = 'on'; streakN.textContent = '7';
+      pop.classList.remove('go-up'); void pop.offsetWidth; pop.classList.add('go-up');
+      bar.style.width = '27%'; xpText.textContent = '80 / 300 XP';
+    }, 1400);
+  }
+  resetDemo();
+  if (!reduce && 'IntersectionObserver' in window) {
+    var timer = null;
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting && !timer) { playDemo(); timer = setInterval(playDemo, 5200); }
+        else if (!e.isIntersecting && timer) { clearInterval(timer); timer = null; }
+      });
+    }, { threshold: 0.4 }).observe(document.querySelector('.phone'));
+  } else { dots[6].dot.className = 'on'; streakN.textContent = '7'; bar.style.width = '27%'; xpText.textContent = '80 / 300 XP'; }
+
+  /* ---- ×1 → ×37.8 as 1.01^day for day 0..365 ---- */
+  var count = document.getElementById('count'), done = false;
+  function fmt(v) { return v < 10 ? v.toFixed(2) : v.toFixed(1); }
+  function runCount() {
+    if (done) return; done = true;
+    if (reduce) { count.textContent = '37.8'; return; }
+    var start = null, dur = 2600;
+    function step(ts) {
+      if (!start) start = ts;
+      var k = Math.min(1, (ts - start) / dur), eased = 1 - Math.pow(1 - k, 3);
+      count.textContent = fmt(Math.pow(1.01, 365 * eased));
+      if (k < 1) requestAnimationFrame(step); else count.textContent = '37.8';
+    }
+    requestAnimationFrame(step);
+  }
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { runCount(); o.disconnect(); } }, { threshold: 0.5 }).observe(document.querySelector('.math'));
+  } else { runCount(); }
+})();
+</script>
+</body>
+</html>

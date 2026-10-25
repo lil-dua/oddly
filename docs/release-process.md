@@ -19,6 +19,7 @@ Giới hạn: Play ≤ 500 ký tự, App Store ≤ 4000 ký tự.
 2. Android: `./gradlew :androidApp:bundleRelease` (AAB đã kèm mapping R8 tại `BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`).
 3. iOS: Xcode Archive (Release có dSYM); giữ "Upload symbols" bật khi export/upload.
 4. Kiểm tra version trên bản build trước khi upload.
+5. Landing `lil-dua.github.io/projects/oddly/` trả 200; sau T-17 điền `Brand.APP_STORE_ID` và link App Store trên landing.
 
 ## 4. Giám sát crash (không SDK)
 - Android: Play Console, Android vitals, Crashes & ANRs. Chỉ gồm người dùng bật chia sẻ chẩn đoán; stack trace được giải mã bằng mapping trong AAB.

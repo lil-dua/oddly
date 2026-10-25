@@ -238,12 +238,15 @@ private struct ShareCardPreview: View {
                     .foregroundStyle(OddlyColors.purple)
                     .padding(.top, 16)
 
-                HStack(spacing: 6) {
+                // Two centred lines: the link is too long to share a row with
+                // the lead at 312pt, and this does not depend on its length.
+                VStack(spacing: 2) {
                     Text(strings.shareCtaLead)
                         .foregroundStyle(palette.textTertiary)
-                    Text(Brand.shared.SHORT_LINK)
+                    Text(Brand.shared.WEBSITE_DISPLAY)
                         .foregroundStyle(palette.textPrimary)
                 }
+                .multilineTextAlignment(.center)
                 .oddlyFont(OddlyFont.bodySmall)
                 .padding(.top, 6)
             }
